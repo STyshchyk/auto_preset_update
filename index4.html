@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Betaflight Manager (Auto-Port & Dropdown)</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --border: #333333;
+      --primary: #ffaa00;
+      --primary-hover: #e09600;
+      --secondary: #00aaee;
+      --secondary-hover: #0088cc;
+      --text: #e0e0e0;
+      --terminal: #00ff66;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 30px 15px;
+      margin: 0;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 740px;
+      width: 100%;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge {
+      font-size: 11px;
+      background: #333;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #aaa;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #bbb;
+    }
+
+    textarea {
+      width: 100%;
+      height: 180px;
+      background: #181818;
+      color: #eee;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      box-sizing: border-box;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+
+    .port-selector-bar {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: #252525;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .port-selector-bar label {
+      margin: 0;
+      white-space: nowrap;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    select {
+      background: #181818;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+      flex-grow: 1;
+    }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 18px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      border: none;
+      transition: background 0.15s ease;
+    }
+
+    .btn-flash {
+      background: var(--primary);
+      color: #000;
+    }
+    .btn-flash:hover { background: var(--primary-hover); }
+
+    .btn-backup {
+      background: var(--secondary);
+      color: #000;
+    }
+    .btn-backup:hover { background: var(--secondary-hover); }
+
+    button:disabled {
+      background: #444 !important;
+      cursor: not-allowed !important;
+      color: #777 !important;
+    }
+
+    #log {
+      margin-top: 15px;
+      background: #080808;
+      color: var(--terminal);
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      padding: 12px;
+      border-radius: 6px;
+      height: 180px;
+      overflow-y: auto;
+      font-size: 12px;
+      white-space: pre-wrap;
+      border: 1px solid #222;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-box {
+      background: #202020;
+      padding: 24px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-box.success { border-left: 8px solid #00ff66; }
+    .modal-box.error { border-left: 8px solid #ff3333; }
+    .modal-box h3 { margin-top: 0; font-size: 18px; }
+    .modal-box p { font-size: 14px; line-height: 1.4; color: #ccc; }
+
+    .btn-close {
+      margin-top: 15px;
+      background: #333;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>
+    Betaflight Manager
+    <span class="badge">Target: SPEDIXF722</span>
+  </h2>
+
+  <label for="presetInput">Команди пресету / dump / diff для заливання:</label>
+  <textarea id="presetInput">defaults nosave
+
+
+# version
+# Betaflight / STM32F7X2 (S7X2) 4.5.2 Jun 11 2026 / 17:04:15 (024f8e13d) MSP API: 1.46
+# config rev: 0373314
+
+# start the command batch
+batch start
+
+# reset configuration to default settings`123
+defaults nosave
+
+board_name SPEDIXF722
+manufacturer_id SPDX
+mcu_id 004e00313135511734343739
+signature
+
+# name: T-System 13
+
+# resources
+resource MOTOR 5 NONE
+resource SERVO 1 B06
+resource LED_STRIP 1 C14
+resource LED 1 NONE
+
+# feature
+feature SERVO_TILT
+feature OSD
+
+# servo
+servo 0 1000 2000 1500 100 7
+
+# beeper
+beeper -GYRO_CALIBRATED
+beeper -RX_LOST
+beeper -RX_LOST_LANDING
+beeper -DISARMING
+beeper -ARMING
+beeper -ARMING_GPS_FIX
+beeper -BAT_CRIT_LOW
+beeper -BAT_LOW
+beeper -GPS_STATUS
+beeper -RX_SET
+beeper -ACC_CALIBRATION
+beeper -ACC_CALIBRATION_FAIL
+beeper -READY_BEEP
+beeper -DISARM_REPEAT
+beeper -ARMED
+beeper -SYSTEM_INIT
+beeper -ON_USB
+beeper -BLACKBOX_ERASE
+beeper -CRASH_FLIP
+beeper -CAM_CONNECTION_OPEN
+beeper -CAM_CONNECTION_CLOSE
+beeper -RC_SMOOTHING_INIT_FAIL
+
+# aux
+aux 0 0 0 1700 2100 0 0
+aux 1 1 2 1300 1700 0 0
+aux 2 2 2 1700 2100 0 0
+aux 3 40 1 1500 2100 0 0
+aux 4 40 0 900 900 0 33
+
+# adjrange
+adjrange 0 0 3 900 2100 29 3 0 0
+
+# vtxtable
+vtxtable bands 8
+vtxtable channels 8
+vtxtable band 1 BOSCAM_A A CUSTOM  5865 5845 5825 5805 5785 5765 5745 5725
+vtxtable band 2 BOSCAM_B B CUSTOM  5733 5752 5771 5790 5809 5828 5847 5866
+vtxtable band 3 BOSCAM_E E CUSTOM  5705 5685 5665 5645 5885 5905 5925 5945
+vtxtable band 4 FATSHARK F CUSTOM  5740 5760 5780 5800 5820 5840 5860 5880
+vtxtable band 5 RACEBAND R CUSTOM  5658 5695 5732 5769 5806 5843 5880 5917
+vtxtable band 6 LOWRACE  L CUSTOM  5362 5399 5436 5473 5510 5547 5584 5621
+vtxtable band 7 BOSCAM   H CUSTOM  5653 5693 5733 5773 5813 5853 5893 5933
+vtxtable band 8 BOSCAM   X CUSTOM  4990 5020 5055 5080 5110 5140 5170 5200
+vtxtable powerlevels 6
+vtxtable powervalues 25 400 800 1500 3000 0
+vtxtable powerlabels 25 400 800 1.5 3.0 0MW
+
+# master
+set gyro_lpf1_type = PT2
+set gyro_lpf1_static_hz = 0
+set gyro_lpf2_type = PT2
+set gyro_lpf2_static_hz = 0
+set dyn_notch_q = 450
+set dyn_notch_min_hz = 60
+set gyro_lpf1_dyn_min_hz = 75
+set gyro_lpf1_dyn_max_hz = 150
+set acc_calibration = 14,-15,22,1
+set blackbox_sample_rate = 1/2
+set dshot_idle_value = 250
+set failsafe_throttle = 1280
+set vbat_min_cell_voltage = 260
+set vbat_warning_cell_voltage = 300
+set beeper_dshot_beacon_tone = 5
+set yaw_motors_reversed = ON
+set small_angle = 45
+set pid_process_denom = 2
+set simplified_gyro_filter_multiplier = 30
+set osd_vbat_pos = 14625
+set osd_rssi_pos = 87
+set osd_link_quality_pos = 55
+set osd_tim_2_pos = 14743
+set osd_flymode_pos = 14712
+set osd_throttle_pos = 14563
+set osd_vtx_channel_pos = 33
+set osd_crosshairs_pos = 14573
+set osd_ah_pos = 14446
+set osd_current_pos = 14688
+set osd_mah_drawn_pos = 14722
+set osd_motor_diag_pos = 377
+set osd_craft_name_pos = 14380
+set osd_pilot_name_pos = 72
+set osd_gps_speed_pos = 14584
+set osd_gps_lon_pos = 14353
+set osd_gps_lat_pos = 14336
+set osd_gps_sats_pos = 14394
+set osd_home_dir_pos = 72
+set osd_home_dist_pos = 14369
+set osd_flight_dist_pos = 14679
+set osd_altitude_pos = 14699
+set osd_warnings_pos = 14729
+set osd_avg_cell_voltage_pos = 14657
+set osd_pit_ang_pos = 161
+set osd_rol_ang_pos = 129
+set osd_disarmed_pos = 14634
+set osd_esc_rpm_freq_pos = 216
+set osd_core_temp_pos = 2359
+set osd_profile_name_pos = 14465
+set osd_sys_delay_pos = 336
+set osd_sys_lq_pos = 88
+set osd_stat_bitmask = 4472620
+set osd_profile_1_name = !Safe!
+set osd_profile_2_name = !Active!
+set osd_profile_3_name = !!Boom!!
+set osd_displayport_device = AUTO
+set osd_canvas_width = 30
+set osd_canvas_height = 13
+set debug_mode = FFT_FREQ
+set vtx_band = 3
+set vtx_channel = 3
+set vtx_power = 1
+set vtx_freq = 5665
+set vcd_video_system = AUTO
+set craft_name = T-System 13
+
+profile 0
+
+# profile 0
+set dterm_lpf1_dyn_min_hz = 37
+set dterm_lpf1_dyn_max_hz = 75
+set dterm_lpf1_dyn_expo = 7
+set dterm_lpf1_type = PT3
+set dterm_lpf1_static_hz = 37
+set dterm_lpf2_static_hz = 75
+set anti_gravity_gain = 35
+set iterm_rotation = ON
+set iterm_relax_type = GYRO
+set iterm_relax_cutoff = 6
+set yaw_lowpass_hz = 0
+set i_pitch = 63
+set d_pitch = 50
+set f_pitch = 93
+set i_roll = 60
+set d_roll = 44
+set f_roll = 90
+set i_yaw = 60
+set f_yaw = 90
+set d_min_roll = 33
+set d_min_pitch = 37
+set feedforward_jitter_factor = 10
+set simplified_i_gain = 75
+set simplified_d_gain = 110
+set simplified_feedforward_gain = 75
+set simplified_dterm_filter_multiplier = 50
+
+profile 1
+
+profile 2
+
+profile 3
+
+# restore original profile selection
+profile 0
+
+rateprofile 0
+
+# rateprofile 0
+set roll_srate = 35
+set pitch_srate = 35
+set yaw_srate = 35
+
+rateprofile 1
+
+rateprofile 2
+
+rateprofile 3
+
+# restore original rateprofile selection
+rateprofile 2
+
+# save configuration</textarea>
+
+  <!-- Блок вибору порту у стилі Betaflight -->
+  <div class="port-selector-bar">
+    <label for="portSelect">Порт:</label>
+    <select id="portSelect">
+      <option value="new">+ Обрати / Додати новий порт...</option>
+    </select>
+  </div>
+
+  <div class="controls">
+    <button id="btnFlash" class="btn-flash">Підключити та прошити</button>
+    <select id="backupType">
+      <option value="diff all">diff all (лише зміни)</option>
+      <option value="dump all">dump all (повний бекап)</option>
+    </select>
+    <button id="btnBackup" class="btn-backup">Зберегти бекап у файл</button>
+  </div>
+
+  <div id="log">Очікування дій...</div>
+</div>
+
+<div id="statusModal" class="modal">
+  <div id="modalBox" class="modal-box">
+    <h3 id="modalTitle">Статус</h3>
+    <p id="modalMsg"></p>
+    <button class="btn-close" onclick="closeModal()">Закрити</button>
+  </div>
+</div>
+
+<script>
+  let port = null;
+  let availablePorts = []; // Масив збережених портів
+  const logDiv = document.getElementById('log');
+  const btnFlash = document.getElementById('btnFlash');
+  const btnBackup = document.getElementById('btnBackup');
+  const portSelect = document.getElementById('portSelect');
+  const backupTypeSelect = document.getElementById('backupType');
+
+  function log(msg) {
+    logDiv.textContent += msg + '\n';
+    logDiv.scrollTop = logDiv.scrollHeight;
+  }
+
+  function showPopup(type, title, message) {
+    const modal = document.getElementById('statusModal');
+    const box = document.getElementById('modalBox');
+    box.className = 'modal-box ' + type;
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalMsg').textContent = message;
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('statusModal').style.display = 'none';
+  }
+
+  const delay = ms => new Promise(res => setTimeout(res, ms));
+
+  function setButtonsDisabled(state) {
+    btnFlash.disabled = state;
+    btnBackup.disabled = state;
+    portSelect.disabled = state;
+    backupTypeSelect.disabled = state;
+  }
+
+  // Оновлення списку збережених портів із пріоритизацією Betaflight/STM32
+  async function refreshPortList() {
+    if (!('serial' in navigator)) return;
+
+    availablePorts = await navigator.serial.getPorts();
+    portSelect.innerHTML = '';
+
+    let bestIndex = -1;
+
+    availablePorts.forEach((p, idx) => {
+      const info = p.getInfo();
+      const vid = info.usbVendorId ? '0x' + info.usbVendorId.toString(16).padStart(4, '0') : null;
+      const pid = info.usbProductId ? '0x' + info.usbProductId.toString(16).padStart(4, '0') : null;
+
+      let label = `Пристрій ${idx + 1}`;
+      let isBetaflight = false;
+      console.log(JSON.stringify(info, null, 2));
+
+      // STMicroelectronics VCP (STM32F4/F7/G4): VID 0x0483 (1155)
+      if (info.usbVendorId === 0x0483 || info.usbVendorId === 1155) {
+        label = `Betaflight STM32 (VID:${vid} PID:${pid})`;
+        isBetaflight = true;
+      } else if (vid && pid) {
+        label = `USB Serial (VID:${vid} PID:${pid})`;
+      }
+
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = label;
+      portSelect.appendChild(opt);
+
+      // Пріоритет віддається польотнику Betaflight
+      if (isBetaflight && bestIndex === -1) {
+        bestIndex = idx;
+      }
+    });
+
+    // Опція для ручного запиту нового пристрою
+    const optNew = document.createElement('option');
+    optNew.value = 'new';
+    optNew.textContent = '+ Обрати / Додати новий порт...';
+    portSelect.appendChild(optNew);
+
+    if (bestIndex !== -1) {
+      portSelect.value = bestIndex;
+      log(`Автовизначено порт Betaflight (номер ${bestIndex + 1}).`);
+    } else if (availablePorts.length > 0) {
+      portSelect.value = 0;
+    } else {
+      portSelect.value = 'new';
+    }
+  }
+
+  // Оновлювати дропдаун при підключенні/відключенні USB
+  if ('serial' in navigator) {
+    navigator.serial.addEventListener('connect', () => {
+      log('Виявлено підключення пристрою на USB. Оновлення списку...');
+      refreshPortList();
+    });
+    navigator.serial.addEventListener('disconnect', () => {
+      log('USB-пристрій відключено.');
+      refreshPortList();
+    });
+    refreshPortList();
+  }
+
+  // Отримання обраного порту (або запит нового через системне вікно)
+  async function resolveSelectedPort() {
+    const selectedVal = portSelect.value;
+    if (selectedVal === 'new' || !availablePorts[selectedVal]) {
+      log('Відкриття системного вікна вибору порту...');
+      const requestedPort = await navigator.serial.requestPort();
+      await refreshPortList();
+      return requestedPort;
+    } else {
+      log(`Використання збереженого порту: ${portSelect.options[portSelect.selectedIndex].text}`);
+      return availablePorts[selectedVal];
+    }
+  }
+
+  function downloadTextFile(filename, text) {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function readCliResponse(reader, timeoutMs = 2500, stopOnPrompt = true) {
+    let output = '';
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const { value, done } = await Promise.race([
+        reader.read(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 200))
+      ]).catch(() => ({ value: null, done: false }));
+
+      if (done) break;
+      if (value) {
+        output += value;
+        if (stopOnPrompt && (output.includes('\n# ') || output.trim().endsWith('#'))) {
+          break;
+        }
+      }
+    }
+    return output;
+  }
+
+  function parseBoardName(text) {
+    if (!text) return null;
+    const nameMatch = text.match(/name:\s*([A-Za-z0-9_-]+)/i);
+    if (nameMatch) return nameMatch[1].toUpperCase();
+
+    const boardNameMatch = text.match(/board_name\s+([A-Za-z0-9_-]+)/i);
+    if (boardNameMatch) return boardNameMatch[1].toUpperCase();
+
+    const boardMatch = text.match(/Board:\s*([A-Za-z0-9_-]+)/i);
+    if (boardMatch) return boardMatch[1].toUpperCase();
+
+    if (text.toUpperCase().includes('SPEDIXF722')) return 'SPEDIXF722';
+    return null;
+  }
+
+  // ==================== 1. ЗБЕРЕЖЕННЯ БЕКАПУ ====================
+  btnBackup.addEventListener('click', async () => {
+    if (!('serial' in navigator)) {
+      showPopup('error', 'Браузер не підтримується', 'Потрібен браузер із підтримкою Web Serial API.');
+      return;
+    }
+
+    setButtonsDisabled(true);
+    let reader = null;
+    let writer = null;
+    let textEncoder = null;
+    const cmd = backupTypeSelect.value;
+
+    try {
+      port = await resolveSelectedPort();
+      await port.open({ baudRate: 115200 });
+
+      textEncoder = new TextEncoderStream();
+      textEncoder.readable.pipeTo(port.writable);
+      writer = textEncoder.writable.getWriter();
+
+      const textDecoder = new TextDecoderStream();
+      port.readable.pipeTo(textDecoder.writable);
+      reader = textDecoder.readable.getReader();
+
+      await writer.write('#\r\n');
+      await delay(350);
+      let initEcho = await readCliResponse(reader, 800);
+      if (!initEcho.includes('#')) {
+        await writer.write('\r\n#\r\n');
+        await delay(350);
+        initEcho += await readCliResponse(reader, 800);
+      }
+
+      log('Зчитування даних плати...');
+      await writer.write('status\r\n');
+      await delay(150);
+      const statusText = await readCliResponse(reader, 1200);
+      const boardName = parseBoardName(initEcho + '\n' + statusText) || 'SPEDIXF722';
+      log(`Плата: ${boardName}`);
+
+      log(`Виконується команда "${cmd}"...`);
+      await writer.write(`${cmd}\r\n`);
+
+      let dumpContent = '';
+      const dumpStart = Date.now();
+      const maxDumpTime = 12000;
+
+      while (Date.now() - dumpStart < maxDumpTime) {
+        const chunk = await readCliResponse(reader, 1500, false);
+        if (chunk) {
+          dumpContent += chunk;
+          if (dumpContent.includes('\n# ') || dumpContent.trim().endsWith('#')) {
+            break;
+          }
+        }
+      }
+
+      if (!dumpContent || dumpContent.length < 80) {
+        throw new Error('Отримано порожню або обірвану відповідь від контролера.');
+      }
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const timeStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const filename = `BTFL_backup_${boardName}_${timeStr}.txt`;
+
+      downloadTextFile(filename, dumpContent);
+      log(`Файл збережено: ${filename}`);
+
+      try { await writer.write('exit\r\n'); await delay(250); } catch (_) {}
+      try { await reader.cancel(); reader.releaseLock(); } catch (_) {}
+      try { writer.releaseLock(); await textEncoder.readable.cancel(); } catch (_) {}
+      try { await port.close(); } catch (_) {}
+      port = null;
+
+      log('COM-порт успішно звільнено.');
+      showPopup('success', 'Бекап збережено', `Конфігурацію збережено у файл ${filename}. Порт вільний.`);
+
+    } catch (err) {
+      console.error(err);
+      log(`Помилка: ${err.message}`);
+      if (port) {
+        try { await port.close(); } catch (_) {}
+        port = null;
+      }
+      showPopup('error', 'Збій бекапу', err.message);
+    } finally {
+      setButtonsDisabled(false);
+    }
+  });
+
+  // ==================== 2. ЗАЛИВАННЯ ПРЕСЕТУ ==================== v1
+  // btnFlash.addEventListener('click', async () => {
+  //   if (!('serial' in navigator)) {
+  //     showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
+  //     return;
+  //   }
+  //
+  //   const script = document.getElementById('presetInput').value.trim();
+  //   if (!script) {
+  //     showPopup('error', 'Помилка', 'Поле пресету порожнє.');
+  //     return;
+  //   }
+  //
+  //   setButtonsDisabled(true);
+  //   let reader = null;
+  //   let writer = null;
+  //   let textEncoder = null;
+  //   let isRebooting = false;
+  //
+  //   try {
+  //     port = await resolveSelectedPort();
+  //     await port.open({ baudRate: 115200 });
+  //     log('Зʼєднання відкрито на 115200.');
+  //
+  //     textEncoder = new TextEncoderStream();
+  //     textEncoder.readable.pipeTo(port.writable);
+  //     writer = textEncoder.writable.getWriter();
+  //
+  //     const textDecoder = new TextDecoderStream();
+  //     port.readable.pipeTo(textDecoder.writable);
+  //     reader = textDecoder.readable.getReader();
+  //
+  //     log('Ініціалізація CLI (#)...');
+  //     await writer.write('#\r\n');
+  //     await delay(350);
+  //     let initEcho = await readCliResponse(reader, 800);
+  //
+  //     if (!initEcho.includes('#')) {
+  //       await writer.write('\r\n#\r\n');
+  //       await delay(350);
+  //       initEcho += await readCliResponse(reader, 800);
+  //     }
+  //
+  //     log('Зчитування даних плати...');
+  //     await writer.write('version\r\n');
+  //     await delay(150);
+  //     const verText = await readCliResponse(reader, 1200);
+  //
+  //     await writer.write('status\r\n');
+  //     await delay(150);
+  //     const statusText = await readCliResponse(reader, 1500);
+  //
+  //     const fullOutput = initEcho + '\n' + verText + '\n' + statusText;
+  //     let actualBoard = parseBoardName(fullOutput);
+  //
+  //     const expectedBoardMatch = script.match(/(?:board_name|#\s*target:?)\s+([A-Za-z0-9_-]+)/i);
+  //     const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].toUpperCase() : null;
+  //
+  //     log(`Очікувана плата: [${expectedBoard || 'Не вказана'}]`);
+  //     log(`Фактична плата: [${actualBoard || 'Не розпізнано'}]`);
+  //
+  //     if (expectedBoard && actualBoard) {
+  //       if (!actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
+  //         throw new Error(`НЕВІДПОВІДНІСТЬ ПЛАТИ! Пресет для [${expectedBoard}], але підключено [${actualBoard}].`);
+  //       }
+  //     } else if (!actualBoard) {
+  //       throw new Error('Не вдалося отримати ідентифікатор плати від контролера. Перевірте, чи закритий Betaflight Configurator.');
+  //     }
+  //
+  //     log(`Плата підтверджена: [${actualBoard}]. Заливання команд...`);
+  //
+  //     const lines = script.split('\n');
+  //     let containsSave = false;
+  //
+  //     for (let line of lines) {
+  //       line = line.trim();
+  //       if (!line || line.startsWith('#')) continue;
+  //       if (line.toLowerCase() === 'save') containsSave = true;
+  //
+  //       log(`> ${line}`);
+  //       await writer.write(line + '\r\n');
+  //       await delay(35);
+  //     }
+  //
+  //     isRebooting = true;
+  //     log('> save');
+  //     if (!containsSave) {
+  //       await writer.write('save\r\n');
+  //     }
+  //
+  //     await delay(400);
+  //
+  //     try { await reader.cancel(); reader.releaseLock(); } catch (_) {}
+  //     try { writer.releaseLock(); await textEncoder.readable.cancel(); } catch (_) {}
+  //     try { await port.close(); } catch (_) {}
+  //     port = null;
+  //
+  //     log('COM-порт звільнено.');
+  //     showPopup('success', 'Успішно', 'Пресет записано, контролер перезавантажився, COM-порт вільний.');
+  //
+  //   } catch (err) {
+  //     if (isRebooting || err.message.includes('device has been lost')) {
+  //       log('Контролер пішов на перезавантаження. Зʼєднання скинуто штатно.');
+  //       port = null;
+  //       showPopup('success', 'Успішно', 'Пресет застосовано! Контролер перезавантажився, COM-порт вільний.');
+  //     } else {
+  //       console.error(err);
+  //       log(`Помилка: ${err.message}`);
+  //       if (port) {
+  //         try { await port.close(); } catch (_) {}
+  //         port = null;
+  //       }
+  //       showPopup('error', 'Збій операції', err.message);
+  //     }
+  //   } finally {
+  //     setButtonsDisabled(false);
+  //   }
+  // });
+  btnFlash.addEventListener('click', async () => {
+    if (!('serial' in navigator)) {
+      showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
+      return;
+    }
+
+    const script = document.getElementById('presetInput').value.trim();
+    if (!script) {
+      showPopup('error', 'Помилка', 'Поле пресету порожнє.');
+      return;
+    }
+
+    setButtonsDisabled(true);
+    let reader = null;
+    let writer = null;
+    let textEncoder = null;
+    let isRebooting = false;
+
+    try {
+      // If port was left open from a prior run, close it first
+      if (port && port.readable) {
+        await closeSerialSession(port, reader, writer, textEncoder);
+        port = null;
+      }
+
+      port = await resolveSelectedPort();
+      await port.open({ baudRate: 115200 });
+      log('Зʼєднання відкрито на 115200.');
+
+      textEncoder = new TextEncoderStream();
+      textEncoder.readable.pipeTo(port.writable);
+      writer = textEncoder.writable.getWriter();
+
+      const textDecoder = new TextDecoderStream();
+      port.readable.pipeTo(textDecoder.writable);
+      reader = textDecoder.readable.getReader();
+
+      // 1. Enter CLI mode
+      log('Ініціалізація CLI (#)...');
+      await writer.write('#\r\n');
+      await delay(350);
+      let initEcho = await readCliResponse(reader, 800);
+
+      if (!initEcho.includes('#')) {
+        await writer.write('\r\n#\r\n');
+        await delay(350);
+        initEcho += await readCliResponse(reader, 800);
+      }
+
+      // 2. Query target identity
+      log('Зчитування даних плати...');
+      await writer.write('version\r\n');
+      await delay(150);
+      const verText = await readCliResponse(reader, 1200);
+
+      await writer.write('status\r\n');
+      await delay(150);
+      const statusText = await readCliResponse(reader, 1500);
+
+      const fullOutput = initEcho + '\n' + verText + '\n' + statusText;
+      let actualBoard = parseBoardName(fullOutput);
+
+      const expectedBoardMatch = script.match(/(?:board_name|#\s*target:?)\s+([A-Za-z0-9_-]+)/i);
+      const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].toUpperCase() : null;
+
+      log(`Очікувана плата: [${expectedBoard || 'Не вказана'}]`);
+      log(`Фактична плата: [${actualBoard || 'Не розпізнано'}]`);
+
+      // 3. Target verification & graceful exit on mismatch
+      if (expectedBoard && actualBoard) {
+        if (!actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
+          // Send exit to leave CLI cleanly on the mismatched board
+          try {
+            await writer.write('exit\r\n');
+            await delay(200);
+          } catch (_) {}
+
+          throw new Error(`НЕВІДПОВІДНІСТЬ ПЛАТИ! Пресет для [${expectedBoard}], але підключено [${actualBoard}].`);
+        }
+      } else if (!actualBoard) {
+        throw new Error('Не вдалося отримати ідентифікатор плати від контролера. Перевірте, чи закритий Betaflight Configurator.');
+      }
+
+      log(`Плата підтверджена: [${actualBoard}]. Заливання команд...`);
+
+      // 4. Send configuration commands
+      const lines = script.split('\n');
+      let containsSave = false;
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line || line.startsWith('#')) continue;
+        if (line.toLowerCase() === 'save') containsSave = true;
+
+        log(`> ${line}`);
+        await writer.write(line + '\r\n');
+        await delay(35);
+      }
+
+      // 5. Save & Reboot
+      isRebooting = true;
+      log('> save');
+      if (!containsSave) {
+        await writer.write('save\r\n');
+      }
+
+      await delay(400);
+
+      // Clean normal shutdown
+      await closeSerialSession(port, reader, writer, textEncoder);
+      port = null;
+
+      log('COM-порт звільнено.');
+      showPopup('success', 'Успішно', 'Пресет записано, контролер перезавантажився, COM-порт вільний.');
+
+    } catch (err) {
+      if (isRebooting || err.message.includes('device has been lost')) {
+        log('Контролер пішов на перезавантаження. Зʼєднання скинуто штатно.');
+        port = null;
+        showPopup('success', 'Успішно', 'Пресет застосовано! Контролер перезавантажився, COM-порт вільний.');
+      } else {
+        console.error(err);
+        log(`Помилка: ${err.message}`);
+
+        // GUARANTEED PORT RELEASE ON MISMATCH / ERROR
+        await closeSerialSession(port, reader, writer, textEncoder);
+        port = null;
+        log('COM-порт примусово закрито після помилки.');
+
+        showPopup('error', 'Збій операції', err.message);
+      }
+    } finally {
+      setButtonsDisabled(false);
+    }
+  });
+  // Dedicated cleanup helper that unlocks all streams before closing the port
+  async function closeSerialSession(portObj, readerObj, writerObj, encoderObj) {
+    if (readerObj) {
+      try {
+        await readerObj.cancel();
+        readerObj.releaseLock();
+      } catch (_) {}
+    }
+    if (writerObj) {
+      try {
+        writerObj.releaseLock();
+      } catch (_) {}
+    }
+    if (encoderObj) {
+      try {
+        await encoderObj.readable.cancel();
+      } catch (_) {}
+    }
+    if (portObj) {
+      try {
+        // Small pause to let stream locks settle before closing
+        await delay(50);
+        await portObj.close();
+      } catch (e) {
+        console.warn('port.close() warning:', e);
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
