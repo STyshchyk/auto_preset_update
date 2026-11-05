@@ -1695,19 +1695,23 @@ rateprofile 0
                         await disconnectEscDevice(writer, reader, esc);
                         return { aborted: `ESC #${esc + 1}: запис не підтверджено (${wr.msg}). Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
                     }
+                    
+                    // Перезавантажуємо бутлоадер ESC для застосування флешу перед контролем
+                    await disconnectEscDevice(writer, reader, esc);
                     await delay(250);
 
                     setEscBadge(esc, 'working', 'Верифікація...');
-                    const vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
+                    const vr = await readEscBlock(writer, reader, esc);
                     await disconnectEscDevice(writer, reader, esc);
 
-                    if (vr.ok && vr.crcOk && vr.data.length === ESC_BLOCK_LEN && bytesEqual(new Uint8Array(vr.data), target.data)) {
+                    if (vr.ok && bytesEqual(vr.data, target.data)) {
                         log(`ESC #${esc + 1}: записано і перевірено (збіг 256 з 256 байт).`);
                         setEscBadge(esc, 'ok', 'Відновлено');
                         results.push({ esc, status: 'written' });
                     } else {
+                        const reason = !vr.ok ? vr.msg : 'дані у флеші не збігаються з файлом';
                         setEscBadge(esc, 'fail', 'Збій верифікації');
-                        return { aborted: `ESC #${esc + 1}: після запису дані не збігаються з файлом. Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
+                        return { aborted: `ESC #${esc + 1}: після запису ${reason}. Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
                     }
                 }
                 return { results };
@@ -1837,19 +1841,22 @@ rateprofile 0
                         await disconnectEscDevice(writer, reader, esc);
                         return { aborted: `ESC #${esc + 1}: помилка запису Flash (${wr.msg}). Відновіть ESC з ${preName}.`, results };
                     }
+
+                    // Перезавантажуємо бутлоадер ESC для фіксації та перезавантаження нового флешу
+                    await disconnectEscDevice(writer, reader, esc);
                     await delay(250);
 
-                    // ФАЗА 3: Контрольне зчитування та побайтове порівняння (Comparison)
+                    // ФАЗА 3: Контрольне зчитування через чистий connect + readEscBlock
                     setEscBadge(esc, 'working', 'Верифікація...');
-                    const vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
+                    const vr = await readEscBlock(writer, reader, esc);
                     await disconnectEscDevice(writer, reader, esc);
 
-                    if (!vr.ok || !vr.crcOk || vr.data.length !== ESC_BLOCK_LEN) {
+                    if (!vr.ok) {
                         setEscBadge(esc, 'fail', 'Збій перевірки');
-                        return { aborted: `ESC #${esc + 1}: помилка зчитування при верифікації. Відновіть ESC з ${preName}.`, results };
+                        return { aborted: `ESC #${esc + 1}: помилка контрольного зчитування (${vr.msg}). Відновіть ESC з ${preName}.`, results };
                     }
 
-                    const verifiedData = new Uint8Array(vr.data);
+                    const verifiedData = vr.data;
 
                     // Детальне порівняння
                     let diffCount = 0;
@@ -1865,6 +1872,15 @@ rateprofile 0
                         results.push({ esc, status: 'written', direction });
                     } else {
                         log(`ESC #${esc + 1}: КРИТИЧНА ПОМИЛКА: знайдено ${diffCount} невідповідностей після запису!`);
+                        for (let i = 0; i < ESC_BLOCK_LEN; i++) {
+                            if (verifiedData[i] !== patchData[i]) {
+                                log(`  Розбіжність на 0x${(BL32_EEPROM_ADDR + i).toString(16).toUpperCase()}: очікувалось 0x${patchData[i].toString(16).padStart(2, '0')}, прочитано 0x${verifiedData[i].toString(16).padStart(2, '0')}`);
+                                if (diffCount > 5) {
+                                    log(`  ... (та ще ${diffCount - 1} розбіжностей)`);
+                                    break;
+                                }
+                            }
+                        }
                         setEscBadge(esc, 'fail', 'Збій верифікації');
                         return { aborted: `ESC #${esc + 1}: верифікація не пройшла (${diffCount} байт не збіглося). Відновіть з ${preName}.`, results };
                     }
