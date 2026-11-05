@@ -88,6 +88,8 @@
             margin-bottom: 14px;
             border-bottom: 1px solid var(--border);
             padding-bottom: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .step-title {
@@ -101,6 +103,12 @@
 
         .step-title.blue { color: var(--secondary); }
 
+        .step-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .badge {
             font-size: 11px;
             background: #252830;
@@ -108,6 +116,44 @@
             border-radius: 4px;
             color: var(--text-muted);
             border: 1px solid #333;
+        }
+
+        .step-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #3a3f4d;
+            background: #12141a;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .step-status.awaiting {
+            border-color: #3a3f4d;
+            color: var(--text-muted);
+            background: #12141a;
+        }
+
+        .step-status.working {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .step-status.success {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(0, 255, 102, 0.1);
+        }
+
+        .step-status.fail {
+            border-color: var(--error);
+            color: var(--error);
+            background: rgba(255, 68, 68, 0.1);
         }
 
         textarea {
@@ -185,10 +231,41 @@
         .btn-secondary { background: var(--secondary); color: #000; }
         .btn-secondary:hover { background: var(--secondary-hover); }
 
+        .btn-read { background: #1e3a5f; color: #38bdf8; border: 1px solid #0284c7; }
+        .btn-read:hover { background: #0369a1; color: #fff; }
+
+        .btn-backup { background: #3a3f4d; color: #fff; }
+        .btn-backup:hover { background: #4a5163; }
+
         button:disabled {
             background: #333 !important;
             cursor: not-allowed !important;
             color: #666 !important;
+        }
+
+        .log-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 20px 18px;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         #log {
@@ -266,7 +343,10 @@
             <div class="step-title">
                 <span>Крок 1: Заливання пресету Betaflight</span>
             </div>
-            <span class="badge">CLI Engine</span>
+            <div class="step-header-right">
+                <span class="badge">CLI Engine</span>
+                <span class="step-status awaiting" id="stepStatus1">⏳ Очікування</span>
+            </div>
         </div>
 
         <label for="presetInput" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">
@@ -274,34 +354,217 @@
         </label>
         <textarea id="presetInput">defaults nosave
 
+
 # version
 # Betaflight / STM32F7X2 (S7X2) 4.5.1 Dec  2 2024 / 10:06:22 (77d01ba3b) MSP API: 1.46
+# config rev: cb1d3ac
+
+# start the command batch
 batch start
+
+# reset configuration to default settings 123
 defaults nosave
 
 board_name SPEDIXF722
 manufacturer_id SPDX
+mcu_id 003c004c3335510b37373437
+signature 
 
+# name: T-System 13
+
+# resources
 resource MOTOR 5 NONE
 resource SERVO 1 B06
 resource LED_STRIP 1 C14
 resource LED 1 NONE
 
+# feature
 feature SERVO_TILT
 feature OSD
 
+# servo
 servo 0 1000 2000 1500 100 7
 
+# beeper
+beeper -GYRO_CALIBRATED
+beeper -RX_LOST
+beeper -RX_LOST_LANDING
+beeper -DISARMING
+beeper -ARMING
+beeper -ARMING_GPS_FIX
+beeper -BAT_CRIT_LOW
+beeper -BAT_LOW
+beeper -GPS_STATUS
+beeper -RX_SET
+beeper -ACC_CALIBRATION
+beeper -ACC_CALIBRATION_FAIL
+beeper -READY_BEEP
+beeper -DISARM_REPEAT
+beeper -ARMED
+beeper -SYSTEM_INIT
+beeper -ON_USB
+beeper -BLACKBOX_ERASE
+beeper -CRASH_FLIP
+beeper -CAM_CONNECTION_OPEN
+beeper -CAM_CONNECTION_CLOSE
+beeper -RC_SMOOTHING_INIT_FAIL
+
+# aux
+aux 0 0 0 1700 2100 0 0
+aux 1 1 2 1300 1700 0 0
+aux 2 2 2 1700 2100 0 0
+aux 3 40 1 1500 2100 0 0
+aux 4 40 0 900 900 0 33
+
+# adjrange
+adjrange 0 0 3 900 2100 29 3 0 0
+
+# vtxtable
+vtxtable bands 8
+vtxtable channels 8
+vtxtable band 1 BOSCAM_A A CUSTOM  5865 5845 5825 5805 5785 5765 5745 5725
+vtxtable band 2 BOSCAM_B B CUSTOM  5733 5752 5771 5790 5809 5828 5847 5866
+vtxtable band 3 BOSCAM_E E CUSTOM  5705 5685 5665 5645 5885 5905 5925 5945
+vtxtable band 4 FATSHARK F CUSTOM  5740 5760 5780 5800 5820 5840 5860 5880
+vtxtable band 5 RACEBAND R CUSTOM  5658 5695 5732 5769 5806 5843 5880 5917
+vtxtable band 6 LOWRACE  L CUSTOM  5362 5399 5436 5473 5510 5547 5584 5621
+vtxtable band 7 BOSCAM   H CUSTOM  5653 5693 5733 5773 5813 5853 5893 5933
+vtxtable band 8 BOSCAM   X CUSTOM  4990 5020 5055 5080 5110 5140 5170 5200
+vtxtable powerlevels 6
+vtxtable powervalues 25 400 800 1500 3000 0
+vtxtable powerlabels 25 400 800 1.5 3.0 0MW
+
+# master
 set gyro_lpf1_type = PT2
+set gyro_lpf1_static_hz = 0
+set gyro_lpf2_type = PT2
+set gyro_lpf2_static_hz = 0
 set dyn_notch_q = 450
+set dyn_notch_min_hz = 60
+set gyro_lpf1_dyn_min_hz = 75
+set gyro_lpf1_dyn_max_hz = 150
+set acc_calibration = 14,-15,22,1
+set blackbox_sample_rate = 1/2
+set dshot_idle_value = 250
+set failsafe_throttle = 1280
+set vbat_min_cell_voltage = 260
+set vbat_warning_cell_voltage = 300
+set beeper_dshot_beacon_tone = 5
 set yaw_motors_reversed = ON
 set small_angle = 45
+set pid_process_denom = 2
+set simplified_gyro_filter_multiplier = 30
+set osd_vbat_pos = 14625
+set osd_rssi_pos = 87
+set osd_link_quality_pos = 55
+set osd_tim_2_pos = 14743
+set osd_flymode_pos = 14712
+set osd_throttle_pos = 14563
+set osd_vtx_channel_pos = 33
+set osd_crosshairs_pos = 14573
+set osd_ah_pos = 14446
+set osd_current_pos = 14688
+set osd_mah_drawn_pos = 14722
+set osd_motor_diag_pos = 377
+set osd_craft_name_pos = 14380
+set osd_pilot_name_pos = 72
+set osd_gps_speed_pos = 14584
+set osd_gps_lon_pos = 14353
+set osd_gps_lat_pos = 14336
+set osd_gps_sats_pos = 14394
+set osd_home_dir_pos = 72
+set osd_home_dist_pos = 14369
+set osd_flight_dist_pos = 14679
+set osd_altitude_pos = 14699
+set osd_warnings_pos = 14729
+set osd_avg_cell_voltage_pos = 14657
+set osd_pit_ang_pos = 161
+set osd_rol_ang_pos = 129
+set osd_disarmed_pos = 14634
+set osd_esc_rpm_freq_pos = 216
+set osd_core_temp_pos = 2359
+set osd_profile_name_pos = 14465
+set osd_sys_delay_pos = 336
+set osd_sys_lq_pos = 88
+set osd_stat_bitmask = 4472620
+set osd_profile_1_name = !Safe!
+set osd_profile_2_name = !Active!
+set osd_profile_3_name = !!Boom!!
+set osd_displayport_device = AUTO
+set osd_canvas_width = 30
+set osd_canvas_height = 13
+set debug_mode = FFT_FREQ
+set vtx_band = 3
+set vtx_channel = 3
+set vtx_power = 1
+set vtx_freq = 5665
+set vcd_video_system = AUTO
 set craft_name = T-System 13
 
-save</textarea>
+profile 0
+
+# profile 0
+set dterm_lpf1_dyn_min_hz = 37
+set dterm_lpf1_dyn_max_hz = 75
+set dterm_lpf1_dyn_expo = 7
+set dterm_lpf1_type = PT3
+set dterm_lpf1_static_hz = 37
+set dterm_lpf2_static_hz = 75
+set anti_gravity_gain = 35
+set iterm_rotation = ON
+set iterm_relax_type = GYRO
+set iterm_relax_cutoff = 6
+set yaw_lowpass_hz = 0
+set i_pitch = 63
+set d_pitch = 50
+set f_pitch = 93
+set i_roll = 60
+set d_roll = 44
+set f_roll = 90
+set i_yaw = 60
+set f_yaw = 90
+set d_min_roll = 33
+set d_min_pitch = 37
+set feedforward_jitter_factor = 10
+set simplified_i_gain = 75
+set simplified_d_gain = 110
+set simplified_feedforward_gain = 75
+set simplified_dterm_filter_multiplier = 50
+
+profile 1
+
+profile 2
+
+profile 3
+
+# restore original profile selection
+profile 0
+
+rateprofile 0
+
+# rateprofile 0
+set roll_srate = 35
+set pitch_srate = 35
+set yaw_srate = 35
+
+rateprofile 1
+
+rateprofile 2
+
+rateprofile 3
+
+# restore original rateprofile selection
+rateprofile 0
+
+# save configuration</textarea>
 
         <div class="controls">
             <button id="btnFlashFC" class="btn-primary">Залити пресет у FC</button>
+            <select id="backupType" style="flex-grow:0; width:auto;">
+                <option value="diff all">diff all</option>
+                <option value="dump all">dump all</option>
+            </select>
+            <button id="btnBackup" class="btn-backup">💾 Зберегти бекап</button>
             <button id="btnSkipToEsc" style="background:#2a2e38; color:#bbb;">Перейти до ESC ➜</button>
         </div>
     </div>
@@ -312,19 +575,22 @@ save</textarea>
             <div class="step-title blue">
                 <span>Крок 2: Автоматична настройка BLHeli_32</span>
             </div>
-            <span class="badge">MSP 4-Way Interface</span>
+            <div class="step-header-right">
+                <span class="badge">MSP 4-Way Interface</span>
+                <span class="step-status awaiting" id="stepStatus2">⏳ Очікування</span>
+            </div>
         </div>
 
         <div class="esc-grid">
             <div class="param-group">
                 <label>Rampup Power (Duty %):</label>
-                <input type="number" id="cfgRampup" min="3" max="150" value="50">
+                <input type="number" id="cfgRampup" min="3" max="150" value="100">
             </div>
             <div class="param-group">
                 <label>Low RPM Power Protect:</label>
                 <select id="cfgLowRpm">
-                    <option value="1" selected>On (Enabled)</option>
-                    <option value="0">Off (Disabled)</option>
+                    <option value="1">On (Enabled)</option>
+                    <option value="0" selected>Off (Disabled)</option>
                 </select>
             </div>
             <div class="param-group">
@@ -333,8 +599,8 @@ save</textarea>
                     <option value="1">1 хв</option>
                     <option value="2">2 хв</option>
                     <option value="5">5 хв</option>
-                    <option value="10" selected>10 хв</option>
-                    <option value="0">Вимкнено (Off)</option>
+                    <option value="10">10 хв</option>
+                    <option value="0" selected>Вимкнено (Off)</option>
                 </select>
             </div>
         </div>
@@ -348,12 +614,21 @@ save</textarea>
         </div>
 
         <div class="controls">
+            <button id="btnReadESC" class="btn-read">🔍 Зчитати поточні налаштування ESC</button>
             <button id="btnConfigureESC" class="btn-secondary">Підключити та налаштувати 4 ESC</button>
         </div>
     </div>
 
-    <!-- Realtime Terminal Console -->
-    <div id="log">Очікування підключення пристрою...</div>
+    <!-- Realtime Terminal Console / Logging Panel -->
+    <div class="log-panel">
+        <div class="log-header">
+            <div class="log-title">
+                <span>📋 Панель логування (Logging Panel)</span>
+            </div>
+            <span class="badge">Serial Console</span>
+        </div>
+        <div id="log">Очікування підключення пристрою...</div>
+    </div>
 </div>
 
 <!-- Auto-fading / Error Modal -->
@@ -369,11 +644,15 @@ save</textarea>
     let port = null;
     let availablePorts = [];
     let popupTimer = null;
+    let ignoreRebootEventsUntil = 0;
 
     const logDiv = document.getElementById('log');
     const portSelect = document.getElementById('portSelect');
     const btnFlashFC = document.getElementById('btnFlashFC');
+    const btnBackup = document.getElementById('btnBackup');
+    const backupTypeSelect = document.getElementById('backupType');
     const btnSkipToEsc = document.getElementById('btnSkipToEsc');
+    const btnReadESC = document.getElementById('btnReadESC');
     const btnConfigureESC = document.getElementById('btnConfigureESC');
 
     const delay = ms => new Promise(res => setTimeout(res, ms));
@@ -381,6 +660,29 @@ save</textarea>
     function log(msg) {
         logDiv.textContent += msg + '\n';
         logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function setStepStatus(stepNumber, state) {
+        const el = document.getElementById(`stepStatus${stepNumber}`);
+        if (!el) return;
+
+        const labels = {
+            awaiting: '⏳ Очікування',
+            working: '🔄 Виконується...',
+            success: '✅ Успішно',
+            fail: '❌ Помилка'
+        };
+
+        el.className = `step-status ${state}`;
+        el.textContent = labels[state] || labels.awaiting;
+    }
+
+    function resetAllStepStatuses() {
+        setStepStatus(1, 'awaiting');
+        setStepStatus(2, 'awaiting');
+        for (let i = 0; i < 4; i++) {
+            setEscBadge(i, 'pending', 'Очікування');
+        }
     }
 
     function showPopup(type, title, message, autoCloseMs = 0, callback = null) {
@@ -465,10 +767,16 @@ save</textarea>
         navigator.serial.addEventListener('connect', () => {
             log('Виявлено підключення USB. Оновлення списку...');
             refreshPortList();
+            if (Date.now() > ignoreRebootEventsUntil) {
+                resetAllStepStatuses();
+            }
         });
         navigator.serial.addEventListener('disconnect', () => {
             log('USB-пристрій відключено.');
             refreshPortList();
+            if (Date.now() > ignoreRebootEventsUntil) {
+                resetAllStepStatuses();
+            }
         });
         refreshPortList();
     }
@@ -504,8 +812,20 @@ save</textarea>
         }
     }
 
+    function downloadTextFile(filename, text) {
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
     // --- STEP 1: BETAFLIGHT CLI PRESET FLASHER ---
-    async function readCliResponse(reader, timeoutMs = 2500) {
+    async function readCliResponse(reader, timeoutMs = 2500, stopOnPrompt = true) {
         let output = '';
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
@@ -517,7 +837,7 @@ save</textarea>
             if (done) break;
             if (value) {
                 output += value;
-                if (output.includes('\n# ') || output.trim().endsWith('#')) break;
+                if (stopOnPrompt && (output.includes('\n# ') || output.trim().endsWith('#'))) break;
             }
         }
         return output;
@@ -535,12 +855,14 @@ save</textarea>
 
     btnFlashFC.addEventListener('click', async () => {
         if (!('serial' in navigator)) {
+            setStepStatus(1, 'fail');
             showPopup('error', 'Помилка', 'Web Serial API не підтримується цим браузером.');
             return;
         }
 
         const script = document.getElementById('presetInput').value.trim();
         btnFlashFC.disabled = true;
+        setStepStatus(1, 'working');
         let reader = null, writer = null, textEncoder = null;
         let isRebooting = false;
 
@@ -595,20 +917,45 @@ save</textarea>
             for (let line of lines) {
                 line = line.trim();
                 if (!line || line.startsWith('#')) continue;
-                if (line.toLowerCase() === 'save') containsSave = true;
+                if (line.toLowerCase() === 'save') {
+                    containsSave = true;
+                    continue;
+                }
+
                 log(`> ${line}`);
                 await writer.write(line + '\r\n');
-                await delay(35);
+                
+                // Читаємо відповідь від FC для кожної команди для виявлення помилок (abort on error)
+                const resp = await readCliResponse(reader, 600);
+                if (resp) {
+                    const cleanResp = resp.trim();
+                    // Перевіряємо маркери помилок CLI Betaflight
+                    const errorMatch = cleanResp.match(/(###ERROR[^\r\n#]*###|PARSE ERROR[^\r\n#]*|UNKNOWN COMMAND[^\r\n#]*|INVALID[^\r\n#]*)/i);
+                    if (errorMatch) {
+                        const errMsg = errorMatch[1].trim();
+                        log(`[УВАГА / ПОМИЛКА FC]: ${errMsg}`);
+                        // ПРИМУСОВИЙ ABORT:
+                        // Захищаємо статус від випадкового скидання через reboot/disconnect
+                        ignoreRebootEventsUntil = Date.now() + 6000;
+                        try {
+                            await writer.write('exit\r\n');
+                            await delay(200);
+                        } catch (_) {}
+                        throw new Error(`Помилка у команді "${line}":\n${errMsg}\nЗапис перервано (ABORT), зміни НЕ збережено!`);
+                    }
+                }
             }
 
             isRebooting = true;
+            ignoreRebootEventsUntil = Date.now() + 5000;
             log('> save');
-            if (!containsSave) await writer.write('save\r\n');
+            await writer.write('save\r\n');
             await delay(400);
 
             await closeSerialSession(port, reader, writer, textEncoder);
             port = null;
 
+            setStepStatus(1, 'success');
             log('Пресет успішно залито. Контролер перезавантажився.');
             showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
                 log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
@@ -616,11 +963,15 @@ save</textarea>
 
         } catch (err) {
             if (isRebooting || err.message.includes('device has been lost')) {
+                ignoreRebootEventsUntil = Date.now() + 5000;
+                setStepStatus(1, 'success');
                 log('Контролер перезавантажився штатно.');
                 port = null;
                 showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
             } else {
                 console.error(err);
+                ignoreRebootEventsUntil = Date.now() + 6000;
+                setStepStatus(1, 'fail');
                 log(`Помилка кроку 1: ${err.message}`);
                 await closeSerialSession(port, reader, writer, textEncoder);
                 port = null;
@@ -633,6 +984,94 @@ save</textarea>
 
     btnSkipToEsc.addEventListener('click', () => {
         log('Пропущено крок 1. Перехід до конфігурації ESC.');
+    });
+
+    btnBackup.addEventListener('click', async () => {
+        if (!('serial' in navigator)) {
+            showPopup('error', 'Браузер не підтримується', 'Потрібен браузер із підтримкою Web Serial API.');
+            return;
+        }
+
+        btnFlashFC.disabled = true;
+        btnBackup.disabled = true;
+        let reader = null, writer = null, textEncoder = null;
+        const cmd = backupTypeSelect.value;
+
+        try {
+            port = await resolveSelectedPort();
+            await port.open({ baudRate: 115200 });
+            log(`[Бекап] Порт відкрито на 115200. Ініціалізація CLI...`);
+
+            textEncoder = new TextEncoderStream();
+            textEncoder.readable.pipeTo(port.writable);
+            writer = textEncoder.writable.getWriter();
+
+            const textDecoder = new TextDecoderStream();
+            port.readable.pipeTo(textDecoder.writable);
+            reader = textDecoder.readable.getReader();
+
+            await writer.write('#\r\n');
+            await delay(350);
+            let initEcho = await readCliResponse(reader, 800);
+            if (!initEcho.includes('#')) {
+                await writer.write('\r\n#\r\n');
+                await delay(350);
+                initEcho += await readCliResponse(reader, 800);
+            }
+
+            log('Зчитування ідентифікатора плати...');
+            await writer.write('status\r\n');
+            await delay(150);
+            const statusText = await readCliResponse(reader, 1200);
+            const boardName = parseBoardName(initEcho + '\n' + statusText) || 'SPEDIXF722';
+            log(`Виявлена плата: ${boardName}`);
+
+            log(`Виконується команда "${cmd}"...`);
+            await writer.write(`${cmd}\r\n`);
+
+            let dumpContent = '';
+            const dumpStart = Date.now();
+            const maxDumpTime = 14000;
+
+            while (Date.now() - dumpStart < maxDumpTime) {
+                const chunk = await readCliResponse(reader, 1500, false);
+                if (chunk) {
+                    dumpContent += chunk;
+                    if (dumpContent.includes('\n# ') || dumpContent.trim().endsWith('#')) {
+                        break;
+                    }
+                }
+            }
+
+            if (!dumpContent || dumpContent.length < 80) {
+                throw new Error('Отримано порожню або обірвану відповідь від контролера.');
+            }
+
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const timeStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+            const filename = `BTFL_backup_${boardName}_${timeStr}.txt`;
+
+            downloadTextFile(filename, dumpContent);
+            log(`Бекап завантажено: ${filename}`);
+
+            try { await writer.write('exit\r\n'); await delay(200); } catch (_) {}
+            await closeSerialSession(port, reader, writer, textEncoder);
+            port = null;
+
+            log('[Бекап] COM-порт звільнено.');
+            showPopup('success', 'Бекап збережено', `Конфігурацію (${cmd}) успішно експортовано у файл ${filename}!`, 2500);
+
+        } catch (err) {
+            console.error(err);
+            log(`[Помилка бекапу]: ${err.message}`);
+            await closeSerialSession(port, reader, writer, textEncoder);
+            port = null;
+            showPopup('error', 'Збій створення бекапу', err.message);
+        } finally {
+            btnFlashFC.disabled = false;
+            btnBackup.disabled = false;
+        }
     });
 
     // --- STEP 2: BLHELI_32 4-WAY PASSTHROUGH ENGINE ---
@@ -712,8 +1151,120 @@ save</textarea>
         return { ok: true, data: resp };
     }
 
+    btnReadESC.addEventListener('click', async () => {
+        if (!('serial' in navigator)) {
+            setStepStatus(2, 'fail');
+            showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
+            return;
+        }
+
+        btnReadESC.disabled = true;
+        btnConfigureESC.disabled = true;
+        setStepStatus(2, 'working');
+        for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
+
+        let reader = null, writer = null;
+
+        try {
+            port = await resolveSelectedPort();
+            await port.open({ baudRate: 115200 });
+            log('\n[ESC Читання] Порт відкрито. Переведення FC у режим MSP 4-Way...');
+
+            writer = port.writable.getWriter();
+            reader = port.readable.getReader();
+
+            await sendMsp(writer, 245, [4]);
+            await delay(150);
+
+            try {
+                await Promise.race([reader.read(), delay(200)]);
+            } catch (_) {}
+
+            let foundEscCount = 0;
+            const escDetails = [];
+
+            for (let esc = 0; esc < 4; esc++) {
+                log(`\n--- Зчитування ESC #${esc + 1} ---`);
+                setEscBadge(esc, 'working', 'Підключення...');
+
+                // 1. Channel Select
+                let res = await send4WayPacket(writer, reader, CMD_IF_SET_DEVICE, esc);
+                if (!res.ok) {
+                    log(`ESC #${esc + 1}: канал не відповів (${res.msg})`);
+                    setEscBadge(esc, 'fail', 'Канал недоступний');
+                    continue;
+                }
+
+                // 2. Connect Bootloader
+                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_CONNECT]);
+                if (!res.ok) {
+                    log(`ESC #${esc + 1}: не відповідає. Перевірте LiPo акумулятор!`);
+                    setEscBadge(esc, 'fail', 'Немає LiPo');
+                    continue;
+                }
+
+                // 3. Read Page 0
+                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_READ_PAGE, 0x00]);
+                if (!res.ok || res.data.length < 60) {
+                    log(`ESC #${esc + 1}: помилка читання сторінки EEPROM.`);
+                    setEscBadge(esc, 'fail', 'Збій читання');
+                    continue;
+                }
+
+                foundEscCount++;
+                const pageData = new Uint8Array(res.data.subarray(1));
+                const curRampup = pageData[OFFSET_RAMPUP_POWER];
+                const curLowRpm = pageData[OFFSET_LOW_RPM_PROT];
+                const curBeacon = pageData[OFFSET_BEACON_DELAY];
+
+                log(`ESC #${esc + 1} Поточні налаштування: Rampup=${curRampup}%, LowRPM=${curLowRpm === 1 ? 'On' : 'Off'}, Beacon=${curBeacon === 0 ? 'Off' : curBeacon + 'хв'}`);
+                setEscBadge(esc, 'ok', `Rampup:${curRampup}% | LowRPM:${curLowRpm === 1 ? 'On' : 'Off'}`);
+                escDetails.push(`ESC #${esc + 1}: Rampup=${curRampup}%, LowRPM=${curLowRpm === 1 ? 'On' : 'Off'}, Beacon=${curBeacon === 0 ? 'Off' : curBeacon + 'm'}`);
+
+                // Підставляємо значення першого успішно знайденого ESC в поля форми
+                if (foundEscCount === 1) {
+                    document.getElementById('cfgRampup').value = curRampup;
+                    document.getElementById('cfgLowRpm').value = curLowRpm === 1 ? "1" : "0";
+                    document.getElementById('cfgBeacon').value = [0, 1, 2, 5, 10].includes(curBeacon) ? String(curBeacon) : "0";
+                }
+            }
+
+            try {
+                const exitPacket = new Uint8Array([CMD_IF_EXIT, 0, 0, 0, 0, 0]);
+                await writer.write(exitPacket);
+            } catch (_) {}
+
+            await closeSerialSession(port, reader, writer, null);
+            port = null;
+            log('\n[ESC Читання] Зчитування завершено. COM-порт звільнено.');
+
+            if (foundEscCount === 4) {
+                setStepStatus(2, 'success');
+                showPopup('success', 'Дані ESC зчитано', `Успішно зчитано всі 4 ESC!\n\n` + escDetails.join('\n'), 3500);
+            } else if (foundEscCount > 0) {
+                setStepStatus(2, 'awaiting');
+                showPopup('error', 'Зчитано частково', `Знайдено ${foundEscCount} з 4 ESC.\nПеревірте живлення LiPo!\n\n` + escDetails.join('\n'));
+            } else {
+                setStepStatus(2, 'fail');
+                showPopup('error', 'ESC не виявлено', 'Жоден регулятор не відповів. Переконайтеся, що підключено акумулятор LiPo!');
+            }
+
+        } catch (err) {
+            console.error(err);
+            setStepStatus(2, 'fail');
+            log(`[ESC Читання помилка]: ${err.message}`);
+            await closeSerialSession(port, reader, writer, null);
+            port = null;
+            showPopup('error', 'Збій зчитування ESC', err.message);
+        } finally {
+            btnReadESC.disabled = false;
+            btnConfigureESC.disabled = false;
+        }
+    });
+
     btnConfigureESC.addEventListener('click', async () => {
         if (!('serial' in navigator)) {
+            setStepStatus(2, 'fail');
             showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
             return;
         }
@@ -723,6 +1274,7 @@ save</textarea>
         const targetBeacon = parseInt(document.getElementById('cfgBeacon').value, 10);
 
         btnConfigureESC.disabled = true;
+        setStepStatus(2, 'working');
         for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
 
         let reader = null, writer = null;
@@ -824,13 +1376,16 @@ save</textarea>
             log('\n[ESC] Роботу завершено. COM-порт звільнено.');
 
             if (allSuccess) {
+                setStepStatus(2, 'success');
                 showPopup('success', 'Успіх', 'Всі 4 ESC успішно оновлені та верифіковані!', 2500);
             } else {
+                setStepStatus(2, 'fail');
                 showPopup('error', 'Увага: Помилка ESC', 'Один або декілька регуляторів не відповіли. Переконайтеся, що підключено LiPo акумулятор.');
             }
 
         } catch (err) {
             console.error(err);
+            setStepStatus(2, 'fail');
             log(`[ESC FATAL] ${err.message}`);
             await closeSerialSession(port, reader, writer, null);
             port = null;
