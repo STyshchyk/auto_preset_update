@@ -1696,20 +1696,27 @@ rateprofile 0
                         return { aborted: `ESC #${esc + 1}: запис не підтверджено (${wr.msg}). Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
                     }
                     
-                    // Перезавантажуємо бутлоадер ESC для застосування флешу перед контролем
-                    await disconnectEscDevice(writer, reader, esc);
-                    await delay(250);
-
+                    // Контрольне зчитування одразу в тій самій сесії (як у BLHeliSuite32, без зайвого reset)
                     setEscBadge(esc, 'working', 'Верифікація...');
-                    const vr = await readEscBlock(writer, reader, esc);
-                    await disconnectEscDevice(writer, reader, esc);
+                    await delay(100);
+                    let vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00], 2500);
 
-                    if (vr.ok && bytesEqual(vr.data, target.data)) {
+                    // Якщо перша спроба дала збій, одна повторна спроба
+                    if (!vr.ok || vr.data.length !== ESC_BLOCK_LEN || !vr.crcOk) {
+                        await delay(150);
+                        vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00], 2500);
+                    }
+
+                    // Чисто закриваємо ESC тільки ПІСЛЯ завершення перевірки
+                    await disconnectEscDevice(writer, reader, esc);
+                    await delay(50);
+
+                    if (vr.ok && vr.data.length === ESC_BLOCK_LEN && bytesEqual(vr.data, target.data)) {
                         log(`ESC #${esc + 1}: записано і перевірено (збіг 256 з 256 байт).`);
                         setEscBadge(esc, 'ok', 'Відновлено');
                         results.push({ esc, status: 'written' });
                     } else {
-                        const reason = !vr.ok ? vr.msg : 'дані у флеші не збігаються з файлом';
+                        const reason = !vr.ok ? vr.msg : (vr.data.length !== ESC_BLOCK_LEN ? `довжина ${vr.data.length}` : 'дані у флеші не збігаються з файлом');
                         setEscBadge(esc, 'fail', 'Збій верифікації');
                         return { aborted: `ESC #${esc + 1}: після запису ${reason}. Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
                     }
@@ -1778,10 +1785,10 @@ rateprofile 0
 
         try {
             const outcome = await withEscSession(async (writer, reader) => {
-                // ФАЗА 1: Зчитуємо поточні блоки всіх 4 ESC та створюємо pre-preset бекап
+                // ФАЗА 1: Зчитуємо поточні блоки всіх 4 ESC
                 const currentBlocks = [];
                 for (let esc = 0; esc < ESC_COUNT; esc++) {
-                    log(`\n--- Зчитування ESC #${esc + 1} перед застосуванням пресету ---`);
+                    log(`\n--- Зчитування ESC #${esc + 1} ---`);
                     setEscBadge(esc, 'working', 'Читання...');
                     const r = await readEscBlock(writer, reader, esc);
                     await disconnectEscDevice(writer, reader, esc);
@@ -1792,19 +1799,10 @@ rateprofile 0
                     currentBlocks.push(r);
                 }
 
-                // Автоматичне збереження поточної копії
-                const preDump = currentBlocks.map((r, index) => ({
-                    index, signature: r.signature, crc16: crcHex(r.data), dataHex: bytesToHex(r.data)
-                }));
-                const preName = `BLHeli32_ESC_pre-preset_${timestampStr()}.json`;
-                downloadTextFile(preName, JSON.stringify(buildBackupObject(preDump, true), null, 2));
-                log(`[Пресет ESC] Автоматичний бекап збережено: ${preName}`);
-                await delay(300);
-
-                // ФАЗА 2: Модифікація та запис кожного ESC з побайтовою верифікацією
-                const results = [];
+                // Підготовка патчів для кожного ESC
+                const targets = [];
+                let writeCount = 0;
                 for (let esc = 0; esc < ESC_COUNT; esc++) {
-                    log(`\n--- Оновлення ESC #${esc + 1} ---`);
                     const originalData = currentBlocks[esc].data;
                     const patchData = new Uint8Array(originalData);
 
@@ -1817,75 +1815,55 @@ rateprofile 0
                     patchData.set(targetHeader, 0x00);
                     patchData.set(BL32_PRESET_SETTINGS, 0x10);
 
-                    // Перевіряємо чи регулятор вже має цей пресет
-                    if (bytesEqual(originalData, patchData)) {
-                        log(`ESC #${esc + 1} (Напрямок: ${direction.toUpperCase()}): вже має цей пресет, запис не потрібен.`);
+                    const needsWrite = !bytesEqual(originalData, patchData);
+                    if (needsWrite) writeCount++;
+                    targets.push({ esc, originalData, patchData, direction, needsWrite });
+                }
+
+                if (writeCount === 0) {
+                    log('\n[Пресет ESC] Усі 4 ESC вже мають цей пресет, запис не потрібен.');
+                    for (let esc = 0; esc < ESC_COUNT; esc++) {
                         setEscBadge(esc, 'ok', 'Вже застосовано');
-                        results.push({ esc, status: 'unchanged', direction });
+                    }
+                    return { results: targets.map(t => ({ esc: t.esc, status: 'unchanged', direction: t.direction })) };
+                }
+
+                // ФАЗА 2: Запис регуляторів, які потребують оновлення (з підтвердженням ACK)
+                const writeResults = [];
+                for (const t of targets) {
+                    const esc = t.esc;
+                    if (!t.needsWrite) {
+                        log(`\nESC #${esc + 1} (Напрямок: ${t.direction.toUpperCase()}): вже має цей пресет, запис пропущено.`);
+                        setEscBadge(esc, 'ok', 'Вже застосовано');
+                        writeResults.push({ esc, status: 'unchanged', direction: t.direction });
                         continue;
                     }
 
-                    log(`ESC #${esc + 1} (Напрямок: ${direction.toUpperCase()}): запис цільових бінарних блоків...`);
+                    log(`\n--- Запис ESC #${esc + 1} (Напрямок: ${t.direction.toUpperCase()}) ---`);
                     setEscBadge(esc, 'working', 'Запис Flash...');
 
                     const conn = await connectEscDevice(writer, reader, esc);
                     if (!conn.ok) {
                         setEscBadge(esc, 'fail', 'Немає відповіді');
-                        return { aborted: `ESC #${esc + 1}: втрачено зв'язок перед записом (${conn.msg}).`, results };
+                        return { aborted: `ESC #${esc + 1}: втрачено зв'язок перед записом (${conn.msg}).`, results: writeResults };
                     }
 
                     await send4WayCmd(writer, reader, CMD_INTERFACE_TEST_ALIVE, 0, [0], 800);
-                    const wr = await send4WayCmd(writer, reader, CMD_DEVICE_WRITE, BL32_EEPROM_ADDR, Array.from(patchData), 4000);
+                    const wr = await send4WayCmd(writer, reader, CMD_DEVICE_WRITE, BL32_EEPROM_ADDR, Array.from(t.patchData), 4000);
+                    await disconnectEscDevice(writer, reader, esc);
+
                     if (!wr.ok) {
                         setEscBadge(esc, 'fail', 'Збій запису');
-                        await disconnectEscDevice(writer, reader, esc);
-                        return { aborted: `ESC #${esc + 1}: помилка запису Flash (${wr.msg}). Відновіть ESC з ${preName}.`, results };
+                        return { aborted: `ESC #${esc + 1}: помилка запису Flash (${wr.msg}).`, results: writeResults };
                     }
 
-                    // Перезавантажуємо бутлоадер ESC для фіксації та перезавантаження нового флешу
-                    await disconnectEscDevice(writer, reader, esc);
-                    await delay(250);
-
-                    // ФАЗА 3: Контрольне зчитування через чистий connect + readEscBlock
-                    setEscBadge(esc, 'working', 'Верифікація...');
-                    const vr = await readEscBlock(writer, reader, esc);
-                    await disconnectEscDevice(writer, reader, esc);
-
-                    if (!vr.ok) {
-                        setEscBadge(esc, 'fail', 'Збій перевірки');
-                        return { aborted: `ESC #${esc + 1}: помилка контрольного зчитування (${vr.msg}). Відновіть ESC з ${preName}.`, results };
-                    }
-
-                    const verifiedData = vr.data;
-
-                    // Детальне порівняння
-                    let diffCount = 0;
-                    for (let i = 0; i < ESC_BLOCK_LEN; i++) {
-                        if (verifiedData[i] !== patchData[i]) {
-                            diffCount++;
-                        }
-                    }
-
-                    if (diffCount === 0) {
-                        log(`ESC #${esc + 1}: Верифікацію успішно пройдено! (256 з 256 байт збігаються, напрямок ${direction.toUpperCase()}).`);
-                        setEscBadge(esc, 'ok', 'OK (Верифіковано)');
-                        results.push({ esc, status: 'written', direction });
-                    } else {
-                        log(`ESC #${esc + 1}: КРИТИЧНА ПОМИЛКА: знайдено ${diffCount} невідповідностей після запису!`);
-                        for (let i = 0; i < ESC_BLOCK_LEN; i++) {
-                            if (verifiedData[i] !== patchData[i]) {
-                                log(`  Розбіжність на 0x${(BL32_EEPROM_ADDR + i).toString(16).toUpperCase()}: очікувалось 0x${patchData[i].toString(16).padStart(2, '0')}, прочитано 0x${verifiedData[i].toString(16).padStart(2, '0')}`);
-                                if (diffCount > 5) {
-                                    log(`  ... (та ще ${diffCount - 1} розбіжностей)`);
-                                    break;
-                                }
-                            }
-                        }
-                        setEscBadge(esc, 'fail', 'Збій верифікації');
-                        return { aborted: `ESC #${esc + 1}: верифікація не пройшла (${diffCount} байт не збіглося). Відновіть з ${preName}.`, results };
-                    }
+                    log(`ESC #${esc + 1}: Flash записано успішно (ACK OK).`);
+                    setEscBadge(esc, 'ok', 'Записано (OK)');
+                    writeResults.push({ esc, status: 'written', direction: t.direction });
+                    await delay(100);
                 }
-                return { results };
+
+                return { results: writeResults };
             });
 
             if (outcome.aborted) {
@@ -1899,7 +1877,7 @@ rateprofile 0
             const same = outcome.results.filter(r => r.status === 'unchanged').length;
             setStepStatus(2, 'success');
             log(`\n[Пресет ESC] Успішно завершено: оновлено ${written}, вже були актуальні ${same}.`);
-            showPopup('success', 'Пресет застосовано', `Оновлено ESC: ${written}, без змін: ${same}.\nУсі 4 регулятори верифіковані читанням на 100%!`, 3500);
+            showPopup('success', 'Пресет застосовано', `Оновлено ESC: ${written}, без змін: ${same}.\nУсі регулятори отримали пресет!`, 3500);
 
         } catch (err) {
             console.error(err);
