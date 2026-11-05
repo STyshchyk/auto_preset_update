@@ -1074,25 +1074,40 @@ rateprofile 0
         }
     });
 
-    // --- STEP 2: BLHELI_32 4-WAY PASSTHROUGH ENGINE ---
-    const CMD_IF_SET_DEVICE = 0x02;
-    const CMD_IF_SEND_DATA  = 0x04;
-    const CMD_IF_EXIT       = 0xFF;
+    // =========================================================================
+    // --- STEP 2: OFFICIAL BLHELI_32 4-WAY PASSTHROUGH (from BLHeliSuite32 Log)
+    // =========================================================================
 
-    const BL32_CMD_CONNECT    = 0x00;
-    const BL32_CMD_READ_PAGE  = 0x01;
-    const BL32_CMD_WRITE_PAGE = 0x02;
+    const CMD_LOCAL_ESCAPE         = 0x2F; // '/'
+    const CMD_REMOTE_ESCAPE        = 0x2E; // '.'
+    
+    // Official 4-Way Command codes from serial_4way.c & BLHeliSuite32:
+    const CMD_INTERFACE_TEST_ALIVE = 0x30;
+    const CMD_PROTOCOL_GET_VERSION = 0x31;
+    const CMD_INTERFACE_GET_NAME   = 0x32;
+    const CMD_INTERFACE_GET_VER    = 0x33;
+    const CMD_INTERFACE_EXIT       = 0x34;
+    const CMD_DEVICE_RESET         = 0x35;
+    const CMD_DEVICE_INIT_FLASH    = 0x37;
+    const CMD_DEVICE_READ          = 0x3A;
+    const CMD_DEVICE_WRITE         = 0x3B;
+    const CMD_INTERFACE_SET_MODE   = 0x3F; // 0x04 = BLHeli32 mode
 
-    const OFFSET_RAMPUP_POWER = 0x06;
-    const OFFSET_LOW_RPM_PROT = 0x12;
-    const OFFSET_BEACON_DELAY = 0x1A;
+    // EEPROM Offsets in BLHeli_32 (256-byte Page at Address 0xF800)
+    const BL32_EEPROM_ADDR         = 0xF800;
+    const BL32_OFFSET_RAMPUP       = 0x06; // Rampup Power % (100 = 100%, 50 = 50%)
+    const BL32_OFFSET_LOW_RPM      = 0x12; // 0x01 = On, 0x00 = Off
+    const BL32_OFFSET_BEACON_DELAY = 0x1A; // 0=Off, 1=1m, 2=2m, 5=5m, 10=10m
 
     function setEscBadge(escIndex, state, text) {
         const badge = document.getElementById(`badgeEsc${escIndex}`);
-        badge.className = `esc-badge ${state}`;
-        badge.textContent = `ESC #${escIndex + 1}: ${text}`;
+        if (badge) {
+            badge.className = `esc-badge ${state}`;
+            badge.textContent = `ESC #${escIndex + 1}: ${text}`;
+        }
     }
 
+    // CRC-16/CCITT (XMODEM): Poly 0x1021, Init 0x0000
     function crc16Xmodem(bytes) {
         let crc = 0x0000;
         for (let b of bytes) {
@@ -1108,49 +1123,159 @@ rateprofile 0
         return crc;
     }
 
+    // Sends standard MSP command to Flight Controller
     async function sendMsp(writer, cmd, payload = []) {
         const size = payload.length;
         let checksum = size ^ cmd;
         for (let b of payload) checksum ^= b;
         const frame = new Uint8Array([0x24, 0x4D, 0x3C, size, cmd, ...payload, checksum]);
         await writer.write(frame);
-        await delay(60);
+        await delay(50);
     }
 
-    async function send4WayPacket(writer, reader, cmd, targetEsc, data = []) {
-        const length = data.length;
-        const packetHeader = [cmd, targetEsc, (length >> 8) & 0xFF, length & 0xFF];
-        const fullBody = [...packetHeader, ...data];
-        const crc = crc16Xmodem(fullBody);
-        const packet = new Uint8Array([...fullBody, (crc >> 8) & 0xFF, crc & 0xFF]);
+    // Accumulates incoming bytes from reader until expected length or timeout
+    async function read4WayRaw(reader, timeoutMs = 2500) {
+        const start = Date.now();
+        let buffer = new Uint8Array(0);
 
-        await writer.write(packet);
-
-        // Read ACK response
-        const startTime = Date.now();
-        let resp = new Uint8Array(0);
-
-        while (Date.now() - startTime < 1200) {
+        while (Date.now() - start < timeoutMs) {
             const { value, done } = await Promise.race([
                 reader.read(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 300))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 800))
             ]).catch(() => ({ value: null, done: false }));
 
             if (done) break;
             if (value && value.length > 0) {
-                const merged = new Uint8Array(resp.length + value.length);
-                merged.set(resp);
-                merged.set(value, resp.length);
-                resp = merged;
-                if (resp.length >= 1) break;
+                const next = new Uint8Array(buffer.length + value.length);
+                next.set(buffer);
+                next.set(value, buffer.length);
+                buffer = next;
+
+                // 4-Way packet structure:
+                // [0] Escape (0x2E)
+                // [1] CMD
+                // [2,3] Addr Lo, Hi
+                // [4] Param Len (0 = 256 for read)
+                if (buffer.length >= 6 && buffer[0] === CMD_REMOTE_ESCAPE) {
+                    const rawLen = buffer[4];
+                    const expectedDataLen = (rawLen === 0 && (buffer[1] === CMD_DEVICE_READ || buffer[1] === CMD_DEVICE_WRITE)) ? 256 : rawLen;
+                    // Total frame = 5 header bytes + data + 1 ACK byte + 2 CRC bytes
+                    const totalExpected = 5 + expectedDataLen + 1 + 2;
+                    if (buffer.length >= totalExpected) {
+                        break;
+                    }
+                }
+            }
+        }
+        return buffer;
+    }
+
+    // Sends official 4-Way packet: [0x2F, CMD, AddrHi, AddrLo, ParamLen, ...params, CrcHi, CrcLo]
+    // NOTE: 4-Way Address is Big-Endian: [AddrHi, AddrLo] (e.g. 0xF800 -> [0xF8, 0x00] giving CRC 0x93F4)
+    async function send4WayCmd(writer, reader, cmd, addr = 0, params = [], timeoutMs = 2500) {
+        const pLen = params.length > 255 ? 0 : params.length;
+        const addrHi = (addr >> 8) & 0xFF;
+        const addrLo = addr & 0xFF;
+        const header = [CMD_LOCAL_ESCAPE, cmd, addrHi, addrLo, pLen];
+        const body = [...header, ...params];
+        const crc = crc16Xmodem(body);
+        const packet = new Uint8Array([...body, (crc >> 8) & 0xFF, crc & 0xFF]);
+
+        await writer.write(packet);
+
+        const resp = await read4WayRaw(reader, timeoutMs);
+        if (!resp || resp.length < 6) {
+            return { ok: false, msg: `Таймаут (отримано ${resp ? resp.length : 0} байт)` };
+        }
+
+        // Find escape byte if any noise preceded it
+        let escIdx = -1;
+        for (let i = 0; i < resp.length; i++) {
+            if (resp[i] === CMD_REMOTE_ESCAPE) {
+                escIdx = i;
+                break;
             }
         }
 
-        if (resp.length === 0) return { ok: false, msg: 'Немає відповіді від ESC (Таймаут)' };
-        if (resp[0] !== 0x00) return { ok: false, msg: `Помилка ACK: 0x${resp[0].toString(16)}` };
-        return { ok: true, data: resp };
+        if (escIdx === -1) {
+            return { ok: false, msg: `Немає 0x2E у відповіді (отримано: ${Array.from(resp.slice(0, 8)).map(b => '0x' + b.toString(16)).join(' ')})` };
+        }
+
+        const cleanResp = resp.slice(escIdx);
+        if (cleanResp.length < 6) {
+            return { ok: false, msg: 'Неповний 4-Way кадр' };
+        }
+
+        const rawParamLen = cleanResp[4];
+        const dataLen = (rawParamLen === 0 && (cleanResp[1] === CMD_DEVICE_READ || cleanResp[1] === CMD_DEVICE_WRITE)) ? 256 : rawParamLen;
+        const ackIndex = 5 + dataLen;
+        const ack = cleanResp[ackIndex];
+
+        if (ack !== 0x00) {
+            return { ok: false, msg: `Помилка ACK від ESC: 0x${(ack !== undefined ? ack.toString(16) : 'null')}`, ack };
+        }
+
+        const dataBytes = cleanResp.slice(5, 5 + dataLen);
+        return { ok: true, data: dataBytes, raw: cleanResp };
     }
 
+    // Switches FC to 4-Way, verifies BLHeli32 interface mode
+    async function init4WayInterface(writer, reader) {
+        log('[4-Way] Ініціалізація 4-Way passthrough (MSP 245)...');
+        // Exact MSP payload from BLHeliSuite32 log: [0x24, 0x4D, 0x3C, 0x00, 0xF5, 0xF5]
+        await sendMsp(writer, 245, []);
+        
+        // Wait for MSP response from FC: [0x24, 0x4D, 0x3E, 0x01, 0xF5, 0x04, 0xF0]
+        const mspResp = await Promise.race([
+            reader.read(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 500))
+        ]).catch(() => ({ value: null }));
+
+        if (mspResp.value) {
+            log(`[4-Way] Відповідь FC на MSP 245: ${Array.from(mspResp.value).map(b => '0x' + b.toString(16)).join(' ')}`);
+        }
+        await delay(100);
+
+        // 1. Check protocol version (cmd 0x31)
+        const pVer = await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 1500);
+        if (pVer.ok) {
+            log(`[4-Way] Протокол 4-Way активний: v${pVer.data[0] || '108'}`);
+        } else {
+            log(`[4-Way інфо]: ${pVer.msg}`);
+        }
+
+        // 2. Set Interface Mode to BLHeli32 (cmd 0x3F, param [0x04]) - MANDATORY!
+        log('[4-Way] Активація режиму BLHeli32 (InterfaceSetMode 0x04)...');
+        const mRes = await send4WayCmd(writer, reader, CMD_INTERFACE_SET_MODE, 0, [0x04], 1500);
+        if (!mRes.ok) {
+            log(`[4-Way попередження]: ${mRes.msg}`);
+        } else {
+            log('[4-Way] Режим BLHeli32 підтверджено.');
+        }
+        await delay(100);
+    }
+
+    // Connects to a specific ESC bootloader (STM32G0 ARM)
+    async function connectEscDevice(writer, reader, escIndex) {
+        // Step 1: cmd_DeviceReset(escIndex)
+        await send4WayCmd(writer, reader, CMD_DEVICE_RESET, 0, [escIndex]);
+        await delay(100);
+
+        // Step 2: cmd_DeviceInitFlash(escIndex) -> returns chip signature & bootloader
+        const initRes = await send4WayCmd(writer, reader, CMD_DEVICE_INIT_FLASH, 0, [escIndex]);
+        if (!initRes.ok) {
+            return { ok: false, msg: initRes.msg };
+        }
+
+        let chipInfo = 'ARM 32-bit';
+        if (initRes.data.length >= 4) {
+            const sig = ((initRes.data[1] << 8) | initRes.data[0]).toString(16).toUpperCase();
+            chipInfo = `Сигнатура: 0x${sig}`;
+        }
+        return { ok: true, chipInfo };
+    }
+
+    // --- BUTTON: READ CURRENT ESC SETTINGS ---
     btnReadESC.addEventListener('click', async () => {
         if (!('serial' in navigator)) {
             setStepStatus(2, 'fail');
@@ -1168,91 +1293,83 @@ rateprofile 0
         try {
             port = await resolveSelectedPort();
             await port.open({ baudRate: 115200 });
-            log('\n[ESC Читання] Порт відкрито. Переведення FC у режим MSP 4-Way...');
+            log('\n[BLHeli_32] COM-порт відкрито на 115200.');
 
             writer = port.writable.getWriter();
             reader = port.readable.getReader();
 
-            await sendMsp(writer, 245, [4]);
-            await delay(150);
-
-            try {
-                await Promise.race([reader.read(), delay(200)]);
-            } catch (_) {}
+            // Ініціалізація 4-Way з режимом BLHeli32
+            await init4WayInterface(writer, reader);
 
             let foundEscCount = 0;
             const escDetails = [];
 
             for (let esc = 0; esc < 4; esc++) {
-                log(`\n--- Зчитування ESC #${esc + 1} ---`);
+                log(`\n--- Зчитування ESC #${esc + 1} (Канал ${esc}) ---`);
                 setEscBadge(esc, 'working', 'Підключення...');
 
-                // 1. Channel Select
-                let res = await send4WayPacket(writer, reader, CMD_IF_SET_DEVICE, esc);
-                if (!res.ok) {
-                    log(`ESC #${esc + 1}: канал не відповів (${res.msg})`);
-                    setEscBadge(esc, 'fail', 'Канал недоступний');
+                // 1. Підключення до бутлоадера ESC (Reset + InitFlash)
+                const connRes = await connectEscDevice(writer, reader, esc);
+                if (!connRes.ok) {
+                    log(`ESC #${esc + 1}: не відповідає. Перевірте LiPo живлення! (${connRes.msg})`);
+                    setEscBadge(esc, 'fail', 'Немає відповіді');
                     continue;
                 }
+                log(`ESC #${esc + 1}: Знайдено (${connRes.chipInfo})`);
 
-                // 2. Connect Bootloader
-                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_CONNECT]);
-                if (!res.ok) {
-                    log(`ESC #${esc + 1}: не відповідає. Перевірте LiPo акумулятор!`);
-                    setEscBadge(esc, 'fail', 'Немає LiPo');
-                    continue;
-                }
-
-                // 3. Read Page 0
-                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_READ_PAGE, 0x00]);
-                if (!res.ok || res.data.length < 60) {
-                    log(`ESC #${esc + 1}: помилка читання сторінки EEPROM.`);
+                // 2. Зчитування 256 байтів EEPROM/Setup (cmd_DeviceRead 0x3A, Addr: 0xF800, len 0 = 256)
+                setEscBadge(esc, 'working', 'Читання EEPROM...');
+                const readRes = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
+                if (!readRes.ok || readRes.data.length < 32) {
+                    log(`ESC #${esc + 1}: помилка зчитування Flash/EEPROM (${readRes.msg})`);
                     setEscBadge(esc, 'fail', 'Збій читання');
                     continue;
                 }
 
                 foundEscCount++;
-                const pageData = new Uint8Array(res.data.subarray(1));
-                const curRampup = pageData[OFFSET_RAMPUP_POWER];
-                const curLowRpm = pageData[OFFSET_LOW_RPM_PROT];
-                const curBeacon = pageData[OFFSET_BEACON_DELAY];
+                const pageData = readRes.data;
 
-                log(`ESC #${esc + 1} Поточні налаштування: Rampup=${curRampup}%, LowRPM=${curLowRpm === 1 ? 'On' : 'Off'}, Beacon=${curBeacon === 0 ? 'Off' : curBeacon + 'хв'}`);
+                // Витягуємо параметри за реальними зміщеннями BLHeli32
+                const curRampup = pageData[BL32_OFFSET_RAMPUP] ?? 100;
+                const curLowRpm = pageData[BL32_OFFSET_LOW_RPM] === 0x01 ? 1 : 0;
+                const curBeacon = pageData[BL32_OFFSET_BEACON_DELAY] ?? 0;
+
+                log(`ESC #${esc + 1} Поточні параметри: Rampup=${curRampup}%, LowRPM=${curLowRpm === 1 ? 'On' : 'Off'}, Beacon=${curBeacon === 0 ? 'Off' : curBeacon + 'хв'}`);
                 setEscBadge(esc, 'ok', `Rampup:${curRampup}% | LowRPM:${curLowRpm === 1 ? 'On' : 'Off'}`);
                 escDetails.push(`ESC #${esc + 1}: Rampup=${curRampup}%, LowRPM=${curLowRpm === 1 ? 'On' : 'Off'}, Beacon=${curBeacon === 0 ? 'Off' : curBeacon + 'm'}`);
 
-                // Підставляємо значення першого успішно знайденого ESC в поля форми
+                // Заповнюємо значення у формі з першого успішного ESC
                 if (foundEscCount === 1) {
                     document.getElementById('cfgRampup').value = curRampup;
-                    document.getElementById('cfgLowRpm').value = curLowRpm === 1 ? "1" : "0";
+                    document.getElementById('cfgLowRpm').value = String(curLowRpm);
                     document.getElementById('cfgBeacon').value = [0, 1, 2, 5, 10].includes(curBeacon) ? String(curBeacon) : "0";
                 }
             }
 
+            // Вихід з 4-Way режиму (cmd 0x34)
             try {
-                const exitPacket = new Uint8Array([CMD_IF_EXIT, 0, 0, 0, 0, 0]);
-                await writer.write(exitPacket);
+                await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
             } catch (_) {}
 
             await closeSerialSession(port, reader, writer, null);
             port = null;
-            log('\n[ESC Читання] Зчитування завершено. COM-порт звільнено.');
+            log('\n[BLHeli_32] Зчитування завершено. COM-порт звільнено.');
 
             if (foundEscCount === 4) {
                 setStepStatus(2, 'success');
-                showPopup('success', 'Дані ESC зчитано', `Успішно зчитано всі 4 ESC!\n\n` + escDetails.join('\n'), 3500);
+                showPopup('success', 'Дані успішно зчитано', `Зчитано всі 4 ESC!\n\n` + escDetails.join('\n'), 3500);
             } else if (foundEscCount > 0) {
                 setStepStatus(2, 'awaiting');
                 showPopup('error', 'Зчитано частково', `Знайдено ${foundEscCount} з 4 ESC.\nПеревірте живлення LiPo!\n\n` + escDetails.join('\n'));
             } else {
                 setStepStatus(2, 'fail');
-                showPopup('error', 'ESC не виявлено', 'Жоден регулятор не відповів. Переконайтеся, що підключено акумулятор LiPo!');
+                showPopup('error', 'ESC не відповідають', 'Жоден регулятор не відповів. Переконайтеся, що LiPo батарея підключена і мотори пропіщали!');
             }
 
         } catch (err) {
             console.error(err);
             setStepStatus(2, 'fail');
-            log(`[ESC Читання помилка]: ${err.message}`);
+            log(`[ESC Помилка читання]: ${err.message}`);
             await closeSerialSession(port, reader, writer, null);
             port = null;
             showPopup('error', 'Збій зчитування ESC', err.message);
@@ -1262,6 +1379,7 @@ rateprofile 0
         }
     });
 
+    // --- BUTTON: CONFIGURE ALL 4 ESCs ---
     btnConfigureESC.addEventListener('click', async () => {
         if (!('serial' in navigator)) {
             setStepStatus(2, 'fail');
@@ -1273,6 +1391,7 @@ rateprofile 0
         const targetLowRpm = parseInt(document.getElementById('cfgLowRpm').value, 10);
         const targetBeacon = parseInt(document.getElementById('cfgBeacon').value, 10);
 
+        btnReadESC.disabled = true;
         btnConfigureESC.disabled = true;
         setStepStatus(2, 'working');
         for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
@@ -1282,81 +1401,74 @@ rateprofile 0
         try {
             port = await resolveSelectedPort();
             await port.open({ baudRate: 115200 });
-            log('[ESC] Порт відкрито. Переведення FC у режим MSP 4-Way...');
+            log('\n[BLHeli_32] COM-порт відкрито. Запуск налаштування ESC...');
 
             writer = port.writable.getWriter();
             reader = port.readable.getReader();
 
-            // Initiate MSP_SET_4WAY_IF (Command 245)
-            await sendMsp(writer, 245, [4]);
-            await delay(150);
-
-            // Consume greeting echo
-            try {
-                await Promise.race([reader.read(), delay(200)]);
-            } catch (_) {}
+            // Ініціалізація 4-Way з режимом BLHeli32
+            await init4WayInterface(writer, reader);
 
             let allSuccess = true;
 
             for (let esc = 0; esc < 4; esc++) {
-                log(`\n--- Опрацювання ESC #${esc + 1} ---`);
+                log(`\n--- Налаштування ESC #${esc + 1} ---`);
+                setEscBadge(esc, 'working', 'Підключення...');
+
+                // 1. Підключення до бутлоадера ESC
+                const connRes = await connectEscDevice(writer, reader, esc);
+                if (!connRes.ok) {
+                    log(`ESC #${esc + 1} не відповідає: ${connRes.msg}`);
+                    setEscBadge(esc, 'fail', 'Немає відповіді');
+                    allSuccess = false;
+                    continue;
+                }
+
+                // 2. Читання поточної 256-байтної сторінки
                 setEscBadge(esc, 'working', 'Зчитування...');
-
-                // 1. Channel Select
-                let res = await send4WayPacket(writer, reader, CMD_IF_SET_DEVICE, esc);
-                if (!res.ok) {
-                    log(`ESC #${esc + 1} Помилка вибору каналу: ${res.msg}`);
-                    setEscBadge(esc, 'fail', 'Канал недоступний');
-                    allSuccess = false;
-                    continue;
-                }
-
-                // 2. Wake / Connect Bootloader
-                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_CONNECT]);
-                if (!res.ok) {
-                    log(`ESC #${esc + 1} не відповідає. Перевірте LiPo батарею!`);
-                    setEscBadge(esc, 'fail', 'Немає живлення LiPo');
-                    allSuccess = false;
-                    continue;
-                }
-
-                // 3. Read Page 0
-                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_READ_PAGE, 0x00]);
-                if (!res.ok || res.data.length < 60) {
-                    log(`ESC #${esc + 1} помилка зчитування Flash-сторінки.`);
+                const readRes = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
+                if (!readRes.ok || readRes.data.length < 32) {
+                    log(`ESC #${esc + 1} помилка читання EEPROM: ${readRes.msg}`);
                     setEscBadge(esc, 'fail', 'Збій читання');
                     allSuccess = false;
                     continue;
                 }
 
-                // Mutate Target Parameters
-                const pageData = new Uint8Array(res.data.subarray(1));
-                pageData[OFFSET_RAMPUP_POWER] = targetRampup;
-                pageData[OFFSET_LOW_RPM_PROT] = targetLowRpm;
-                pageData[OFFSET_BEACON_DELAY] = targetBeacon;
+                // 3. Модифікуємо цільові байти в повному 256-байтному дампі
+                const pageData = new Uint8Array(readRes.data);
+                pageData[BL32_OFFSET_RAMPUP] = targetRampup;
+                pageData[BL32_OFFSET_LOW_RPM] = targetLowRpm;
+                pageData[BL32_OFFSET_BEACON_DELAY] = targetBeacon;
 
-                setEscBadge(esc, 'working', 'Запис...');
+                setEscBadge(esc, 'working', 'Запис Flash...');
                 log(`ESC #${esc + 1}: Запис (Rampup=${targetRampup}%, LowRPM=${targetLowRpm ? 'On' : 'Off'}, Beacon=${targetBeacon}хв)`);
 
-                // 4. Write Page
-                const writePayload = [BL32_CMD_WRITE_PAGE, 0x00, ...pageData];
-                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, writePayload);
-                if (!res.ok) {
-                    log(`ESC #${esc + 1} помилка запису EEPROM: ${res.msg}`);
+                // 4. Записуємо 256 байтів назад через cmd_DeviceWrite (0x3B)
+                const writeRes = await send4WayCmd(writer, reader, CMD_DEVICE_WRITE, BL32_EEPROM_ADDR, Array.from(pageData));
+                if (!writeRes.ok) {
+                    log(`ESC #${esc + 1} помилка запису EEPROM: ${writeRes.msg}`);
                     setEscBadge(esc, 'fail', 'Збій запису');
                     allSuccess = false;
                     continue;
                 }
 
-                // 5. Verification Read-back
-                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_READ_PAGE, 0x00]);
-                const verifyData = new Uint8Array(res.data.subarray(1));
+                // 5. Контрольне зчитування для верифікації
+                setEscBadge(esc, 'working', 'Верифікація...');
+                const verifyRes = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
+                if (!verifyRes.ok) {
+                    log(`ESC #${esc + 1} помилка зчитування при верифікації: ${verifyRes.msg}`);
+                    setEscBadge(esc, 'fail', 'Збій перевірки');
+                    allSuccess = false;
+                    continue;
+                }
+
+                const vData = verifyRes.data;
                 if (
-                    verifyData[OFFSET_RAMPUP_POWER] === targetRampup &&
-                    verifyData[OFFSET_LOW_RPM_PROT] === targetLowRpm &&
-                    verifyData[OFFSET_BEACON_DELAY] === targetBeacon
+                    vData[BL32_OFFSET_RAMPUP] === targetRampup &&
+                    vData[BL32_OFFSET_LOW_RPM] === targetLowRpm &&
+                    vData[BL32_OFFSET_BEACON_DELAY] === targetBeacon
                 ) {
-                    log(`ESC #${esc + 1}: Верифікацію пройдено успішно!`);
+                    log(`ESC #${esc + 1}: Верифікацію успішно пройдено!`);
                     setEscBadge(esc, 'ok', 'OK (Записано)');
                 } else {
                     log(`ESC #${esc + 1}: Невідповідність після верифікації!`);
@@ -1365,32 +1477,32 @@ rateprofile 0
                 }
             }
 
-            // Exit 4-Way mode
+            // Вихід з 4-Way режиму
             try {
-                const exitPacket = new Uint8Array([CMD_IF_EXIT, 0, 0, 0, 0, 0]);
-                await writer.write(exitPacket);
+                await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
             } catch (_) {}
 
             await closeSerialSession(port, reader, writer, null);
             port = null;
-            log('\n[ESC] Роботу завершено. COM-порт звільнено.');
+            log('\n[BLHeli_32] Налаштування завершено. COM-порт звільнено.');
 
             if (allSuccess) {
                 setStepStatus(2, 'success');
                 showPopup('success', 'Успіх', 'Всі 4 ESC успішно оновлені та верифіковані!', 2500);
             } else {
                 setStepStatus(2, 'fail');
-                showPopup('error', 'Увага: Помилка ESC', 'Один або декілька регуляторів не відповіли. Переконайтеся, що підключено LiPo акумулятор.');
+                showPopup('error', 'Помилка ESC', 'Один або декілька регуляторів не відповіли. Перевірте живлення LiPo!');
             }
 
         } catch (err) {
             console.error(err);
             setStepStatus(2, 'fail');
-            log(`[ESC FATAL] ${err.message}`);
+            log(`[ESC FATAL]: ${err.message}`);
             await closeSerialSession(port, reader, writer, null);
             port = null;
             showPopup('error', 'Збій роботи з ESC', err.message);
         } finally {
+            btnReadESC.disabled = false;
             btnConfigureESC.disabled = false;
         }
     });
