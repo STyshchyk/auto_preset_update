@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Setup Station: Betaflight & BLHeli_32 Configurator</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --card-bg: #181b20;
+            --border: #2a2e38;
+            --primary: #ffaa00;
+            --primary-hover: #e09600;
+            --secondary: #00aaee;
+            --secondary-hover: #0088cc;
+            --success: #00ff66;
+            --error: #ff4444;
+            --text: #e2e8f0;
+            --text-muted: #8a94a6;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 820px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .top-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .port-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        select, input[type="number"] {
+            background: #0f1115;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+        select { flex-grow: 1; }
+
+        .step-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px 24px;
+            position: relative;
+            transition: border-color 0.2s, opacity 0.2s;
+        }
+
+        .step-card.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .step-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-title.blue { color: var(--secondary); }
+
+        .badge {
+            font-size: 11px;
+            background: #252830;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            border: 1px solid #333;
+        }
+
+        textarea {
+            width: 100%;
+            height: 140px;
+            background: #0c0d10;
+            color: #eee;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        .esc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .param-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .param-group label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .esc-status-badges {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .esc-badge {
+            background: #11141a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .esc-badge.pending { border-color: #555; color: #888; }
+        .esc-badge.working { border-color: var(--primary); color: var(--primary); }
+        .esc-badge.ok { border-color: var(--success); color: var(--success); }
+        .esc-badge.fail { border-color: var(--error); color: var(--error); }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 18px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            border: none;
+            transition: background 0.15s ease, opacity 0.15s;
+        }
+
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-secondary { background: var(--secondary); color: #000; }
+        .btn-secondary:hover { background: var(--secondary-hover); }
+
+        button:disabled {
+            background: #333 !important;
+            cursor: not-allowed !important;
+            color: #666 !important;
+        }
+
+        #log {
+            width: 100%;
+            background: #08090b;
+            color: var(--success);
+            font-family: Consolas, Monaco, monospace;
+            padding: 12px;
+            border-radius: 6px;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+        }
+
+        /* Modal / Popup */
+        .modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .modal.active { opacity: 1; visibility: visible; }
+
+        .modal-box {
+            background: #1c2026;
+            padding: 24px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+        }
+
+        .modal-box.success { border-left: 8px solid var(--success); }
+        .modal-box.error { border-left: 8px solid var(--error); }
+        .modal-box h3 { margin-top: 0; font-size: 18px; }
+        .modal-box p { font-size: 13px; line-height: 1.4; color: #ccc; }
+
+        .btn-close {
+            margin-top: 15px;
+            background: #2a2e38;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- USB COM Port Selection Bar -->
+    <div class="top-bar">
+        <div class="port-controls">
+            <strong style="font-size: 13px;">Пристрій:</strong>
+            <select id="portSelect">
+                <option value="new">+ Обрати / Додати новий порт...</option>
+            </select>
+        </div>
+        <span class="badge" id="boardTargetBadge">Target: SPEDIXF722</span>
+    </div>
+
+    <!-- BLOCK 1: Betaflight CLI Flasher -->
+    <div class="step-card" id="cardStep1">
+        <div class="step-header">
+            <div class="step-title">
+                <span>Крок 1: Заливання пресету Betaflight</span>
+            </div>
+            <span class="badge">CLI Engine</span>
+        </div>
+
+        <label for="presetInput" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">
+            CLI Dump / Diff команди:
+        </label>
+        <textarea id="presetInput">defaults nosave
+
+# version
+# Betaflight / STM32F7X2 (S7X2) 4.5.1 Dec  2 2024 / 10:06:22 (77d01ba3b) MSP API: 1.46
+batch start
+defaults nosave
+
+board_name SPEDIXF722
+manufacturer_id SPDX
+
+resource MOTOR 5 NONE
+resource SERVO 1 B06
+resource LED_STRIP 1 C14
+resource LED 1 NONE
+
+feature SERVO_TILT
+feature OSD
+
+servo 0 1000 2000 1500 100 7
+
+set gyro_lpf1_type = PT2
+set dyn_notch_q = 450
+set yaw_motors_reversed = ON
+set small_angle = 45
+set craft_name = T-System 13
+
+save</textarea>
+
+        <div class="controls">
+            <button id="btnFlashFC" class="btn-primary">Залити пресет у FC</button>
+            <button id="btnSkipToEsc" style="background:#2a2e38; color:#bbb;">Перейти до ESC ➜</button>
+        </div>
+    </div>
+
+    <!-- BLOCK 2: BLHeli_32 4-Way Configurator -->
+    <div class="step-card" id="cardStep2">
+        <div class="step-header">
+            <div class="step-title blue">
+                <span>Крок 2: Автоматична настройка BLHeli_32</span>
+            </div>
+            <span class="badge">MSP 4-Way Interface</span>
+        </div>
+
+        <div class="esc-grid">
+            <div class="param-group">
+                <label>Rampup Power (Duty %):</label>
+                <input type="number" id="cfgRampup" min="3" max="150" value="50">
+            </div>
+            <div class="param-group">
+                <label>Low RPM Power Protect:</label>
+                <select id="cfgLowRpm">
+                    <option value="1" selected>On (Enabled)</option>
+                    <option value="0">Off (Disabled)</option>
+                </select>
+            </div>
+            <div class="param-group">
+                <label>Beacon Delay:</label>
+                <select id="cfgBeacon">
+                    <option value="1">1 хв</option>
+                    <option value="2">2 хв</option>
+                    <option value="5">5 хв</option>
+                    <option value="10" selected>10 хв</option>
+                    <option value="0">Вимкнено (Off)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ESC 1-4 Real-Time Status -->
+        <div class="esc-status-badges">
+            <div class="esc-badge pending" id="badgeEsc0">ESC #1: Очікування</div>
+            <div class="esc-badge pending" id="badgeEsc1">ESC #2: Очікування</div>
+            <div class="esc-badge pending" id="badgeEsc2">ESC #3: Очікування</div>
+            <div class="esc-badge pending" id="badgeEsc3">ESC #4: Очікування</div>
+        </div>
+
+        <div class="controls">
+            <button id="btnConfigureESC" class="btn-secondary">Підключити та налаштувати 4 ESC</button>
+        </div>
+    </div>
+
+    <!-- Realtime Terminal Console -->
+    <div id="log">Очікування підключення пристрою...</div>
+</div>
+
+<!-- Auto-fading / Error Modal -->
+<div id="statusModal" class="modal">
+    <div id="modalBox" class="modal-box">
+        <h3 id="modalTitle">Статус</h3>
+        <p id="modalMsg"></p>
+        <button id="modalCloseBtn" class="btn-close" onclick="closeModal()">Закрити</button>
+    </div>
+</div>
+
+<script>
+    let port = null;
+    let availablePorts = [];
+    let popupTimer = null;
+
+    const logDiv = document.getElementById('log');
+    const portSelect = document.getElementById('portSelect');
+    const btnFlashFC = document.getElementById('btnFlashFC');
+    const btnSkipToEsc = document.getElementById('btnSkipToEsc');
+    const btnConfigureESC = document.getElementById('btnConfigureESC');
+
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    function log(msg) {
+        logDiv.textContent += msg + '\n';
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function showPopup(type, title, message, autoCloseMs = 0, callback = null) {
+        const modal = document.getElementById('statusModal');
+        const box = document.getElementById('modalBox');
+        const closeBtn = document.getElementById('modalCloseBtn');
+
+        if (popupTimer) {
+            clearTimeout(popupTimer);
+            popupTimer = null;
+        }
+
+        box.className = 'modal-box ' + type;
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalMsg').textContent = message;
+
+        if (type === 'success' && autoCloseMs > 0) {
+            closeBtn.style.display = 'none';
+            modal.classList.add('active');
+            popupTimer = setTimeout(() => {
+                closeModal();
+                if (typeof callback === 'function') callback();
+            }, autoCloseMs);
+        } else {
+            closeBtn.style.display = 'inline-block';
+            modal.classList.add('active');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('statusModal').classList.remove('active');
+        if (popupTimer) {
+            clearTimeout(popupTimer);
+            popupTimer = null;
+        }
+    }
+
+    // --- PORT MANAGEMENT ---
+    async function refreshPortList() {
+        if (!('serial' in navigator)) return;
+        availablePorts = await navigator.serial.getPorts();
+        portSelect.innerHTML = '';
+
+        let bestIndex = -1;
+        availablePorts.forEach((p, idx) => {
+            const info = p.getInfo();
+            const vid = info.usbVendorId ? '0x' + info.usbVendorId.toString(16).padStart(4, '0') : null;
+            const pid = info.usbProductId ? '0x' + info.usbProductId.toString(16).padStart(4, '0') : null;
+
+            let label = `Пристрій ${idx + 1}`;
+            let isFC = false;
+            if (info.usbVendorId === 0x0483 || info.usbVendorId === 1155) {
+                label = `Betaflight STM32 (VID:${vid} PID:${pid})`;
+                isFC = true;
+            } else if (vid && pid) {
+                label = `Serial (VID:${vid} PID:${pid})`;
+            }
+
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = label;
+            portSelect.appendChild(opt);
+
+            if (isFC && bestIndex === -1) bestIndex = idx;
+        });
+
+        const optNew = document.createElement('option');
+        optNew.value = 'new';
+        optNew.textContent = '+ Обрати / Додати новий порт...';
+        portSelect.appendChild(optNew);
+
+        if (bestIndex !== -1) {
+            portSelect.value = bestIndex;
+        } else if (availablePorts.length > 0) {
+            portSelect.value = 0;
+        } else {
+            portSelect.value = 'new';
+        }
+    }
+
+    if ('serial' in navigator) {
+        navigator.serial.addEventListener('connect', () => {
+            log('Виявлено підключення USB. Оновлення списку...');
+            refreshPortList();
+        });
+        navigator.serial.addEventListener('disconnect', () => {
+            log('USB-пристрій відключено.');
+            refreshPortList();
+        });
+        refreshPortList();
+    }
+
+    async function resolveSelectedPort() {
+        const selectedVal = portSelect.value;
+        if (selectedVal === 'new' || !availablePorts[selectedVal]) {
+            log('Відкриття діалогу вибору COM-порту...');
+            const requested = await navigator.serial.requestPort();
+            await refreshPortList();
+            return requested;
+        }
+        return availablePorts[selectedVal];
+    }
+
+    async function closeSerialSession(portObj, readerObj, writerObj, encoderObj) {
+        if (readerObj) {
+            try { await readerObj.cancel(); readerObj.releaseLock(); } catch (_) {}
+        }
+        if (writerObj) {
+            try { writerObj.releaseLock(); } catch (_) {}
+        }
+        if (encoderObj) {
+            try { await encoderObj.readable.cancel(); } catch (_) {}
+        }
+        if (portObj) {
+            try {
+                await delay(50);
+                await portObj.close();
+            } catch (e) {
+                console.warn('port.close() warning:', e);
+            }
+        }
+    }
+
+    // --- STEP 1: BETAFLIGHT CLI PRESET FLASHER ---
+    async function readCliResponse(reader, timeoutMs = 2500) {
+        let output = '';
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            const { value, done } = await Promise.race([
+                reader.read(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 200))
+            ]).catch(() => ({ value: null, done: false }));
+
+            if (done) break;
+            if (value) {
+                output += value;
+                if (output.includes('\n# ') || output.trim().endsWith('#')) break;
+            }
+        }
+        return output;
+    }
+
+    function parseBoardName(text) {
+        if (!text) return null;
+        const nameMatch = text.match(/name:\s*([A-Za-z0-9_-]+)/i) ||
+            text.match(/board_name\s+([A-Za-z0-9_-]+)/i) ||
+            text.match(/Board:\s*([A-Za-z0-9_-]+)/i);
+        if (nameMatch) return nameMatch[1].toUpperCase();
+        if (text.toUpperCase().includes('SPEDIXF722')) return 'SPEDIXF722';
+        return null;
+    }
+
+    btnFlashFC.addEventListener('click', async () => {
+        if (!('serial' in navigator)) {
+            showPopup('error', 'Помилка', 'Web Serial API не підтримується цим браузером.');
+            return;
+        }
+
+        const script = document.getElementById('presetInput').value.trim();
+        btnFlashFC.disabled = true;
+        let reader = null, writer = null, textEncoder = null;
+        let isRebooting = false;
+
+        try {
+            port = await resolveSelectedPort();
+            await port.open({ baudRate: 115200 });
+            log('Порт відкрито на 115200.');
+
+            textEncoder = new TextEncoderStream();
+            textEncoder.readable.pipeTo(port.writable);
+            writer = textEncoder.writable.getWriter();
+
+            const textDecoder = new TextDecoderStream();
+            port.readable.pipeTo(textDecoder.writable);
+            reader = textDecoder.readable.getReader();
+
+            // Enter CLI mode
+            log('Ініціалізація Betaflight CLI (#)...');
+            await writer.write('#\r\n');
+            await delay(350);
+            let initEcho = await readCliResponse(reader, 800);
+            if (!initEcho.includes('#')) {
+                await writer.write('\r\n#\r\n');
+                await delay(350);
+                initEcho += await readCliResponse(reader, 800);
+            }
+
+            // Read status & board validation
+            log('Зчитування даних плати...');
+            await writer.write('version\r\n');
+            await delay(150);
+            const verText = await readCliResponse(reader, 1000);
+            await writer.write('status\r\n');
+            await delay(150);
+            const statusText = await readCliResponse(reader, 1200);
+
+            const actualBoard = parseBoardName(initEcho + '\n' + verText + '\n' + statusText);
+            const expectedBoardMatch = script.match(/(?:board_name|#\s*target:?)\s+([A-Za-z0-9_-]+)/i);
+            const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].toUpperCase() : null;
+
+            log(`Виявлено плату: [${actualBoard || 'UNKNOWN'}]`);
+
+            if (expectedBoard && actualBoard && !actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
+                try { await writer.write('exit\r\n'); } catch (_) {}
+                throw new Error(`Невідповідність плати! Очікувалось [${expectedBoard}], підключено [${actualBoard}].`);
+            }
+
+            log('Заливання команд пресету...');
+            const lines = script.split('\n');
+            let containsSave = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line || line.startsWith('#')) continue;
+                if (line.toLowerCase() === 'save') containsSave = true;
+                log(`> ${line}`);
+                await writer.write(line + '\r\n');
+                await delay(35);
+            }
+
+            isRebooting = true;
+            log('> save');
+            if (!containsSave) await writer.write('save\r\n');
+            await delay(400);
+
+            await closeSerialSession(port, reader, writer, textEncoder);
+            port = null;
+
+            log('Пресет успішно залито. Контролер перезавантажився.');
+            showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
+                log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
+            });
+
+        } catch (err) {
+            if (isRebooting || err.message.includes('device has been lost')) {
+                log('Контролер перезавантажився штатно.');
+                port = null;
+                showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
+            } else {
+                console.error(err);
+                log(`Помилка кроку 1: ${err.message}`);
+                await closeSerialSession(port, reader, writer, textEncoder);
+                port = null;
+                showPopup('error', 'Збій заливання пресету', err.message);
+            }
+        } finally {
+            btnFlashFC.disabled = false;
+        }
+    });
+
+    btnSkipToEsc.addEventListener('click', () => {
+        log('Пропущено крок 1. Перехід до конфігурації ESC.');
+    });
+
+    // --- STEP 2: BLHELI_32 4-WAY PASSTHROUGH ENGINE ---
+    const CMD_IF_SET_DEVICE = 0x02;
+    const CMD_IF_SEND_DATA  = 0x04;
+    const CMD_IF_EXIT       = 0xFF;
+
+    const BL32_CMD_CONNECT    = 0x00;
+    const BL32_CMD_READ_PAGE  = 0x01;
+    const BL32_CMD_WRITE_PAGE = 0x02;
+
+    const OFFSET_RAMPUP_POWER = 0x06;
+    const OFFSET_LOW_RPM_PROT = 0x12;
+    const OFFSET_BEACON_DELAY = 0x1A;
+
+    function setEscBadge(escIndex, state, text) {
+        const badge = document.getElementById(`badgeEsc${escIndex}`);
+        badge.className = `esc-badge ${state}`;
+        badge.textContent = `ESC #${escIndex + 1}: ${text}`;
+    }
+
+    function crc16Xmodem(bytes) {
+        let crc = 0x0000;
+        for (let b of bytes) {
+            crc ^= (b << 8);
+            for (let i = 0; i < 8; i++) {
+                if (crc & 0x8000) {
+                    crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+                } else {
+                    crc = (crc << 1) & 0xFFFF;
+                }
+            }
+        }
+        return crc;
+    }
+
+    async function sendMsp(writer, cmd, payload = []) {
+        const size = payload.length;
+        let checksum = size ^ cmd;
+        for (let b of payload) checksum ^= b;
+        const frame = new Uint8Array([0x24, 0x4D, 0x3C, size, cmd, ...payload, checksum]);
+        await writer.write(frame);
+        await delay(60);
+    }
+
+    async function send4WayPacket(writer, reader, cmd, targetEsc, data = []) {
+        const length = data.length;
+        const packetHeader = [cmd, targetEsc, (length >> 8) & 0xFF, length & 0xFF];
+        const fullBody = [...packetHeader, ...data];
+        const crc = crc16Xmodem(fullBody);
+        const packet = new Uint8Array([...fullBody, (crc >> 8) & 0xFF, crc & 0xFF]);
+
+        await writer.write(packet);
+
+        // Read ACK response
+        const startTime = Date.now();
+        let resp = new Uint8Array(0);
+
+        while (Date.now() - startTime < 1200) {
+            const { value, done } = await Promise.race([
+                reader.read(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 300))
+            ]).catch(() => ({ value: null, done: false }));
+
+            if (done) break;
+            if (value && value.length > 0) {
+                const merged = new Uint8Array(resp.length + value.length);
+                merged.set(resp);
+                merged.set(value, resp.length);
+                resp = merged;
+                if (resp.length >= 1) break;
+            }
+        }
+
+        if (resp.length === 0) return { ok: false, msg: 'Немає відповіді від ESC (Таймаут)' };
+        if (resp[0] !== 0x00) return { ok: false, msg: `Помилка ACK: 0x${resp[0].toString(16)}` };
+        return { ok: true, data: resp };
+    }
+
+    btnConfigureESC.addEventListener('click', async () => {
+        if (!('serial' in navigator)) {
+            showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
+            return;
+        }
+
+        const targetRampup = parseInt(document.getElementById('cfgRampup').value, 10);
+        const targetLowRpm = parseInt(document.getElementById('cfgLowRpm').value, 10);
+        const targetBeacon = parseInt(document.getElementById('cfgBeacon').value, 10);
+
+        btnConfigureESC.disabled = true;
+        for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
+
+        let reader = null, writer = null;
+
+        try {
+            port = await resolveSelectedPort();
+            await port.open({ baudRate: 115200 });
+            log('[ESC] Порт відкрито. Переведення FC у режим MSP 4-Way...');
+
+            writer = port.writable.getWriter();
+            reader = port.readable.getReader();
+
+            // Initiate MSP_SET_4WAY_IF (Command 245)
+            await sendMsp(writer, 245, [4]);
+            await delay(150);
+
+            // Consume greeting echo
+            try {
+                await Promise.race([reader.read(), delay(200)]);
+            } catch (_) {}
+
+            let allSuccess = true;
+
+            for (let esc = 0; esc < 4; esc++) {
+                log(`\n--- Опрацювання ESC #${esc + 1} ---`);
+                setEscBadge(esc, 'working', 'Зчитування...');
+
+                // 1. Channel Select
+                let res = await send4WayPacket(writer, reader, CMD_IF_SET_DEVICE, esc);
+                if (!res.ok) {
+                    log(`ESC #${esc + 1} Помилка вибору каналу: ${res.msg}`);
+                    setEscBadge(esc, 'fail', 'Канал недоступний');
+                    allSuccess = false;
+                    continue;
+                }
+
+                // 2. Wake / Connect Bootloader
+                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_CONNECT]);
+                if (!res.ok) {
+                    log(`ESC #${esc + 1} не відповідає. Перевірте LiPo батарею!`);
+                    setEscBadge(esc, 'fail', 'Немає живлення LiPo');
+                    allSuccess = false;
+                    continue;
+                }
+
+                // 3. Read Page 0
+                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_READ_PAGE, 0x00]);
+                if (!res.ok || res.data.length < 60) {
+                    log(`ESC #${esc + 1} помилка зчитування Flash-сторінки.`);
+                    setEscBadge(esc, 'fail', 'Збій читання');
+                    allSuccess = false;
+                    continue;
+                }
+
+                // Mutate Target Parameters
+                const pageData = new Uint8Array(res.data.subarray(1));
+                pageData[OFFSET_RAMPUP_POWER] = targetRampup;
+                pageData[OFFSET_LOW_RPM_PROT] = targetLowRpm;
+                pageData[OFFSET_BEACON_DELAY] = targetBeacon;
+
+                setEscBadge(esc, 'working', 'Запис...');
+                log(`ESC #${esc + 1}: Запис (Rampup=${targetRampup}%, LowRPM=${targetLowRpm ? 'On' : 'Off'}, Beacon=${targetBeacon}хв)`);
+
+                // 4. Write Page
+                const writePayload = [BL32_CMD_WRITE_PAGE, 0x00, ...pageData];
+                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, writePayload);
+                if (!res.ok) {
+                    log(`ESC #${esc + 1} помилка запису EEPROM: ${res.msg}`);
+                    setEscBadge(esc, 'fail', 'Збій запису');
+                    allSuccess = false;
+                    continue;
+                }
+
+                // 5. Verification Read-back
+                res = await send4WayPacket(writer, reader, CMD_IF_SEND_DATA, esc, [BL32_CMD_READ_PAGE, 0x00]);
+                const verifyData = new Uint8Array(res.data.subarray(1));
+                if (
+                    verifyData[OFFSET_RAMPUP_POWER] === targetRampup &&
+                    verifyData[OFFSET_LOW_RPM_PROT] === targetLowRpm &&
+                    verifyData[OFFSET_BEACON_DELAY] === targetBeacon
+                ) {
+                    log(`ESC #${esc + 1}: Верифікацію пройдено успішно!`);
+                    setEscBadge(esc, 'ok', 'OK (Записано)');
+                } else {
+                    log(`ESC #${esc + 1}: Невідповідність після верифікації!`);
+                    setEscBadge(esc, 'fail', 'Збій верифікації');
+                    allSuccess = false;
+                }
+            }
+
+            // Exit 4-Way mode
+            try {
+                const exitPacket = new Uint8Array([CMD_IF_EXIT, 0, 0, 0, 0, 0]);
+                await writer.write(exitPacket);
+            } catch (_) {}
+
+            await closeSerialSession(port, reader, writer, null);
+            port = null;
+            log('\n[ESC] Роботу завершено. COM-порт звільнено.');
+
+            if (allSuccess) {
+                showPopup('success', 'Успіх', 'Всі 4 ESC успішно оновлені та верифіковані!', 2500);
+            } else {
+                showPopup('error', 'Увага: Помилка ESC', 'Один або декілька регуляторів не відповіли. Переконайтеся, що підключено LiPo акумулятор.');
+            }
+
+        } catch (err) {
+            console.error(err);
+            log(`[ESC FATAL] ${err.message}`);
+            await closeSerialSession(port, reader, writer, null);
+            port = null;
+            showPopup('error', 'Збій роботи з ESC', err.message);
+        } finally {
+            btnConfigureESC.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
