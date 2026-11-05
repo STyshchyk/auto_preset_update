@@ -1226,22 +1226,18 @@ rateprofile 0
         await sendMsp(writer, 245, []);
         
         // Wait for MSP response from FC: [0x24, 0x4D, 0x3E, 0x01, 0xF5, 0x04, 0xF0]
-        const mspResp = await Promise.race([
-            reader.read(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 500))
-        ]).catch(() => ({ value: null }));
-
-        if (mspResp.value) {
-            log(`[4-Way] Відповідь FC на MSP 245: ${Array.from(mspResp.value).map(b => '0x' + b.toString(16)).join(' ')}`);
-        }
-        await delay(100);
+        try {
+            await Promise.race([
+                reader.read(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 500))
+            ]);
+        } catch (_) {}
+        await delay(150);
 
         // 1. Check protocol version (cmd 0x31)
         const pVer = await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 1500);
         if (pVer.ok) {
             log(`[4-Way] Протокол 4-Way активний: v${pVer.data[0] || '108'}`);
-        } else {
-            log(`[4-Way інфо]: ${pVer.msg}`);
         }
 
         // 2. Set Interface Mode to BLHeli32 (cmd 0x3F, param [0x04]) - MANDATORY!
@@ -1250,19 +1246,24 @@ rateprofile 0
         if (!mRes.ok) {
             log(`[4-Way попередження]: ${mRes.msg}`);
         } else {
-            log('[4-Way] Режим BLHeli32 підтверджено.');
+            log('[4-Way] Режим BLHeli32 успішно активовано.');
         }
-        await delay(100);
+        // Пауза перед початком опитування моторів
+        await delay(300);
     }
 
-    // Connects to a specific ESC bootloader (STM32G0 ARM)
+    // Connects to a specific ESC bootloader (STM32G0 ARM) exactly like BLHeliSuite32
     async function connectEscDevice(writer, reader, escIndex) {
-        // Step 1: cmd_DeviceReset(escIndex)
-        await send4WayCmd(writer, reader, CMD_DEVICE_RESET, 0, [escIndex]);
-        await delay(100);
+        // Step A: cmd_ProtocolGetVersion (resets channel state in FC)
+        await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 800);
+        await delay(30);
 
-        // Step 2: cmd_DeviceInitFlash(escIndex) -> returns chip signature & bootloader
-        const initRes = await send4WayCmd(writer, reader, CMD_DEVICE_INIT_FLASH, 0, [escIndex]);
+        // Step B: cmd_DeviceReset(escIndex)
+        await send4WayCmd(writer, reader, CMD_DEVICE_RESET, 0, [escIndex], 800);
+        await delay(100); // 100ms bootloader delay as in BLHeliSuite32
+
+        // Step C: cmd_DeviceInitFlash(escIndex) -> returns chip signature & bootloader
+        const initRes = await send4WayCmd(writer, reader, CMD_DEVICE_INIT_FLASH, 0, [escIndex], 1200);
         if (!initRes.ok) {
             return { ok: false, msg: initRes.msg };
         }
@@ -1273,6 +1274,14 @@ rateprofile 0
             chipInfo = `Сигнатура: 0x${sig}`;
         }
         return { ok: true, chipInfo };
+    }
+
+    // Disconnects an ESC device cleanly
+    async function disconnectEscDevice(writer, reader, escIndex) {
+        try {
+            await send4WayCmd(writer, reader, CMD_DEVICE_RESET, 0, [escIndex], 600);
+            await delay(30);
+        } catch (_) {}
     }
 
     // --- BUTTON: READ CURRENT ESC SETTINGS ---
@@ -1329,7 +1338,11 @@ rateprofile 0
                 foundEscCount++;
                 const pageData = readRes.data;
 
-                // Витягуємо параметри за реальними зміщеннями BLHeli32
+                // Виводимо Hex Dump перших 32 байтів у лог для точної верифікації структури
+                const hexPreview = Array.from(pageData.slice(0, 32)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                log(`ESC #${esc + 1} Hex [0..31]: ${hexPreview}`);
+
+                // Витягуємо параметри за зміщеннями BLHeli32
                 const curRampup = pageData[BL32_OFFSET_RAMPUP] ?? 100;
                 const curLowRpm = pageData[BL32_OFFSET_LOW_RPM] === 0x01 ? 1 : 0;
                 const curBeacon = pageData[BL32_OFFSET_BEACON_DELAY] ?? 0;
@@ -1344,6 +1357,9 @@ rateprofile 0
                     document.getElementById('cfgLowRpm').value = String(curLowRpm);
                     document.getElementById('cfgBeacon').value = [0, 1, 2, 5, 10].includes(curBeacon) ? String(curBeacon) : "0";
                 }
+
+                // Чисто відключаємо поточний ESC перед переходом до наступного
+                await disconnectEscDevice(writer, reader, esc);
             }
 
             // Вихід з 4-Way режиму (cmd 0x34)
@@ -1459,6 +1475,7 @@ rateprofile 0
                     log(`ESC #${esc + 1} помилка зчитування при верифікації: ${verifyRes.msg}`);
                     setEscBadge(esc, 'fail', 'Збій перевірки');
                     allSuccess = false;
+                    await disconnectEscDevice(writer, reader, esc);
                     continue;
                 }
 
@@ -1475,6 +1492,9 @@ rateprofile 0
                     setEscBadge(esc, 'fail', 'Збій верифікації');
                     allSuccess = false;
                 }
+
+                // Чисто відключаємо ESC перед переходом до наступного
+                await disconnectEscDevice(writer, reader, esc);
             }
 
             // Вихід з 4-Way режиму
