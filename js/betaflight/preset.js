@@ -5,6 +5,8 @@ import { log } from '../ui/log.js';
 import { setStepStatus } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
+import { parseFcDetails, calculateMismatch } from './info.js';
+import { updateInfoPanel } from '../ui/infoPanel.js';
 
 export async function flashBetaflightPreset() {
     if (!('serial' in navigator)) {
@@ -59,10 +61,46 @@ export async function flashBetaflightPreset() {
 
         log(`Виявлено плату: [${actualBoard || 'UNKNOWN'}]`);
 
-        if (expectedBoard && actualBoard && !actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
+        // Аналіз польотника та розрахунок % неспівпадіння через diff all
+        log('Аналіз поточної конфігурації польотника (diff all)...');
+        await writer.write('diff all\r\n');
+        await delay(100);
+        let diffContent = '';
+        const diffStart = Date.now();
+        const maxDiffWait = 4000;
+
+        while (Date.now() - diffStart < maxDiffWait) {
+            const chunk = await readCliResponse(reader, 400, false);
+            if (chunk) {
+                diffContent += chunk;
+                // Зупиняємося одразу, як тільки diff all завершився фінальним промптом CLI
+                if (diffContent.length > 50 && (diffContent.includes('\n# ') || diffContent.trim().endsWith('#'))) {
+                    break;
+                }
+            } else if (diffContent.length > 50) {
+                break;
+            }
+        }
+        log(`[Зчитування] Отримано ${diffContent.length} байт конфігурації FC.`);
+
+        const fcDetails = parseFcDetails(verText, statusText);
+        const mismatchStats = calculateMismatch(script, diffContent);
+        updateInfoPanel(fcDetails, mismatchStats);
+        log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
+        log(`[Аналіз пресету] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
+
+        if (!actualBoard) {
+            try { await writer.write('exit\r\n'); } catch (_) {}
+            throw new Error('Неможливо визначити плату польотного контролера (UNKNOWN). Запис скасовано для безпеки.');
+        }
+
+        if (expectedBoard && !actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
             try { await writer.write('exit\r\n'); } catch (_) {}
             throw new Error(`Невідповідність плати! Очікувалось [${expectedBoard}], підключено [${actualBoard}].`);
         }
+
+        // Швидке очищення залишкового ехо перед відправкою команд
+        await readCliResponse(reader, 150, false).catch(() => {});
 
         log('Заливання команд пресету...');
         const lines = script.split('\n');
@@ -78,18 +116,16 @@ export async function flashBetaflightPreset() {
 
             log(`> ${line}`);
             await writer.write(line + '\r\n');
-            
-            // Читаємо відповідь від FC для кожної команди для виявлення помилок (abort on error)
-            const resp = await readCliResponse(reader, 600);
+            await delay(35); // Швидка пауза буфера UART без блокуючого очікування
+
+            // Швидка неблокуюча перевірка відповіді на критичні помилки
+            const resp = await readCliResponse(reader, 100, true);
             if (resp) {
                 const cleanResp = resp.trim();
-                // Перевіряємо маркери помилок CLI Betaflight
                 const errorMatch = cleanResp.match(/(###ERROR[^\r\n#]*###|PARSE ERROR[^\r\n#]*|UNKNOWN COMMAND[^\r\n#]*|INVALID[^\r\n#]*)/i);
                 if (errorMatch) {
                     const errMsg = errorMatch[1].trim();
                     log(`[УВАГА / ПОМИЛКА FC]: ${errMsg}`);
-                    // ПРИМУСОВИЙ ABORT:
-                    // Захищаємо статус від випадкового скидання через reboot/disconnect
                     state.ignoreRebootEventsUntil = Date.now() + 6000;
                     try {
                         await writer.write('exit\r\n');
