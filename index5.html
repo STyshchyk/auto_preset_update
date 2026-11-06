@@ -22,6 +22,49 @@
         <span class="badge" id="boardTargetBadge">Target: SPEDIXF722</span>
     </div>
 
+    <!-- APP LAYOUT: SIDEBAR + MAIN CONTENT -->
+    <div class="app-layout">
+        <!-- LEFT SIDEBAR: Flight Controller Info & Preset Match -->
+        <aside class="sidebar-col">
+            <div class="info-card">
+                <div class="info-card-header">
+                    <span class="info-card-title">ℹ️ Інфо польотника</span>
+                    <span class="badge">Telemetry</span>
+                </div>
+
+                <div class="info-group">
+                    <div class="info-group-title">Параметри плати (FC)</div>
+                    <div class="info-row">
+                        <span class="info-label">Плата / Target:</span>
+                        <span class="info-val" id="infoBoardName">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Версія BTFL:</span>
+                        <span class="info-val" id="infoFirmwareVer">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Дата збірки:</span>
+                        <span class="info-val" id="infoBuildDate">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">MCU:</span>
+                        <span class="info-val" id="infoMcuType">—</span>
+                    </div>
+                </div>
+
+                <div class="info-group">
+                    <div class="info-group-title">Порівняння з пресетом</div>
+                    <div class="mismatch-box">
+                        <div class="info-label" style="font-size:12px;">Неспівпадіння зі стеком:</div>
+                        <div class="mismatch-badge" id="infoMismatchBadge">—</div>
+                        <div class="mismatch-note" id="infoMismatchNote">Очікує запуску (натисніть «Залити»)...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- RIGHT MAIN COLUMN: Steps & Console -->
+        <main class="main-col">
     <!-- BLOCK 1: Betaflight CLI Flasher -->
     <div class="step-card" id="cardStep1">
         <div class="step-header">
@@ -309,6 +352,8 @@ rateprofile 0
         </div>
         <div id="log">Очікування підключення пристрою...</div>
     </div>
+        </main>
+    </div>
 </div>
 
 <!-- Auto-fading / Error Modal -->
@@ -327,6 +372,7 @@ rateprofile 0
     import { refreshPortList, initSerialEvents, resolveSelectedPort, closeSerialSession } from './js/core/serial.js';
     import { log } from './js/ui/log.js';
     import { setStepStatus, resetAllStepStatuses, setEscBadge, setAllEscButtons } from './js/ui/status.js';
+    import { resetInfoPanel } from './js/ui/infoPanel.js';
     import { showPopup, closeModal } from './js/ui/modal.js';
     import { flashBetaflightPreset, skipToEsc } from './js/betaflight/preset.js';
     import { backupBetaflightConfig } from './js/betaflight/backup.js';
@@ -363,7 +409,10 @@ rateprofile 0
     window.closeModal = closeModal;
 
     // --- PORT MANAGEMENT ---
-    initSerialEvents(log, resetAllStepStatuses);
+    initSerialEvents(log, () => {
+        resetAllStepStatuses();
+        resetInfoPanel();
+    });
 
     // --- STEP 1: BETAFLIGHT CLI PRESET FLASHER ---
     btnFlashFC.addEventListener('click', flashBetaflightPreset);

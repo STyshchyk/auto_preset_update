@@ -256,3 +256,118 @@ button:disabled {
     background: #2a2e38;
     color: #fff;
 }
+
+
+/* --- SIDEBAR INFO PANEL --- */
+.info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.info-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+}
+
+.info-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px dashed #242832;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--text-muted);
+}
+
+.info-val {
+    font-weight: 600;
+    color: #fff;
+    text-align: right;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mismatch-box {
+    background: #12141a;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+}
+
+.mismatch-badge {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #252830;
+    color: var(--text-muted);
+}
+
+.mismatch-badge.match-exact {
+    background: rgba(0, 255, 102, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(0, 255, 102, 0.3);
+}
+
+.mismatch-badge.match-low-diff {
+    background: rgba(255, 170, 0, 0.15);
+    color: var(--primary);
+    border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.mismatch-badge.match-high-diff {
+    background: rgba(255, 68, 68, 0.15);
+    color: var(--error);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.mismatch-note {
+    font-size: 11px;
+    color: var(--text-muted);
+}
