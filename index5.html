@@ -26,14 +26,15 @@
     <div class="app-layout">
         <!-- LEFT SIDEBAR: Flight Controller Info & Preset Match -->
         <aside class="sidebar-col">
+            <!-- Крок 1: Інфо польотника (FC) -->
             <div class="info-card">
                 <div class="info-card-header">
-                    <span class="info-card-title">ℹ️ Інфо польотника</span>
-                    <span class="badge">Telemetry</span>
+                    <span class="info-card-title">ℹ️ Крок 1: Польотник (FC)</span>
+                    <span class="badge">Крок 1</span>
                 </div>
 
                 <div class="info-group">
-                    <div class="info-group-title">Параметри плати (FC)</div>
+                    <div class="info-group-title">Параметри плати</div>
                     <div class="info-row">
                         <span class="info-label">Плата / Target:</span>
                         <span class="info-val" id="infoBoardName">—</span>
@@ -59,6 +60,14 @@
                         <div class="mismatch-badge" id="infoMismatchBadge">—</div>
                         <div class="mismatch-note" id="infoMismatchNote">Очікує запуску (натисніть «Залити»)...</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Крок 2: Стан регуляторів (ESC) -->
+            <div class="info-card" id="infoCardEsc" style="margin-top: 14px;">
+                <div class="info-card-header">
+                    <span class="info-card-title">⚡ Крок 2: Регулятори (ESC)</span>
+                    <span class="badge">Крок 2</span>
                 </div>
 
                 <div class="info-group" id="infoGroupEsc">
@@ -330,22 +339,6 @@ rateprofile 0
             <div class="step-header-right">
                 <span class="badge">MSP 4-Way Interface</span>
                 <span class="step-status awaiting" id="stepStatus2">⏳ Очікування</span>
-            </div>
-        </div>
-
-        <!-- Цільовий пресет BLHeli_32 (бінарні перевірені блоки) -->
-        <div style="background:#13161c; border:1px solid #2a2e38; border-radius:8px; padding:14px 18px; margin-bottom:14px;">
-            <div style="font-weight:600; color:#ffaa00; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-                <span>⚡ Цільовий пресет BLHeli_32 (Dummy Patch)</span>
-                <span style="font-size:11px; background:#242a35; color:#00ccff; padding:2px 8px; border-radius:4px;">Безпечна бінарна заміна</span>
-            </div>
-            <div style="font-size:13px; color:#ddd; display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
-                <div>• Rampup Power: <strong style="color:#00ff88;">100%</strong></div>
-                <div>• Low RPM Power Protect: <strong style="color:#00ff88;">Off (Вимкнено)</strong></div>
-                <div>• Beacon Delay: <strong style="color:#00ff88;">Off (Вимкнено)</strong></div>
-            </div>
-            <div style="font-size:11px; color:#888; margin-top:10px; line-height:1.4;">
-                ℹ️ Замінюється виключно блок налаштувань <code>0x10..0x1F</code> та синхронізований хеш напрямку <code>0x00..0x07</code>. Усі інші 232 байти (калібрування, залізо, таймінги) залишаються недоторканими.
             </div>
         </div>
 

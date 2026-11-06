@@ -2,7 +2,8 @@
 
 **Last Updated:** 2026-11-06  
 **Active Entry Point:** `index5.html`  
-**Refactoring Progress:** Phases 1–7 Completed; Telemetry & Preset Mismatch Analysis Implemented (Phase 8 Pending)
+**Refactoring Progress:** Phases 1–7 Completed; Telemetry & Preset Mismatch Analysis Implemented (Phase 8 Pending)  
+**Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry & Diff) and Step 2 (`#infoCardEsc`, BLHeli_32 Live Status) cards
 
 ---
 
@@ -37,15 +38,16 @@ The application operates as a modularized single-page application (`index5.html`
 
 ## 2. Recent Feature Additions (Telemetry & ESC Info Integration)
 
-* **Left Info Panel UI:**
-  * Sidebar displays Flight Controller Telemetry: Target / Board Name, Firmware Version, Build Date & Time, MCU Type.
-  * Mismatch Box shows % Mismatch with color-coded badge (`match-exact` 0%, `match-low-diff` $\le 30\%$, `match-high-diff` $> 30\%$) and mismatch count.
-  * Motor Telemetry Block (`#infoGroupEsc`):
-    * ESC Model & Firmware Name (open ASCII decoding).
-    * ESC MCU Architecture & Hardware Signature (e.g., `STM32G071 (0x0460)`).
-    * Power & ACK Health Status (`OK (4/4 LiPo є)` / `Частково` / `Fail`).
-    * Per-motor rotation direction & preset status badges (`#1..#4: N/R (100% / Stock)`).
-    * Global 100% preset compliance indicator (`Застосовано (4/4)` / `Потрібен запис`).
+* **Left Info Panel UI (Розділено на Крок 1 та Крок 2):**
+  * **Картка Крок 1 (Flight Controller & Preset):**
+    * Параметри FC: Target / Board Name, Firmware Version, Build Date & Time, MCU Type.
+    * Mismatch Box: % Mismatch із кольоровим бейджем (`match-exact` 0%, `match-low-diff` $\le 30\%$, `match-high-diff` $> 30\%$) та лічильник змінних.
+  * **Картка Крок 2 (`#infoCardEsc`, BLHeli_32 Регулятори):**
+    * Модель ESC та відкрита текстова назва прошивки.
+    * MCU ESC та апаратна сигнатура (наприклад, `STM32G071 (0x0460)`).
+    * Живлення та статус ACK (`OK (4/4 LiPo є)` / `Частково` / `Fail`).
+    * Напрямок обертання та стан пресету для кожного мотора (`#1..#4: N/R (100% / Stock)`).
+    * Підсумкова відповідність пресету 100% (`Застосовано (4/4)` / `Потрібен запис`).
 * **Strict On-Click Security Rule:**
   * No COM port access or polling occurs before the user explicitly clicks «Залити пресет у FC» or «Зчитати налаштування ESC».
 * **One-Click Instant Execution:**

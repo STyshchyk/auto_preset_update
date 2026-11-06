@@ -10,7 +10,7 @@
 | Розділ | Елементи / Селектори | Опис |
 | :--- | :--- | :--- |
 | **Панель вибору COM-порту** | `.top-bar`, `#portSelect`, `#boardTargetBadge` | Верхній бар вибору Web Serial пристрою та індикатор цільової плати (`Target: SPEDIXF722`). |
-| **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card` | Інформація про польотник (`#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`), бейдж неспівпадіння (`#infoMismatchBadge`, `#infoMismatchNote`) та блок телеметрії моторів (`#infoEscModel`, `#infoEscMcu`, `#infoEscPowerAck`, `#infoEscDirs`, `#infoEscPresetStatus`). |
+| **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card`, `#infoCardEsc` | Розділена на два блоки: **Крок 1** (параметри FC: `#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`, бейдж неспівпадіння `#infoMismatchBadge`, `#infoMismatchNote`) та **Крок 2** (телеметрія ESC/моторів: `#infoEscModel`, `#infoEscMcu`, `#infoEscPowerAck`, `#infoEscDirs`, `#infoEscPresetStatus`). |
 | **Крок 1: Заливання пресету FC** | `#cardStep1`, `#presetInput`, `#btnFlashFC`, `#btnBackup`, `#btnSkipToEsc` | Картка Betaflight CLI Flasher для аналізу поточної конфігурації, розрахунку % неспівпадіння та запису команд. |
 | **Крок 2: Настройка BLHeli_32** | `#cardStep2`, `#badgeEsc0`..`#badgeEsc3`, `#btnReadESC`, `#btnConfigureESC` | Статуси 4-х ESC, читання налаштувань, бекап, відновлення та бінарне застосування пресету. |
 | **Панель логування (Console)** | `.log-panel`, `#log` | Консоль реального часу для деталізованого виводу операцій із портом. |
@@ -82,7 +82,7 @@
 
 ### 3.3. Модуль BLHeli_32 (`js/blheli/`)
 * **`protocol.js`**: низькорівнева реалізація MSPv1 та 4-Way протоколу (команди `0x30..0x3F`, адресація `0xF800`, підключення та опитування ESC).
-* У `index5.html` наразі збережено високорівневі методи читання блоків, автобекапу та застосування Dummy Patch до регуляторів.
+* У `index5.html` наразі збережено високорівневі методи читання блоків, автобекапу та застосування пресету до регуляторів.
 
 ---
 
