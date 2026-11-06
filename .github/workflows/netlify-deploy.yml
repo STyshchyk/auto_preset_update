@@ -1,9 +1,10 @@
-name: Deploy to Netlify on push to main
+name: Deploy to Netlify
 
 on:
   push:
     branches:
       - main
+      - develop
 
 jobs:
   deploy:
@@ -17,7 +18,7 @@ jobs:
         with:
           publish-dir: '.'
           production-branch: main
-          production-deploy: true
+          production-deploy: ${{ github.ref == 'refs/heads/main' }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: 'e805ca12-913b-448c-b2c6-2b5a89a9bf51'

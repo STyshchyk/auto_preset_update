@@ -1,0 +1,93 @@
+:root {
+    --bg: #0f1115;
+    --card-bg: #181b20;
+    --border: #2a2e38;
+    --primary: #ffaa00;
+    --primary-hover: #e09600;
+    --secondary: #00aaee;
+    --secondary-hover: #0088cc;
+    --success: #00ff66;
+    --error: #ff4444;
+    --text: #e2e8f0;
+    --text-muted: #8a94a6;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    margin: 0;
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.app-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.sidebar-col {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.main-col {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@media (max-width: 960px) {
+    .app-layout {
+        flex-direction: column;
+    }
+    .sidebar-col {
+        width: 100%;
+    }
+}
+
+.top-bar {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.port-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1;
+}
+
+select, input[type="number"] {
+    background: #0f1115;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+}
+select { flex-grow: 1; }

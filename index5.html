@@ -4,328 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drone Setup Station: Betaflight & BLHeli_32 Configurator</title>
-    <style>
-        :root {
-            --bg: #0f1115;
-            --card-bg: #181b20;
-            --border: #2a2e38;
-            --primary: #ffaa00;
-            --primary-hover: #e09600;
-            --secondary: #00aaee;
-            --secondary-hover: #0088cc;
-            --success: #00ff66;
-            --error: #ff4444;
-            --text: #e2e8f0;
-            --text-muted: #8a94a6;
-        }
-
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 24px 16px;
-            margin: 0;
-        }
-
-        .container {
-            max-width: 820px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .top-bar {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 14px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-        }
-
-        .port-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-grow: 1;
-        }
-
-        select, input[type="number"] {
-            background: #0f1115;
-            color: #fff;
-            border: 1px solid #444;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            outline: none;
-        }
-        select { flex-grow: 1; }
-
-        .step-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px 24px;
-            position: relative;
-            transition: border-color 0.2s, opacity 0.2s;
-        }
-
-        .step-card.disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .step-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .step-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .step-title.blue { color: var(--secondary); }
-
-        .step-header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .badge {
-            font-size: 11px;
-            background: #252830;
-            padding: 3px 8px;
-            border-radius: 4px;
-            color: var(--text-muted);
-            border: 1px solid #333;
-        }
-
-        .step-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 6px;
-            border: 1px solid #3a3f4d;
-            background: #12141a;
-            color: var(--text-muted);
-            transition: all 0.2s ease;
-        }
-
-        .step-status.awaiting {
-            border-color: #3a3f4d;
-            color: var(--text-muted);
-            background: #12141a;
-        }
-
-        .step-status.working {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: rgba(255, 170, 0, 0.1);
-        }
-
-        .step-status.success {
-            border-color: var(--success);
-            color: var(--success);
-            background: rgba(0, 255, 102, 0.1);
-        }
-
-        .step-status.fail {
-            border-color: var(--error);
-            color: var(--error);
-            background: rgba(255, 68, 68, 0.1);
-        }
-
-        textarea {
-            width: 100%;
-            height: 140px;
-            background: #0c0d10;
-            color: #eee;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 10px;
-            box-sizing: border-box;
-            font-family: Consolas, Monaco, monospace;
-            font-size: 12px;
-            resize: vertical;
-        }
-
-        .esc-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 14px;
-            margin-bottom: 16px;
-        }
-
-        .param-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .param-group label {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .esc-status-badges {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin: 15px 0;
-        }
-
-        .esc-badge {
-            background: #11141a;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 8px;
-            text-align: center;
-            font-size: 12px;
-        }
-        .esc-badge.pending { border-color: #555; color: #888; }
-        .esc-badge.working { border-color: var(--primary); color: var(--primary); }
-        .esc-badge.ok { border-color: var(--success); color: var(--success); }
-        .esc-badge.fail { border-color: var(--error); color: var(--error); }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-top: 10px;
-        }
-
-        button {
-            padding: 10px 18px;
-            font-weight: 700;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            border: none;
-            transition: background 0.15s ease, opacity 0.15s;
-        }
-
-        .btn-primary { background: var(--primary); color: #000; }
-        .btn-primary:hover { background: var(--primary-hover); }
-
-        .btn-secondary { background: var(--secondary); color: #000; }
-        .btn-secondary:hover { background: var(--secondary-hover); }
-
-        .btn-read { background: #1e3a5f; color: #38bdf8; border: 1px solid #0284c7; }
-        .btn-read:hover { background: #0369a1; color: #fff; }
-
-        .btn-backup { background: #3a3f4d; color: #fff; }
-        .btn-backup:hover { background: #4a5163; }
-
-        .btn-restore { background: #4a2f12; color: #ffb454; border: 1px solid #b86e00; }
-        .btn-restore:hover { background: #6b4416; color: #fff; }
-
-        .controls { flex-wrap: wrap; }
-
-        button:disabled {
-            background: #333 !important;
-            cursor: not-allowed !important;
-            color: #666 !important;
-        }
-
-        .log-panel {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 14px 20px 18px;
-        }
-
-        .log-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .log-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        #log {
-            width: 100%;
-            background: #08090b;
-            color: var(--success);
-            font-family: Consolas, Monaco, monospace;
-            padding: 12px;
-            border-radius: 6px;
-            height: 150px;
-            overflow-y: auto;
-            font-size: 12px;
-            white-space: pre-wrap;
-            border: 1px solid var(--border);
-            box-sizing: border-box;
-        }
-
-        /* Modal / Popup */
-        .modal {
-            display: flex;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.75);
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.25s ease, visibility 0.25s ease;
-        }
-
-        .modal.active { opacity: 1; visibility: visible; }
-
-        .modal-box {
-            background: #1c2026;
-            padding: 24px;
-            border-radius: 8px;
-            text-align: center;
-            max-width: 440px;
-            width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-            border: 1px solid #333;
-        }
-
-        .modal-box.success { border-left: 8px solid var(--success); }
-        .modal-box.error { border-left: 8px solid var(--error); }
-        .modal-box h3 { margin-top: 0; font-size: 18px; }
-        .modal-box p { font-size: 13px; line-height: 1.4; color: #ccc; }
-
-        .btn-close {
-            margin-top: 15px;
-            background: #2a2e38;
-            color: #fff;
-        }
-    </style>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
 
@@ -342,6 +22,82 @@
         <span class="badge" id="boardTargetBadge">Target: SPEDIXF722</span>
     </div>
 
+    <!-- APP LAYOUT: SIDEBAR + MAIN CONTENT -->
+    <div class="app-layout">
+        <!-- LEFT SIDEBAR: Flight Controller Info & Preset Match -->
+        <aside class="sidebar-col">
+            <!-- Крок 1: Інфо польотника (FC) -->
+            <div class="info-card">
+                <div class="info-card-header">
+                    <span class="info-card-title">ℹ️ Крок 1: Польотник (FC)</span>
+                    <span class="badge">Крок 1</span>
+                </div>
+
+                <div class="info-group">
+                    <div class="info-group-title">Параметри плати</div>
+                    <div class="info-row">
+                        <span class="info-label">Плата / Target:</span>
+                        <span class="info-val" id="infoBoardName">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Версія BTFL:</span>
+                        <span class="info-val" id="infoFirmwareVer">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Дата збірки:</span>
+                        <span class="info-val" id="infoBuildDate">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">MCU:</span>
+                        <span class="info-val" id="infoMcuType">—</span>
+                    </div>
+                </div>
+
+                <div class="info-group">
+                    <div class="info-group-title">Порівняння з пресетом</div>
+                    <div class="mismatch-box">
+                        <div class="info-label" style="font-size:12px;">Неспівпадіння зі стеком:</div>
+                        <div class="mismatch-badge" id="infoMismatchBadge">—</div>
+                        <div class="mismatch-note" id="infoMismatchNote">Очікує запуску (натисніть «Залити»)...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Крок 2: Стан регуляторів (ESC) -->
+            <div class="info-card" id="infoCardEsc" style="margin-top: 14px;">
+                <div class="info-card-header">
+                    <span class="info-card-title">⚡ Крок 2: Регулятори (ESC)</span>
+                    <span class="badge">Крок 2</span>
+                </div>
+
+                <div class="info-group" id="infoGroupEsc">
+                    <div class="info-group-title">Стан моторів (BLHeli_32)</div>
+                    <div class="info-row">
+                        <span class="info-label">Модель ESC:</span>
+                        <span class="info-val" id="infoEscModel" style="max-width:180px;">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">MCU ESC:</span>
+                        <span class="info-val" id="infoEscMcu">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Живлення / ACK:</span>
+                        <span class="info-val" id="infoEscPowerAck">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">ESC #1..#4:</span>
+                        <span class="info-val" id="infoEscDirs" style="font-size:11px;">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Пресет 100%:</span>
+                        <span class="info-val" id="infoEscPresetStatus">—</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- RIGHT MAIN COLUMN: Steps & Console -->
+        <main class="main-col">
     <!-- BLOCK 1: Betaflight CLI Flasher -->
     <div class="step-card" id="cardStep1">
         <div class="step-header">
@@ -586,22 +342,6 @@ rateprofile 0
             </div>
         </div>
 
-        <!-- Цільовий пресет BLHeli_32 (бінарні перевірені блоки) -->
-        <div style="background:#13161c; border:1px solid #2a2e38; border-radius:8px; padding:14px 18px; margin-bottom:14px;">
-            <div style="font-weight:600; color:#ffaa00; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-                <span>⚡ Цільовий пресет BLHeli_32 (Dummy Patch)</span>
-                <span style="font-size:11px; background:#242a35; color:#00ccff; padding:2px 8px; border-radius:4px;">Безпечна бінарна заміна</span>
-            </div>
-            <div style="font-size:13px; color:#ddd; display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
-                <div>• Rampup Power: <strong style="color:#00ff88;">100%</strong></div>
-                <div>• Low RPM Power Protect: <strong style="color:#00ff88;">Off (Вимкнено)</strong></div>
-                <div>• Beacon Delay: <strong style="color:#00ff88;">Off (Вимкнено)</strong></div>
-            </div>
-            <div style="font-size:11px; color:#888; margin-top:10px; line-height:1.4;">
-                ℹ️ Замінюється виключно блок налаштувань <code>0x10..0x1F</code> та синхронізований хеш напрямку <code>0x00..0x07</code>. Усі інші 232 байти (калібрування, залізо, таймінги) залишаються недоторканими.
-            </div>
-        </div>
-
         <!-- ESC 1-4 Real-Time Status -->
         <div class="esc-status-badges">
             <div class="esc-badge pending" id="badgeEsc0">ESC #1: Очікування</div>
@@ -629,6 +369,8 @@ rateprofile 0
         </div>
         <div id="log">Очікування підключення пристрою...</div>
     </div>
+        </main>
+    </div>
 </div>
 
 <!-- Auto-fading / Error Modal -->
@@ -640,17 +382,40 @@ rateprofile 0
     </div>
 </div>
 
-<script>
-    let port = null;
-    let availablePorts = [];
-    let popupTimer = null;
-    let ignoreRebootEventsUntil = 0;
+<script type="module">
+    import { delay, bytesToHex, hexToBytes, bytesEqual, timestampStr, downloadTextFile } from './js/utils/bytes.js';
+    import { crc16Xmodem, crcHex } from './js/utils/crc.js';
+    import { state } from './js/core/state.js';
+    import { refreshPortList, initSerialEvents, resolveSelectedPort, closeSerialSession } from './js/core/serial.js';
+    import { log } from './js/ui/log.js';
+    import { setStepStatus, resetAllStepStatuses, setEscBadge, setAllEscButtons } from './js/ui/status.js';
+    import { resetInfoPanel, updateEscInfoPanel } from './js/ui/infoPanel.js';
+    import { showPopup, closeModal } from './js/ui/modal.js';
+    import { flashBetaflightPreset, skipToEsc } from './js/betaflight/preset.js';
+    import { backupBetaflightConfig } from './js/betaflight/backup.js';
+    import {
+        CMD_LOCAL_ESCAPE,
+        CMD_REMOTE_ESCAPE,
+        CMD_INTERFACE_TEST_ALIVE,
+        CMD_PROTOCOL_GET_VERSION,
+        CMD_INTERFACE_GET_NAME,
+        CMD_INTERFACE_GET_VER,
+        CMD_INTERFACE_EXIT,
+        CMD_DEVICE_RESET,
+        CMD_DEVICE_INIT_FLASH,
+        CMD_DEVICE_READ,
+        CMD_DEVICE_WRITE,
+        CMD_INTERFACE_SET_MODE,
+        sendMsp,
+        read4WayRaw,
+        send4WayCmd,
+        init4WayInterface,
+        connectEscDevice,
+        disconnectEscDevice
+    } from './js/blheli/protocol.js';
 
-    const logDiv = document.getElementById('log');
-    const portSelect = document.getElementById('portSelect');
     const btnFlashFC = document.getElementById('btnFlashFC');
     const btnBackup = document.getElementById('btnBackup');
-    const backupTypeSelect = document.getElementById('backupType');
     const btnSkipToEsc = document.getElementById('btnSkipToEsc');
     const btnReadESC = document.getElementById('btnReadESC');
     const btnBackupESC = document.getElementById('btnBackupESC');
@@ -658,443 +423,22 @@ rateprofile 0
     const fileRestoreESC = document.getElementById('fileRestoreESC');
     const btnConfigureESC = document.getElementById('btnConfigureESC');
 
-    const delay = ms => new Promise(res => setTimeout(res, ms));
-
-    function log(msg) {
-        logDiv.textContent += msg + '\n';
-        logDiv.scrollTop = logDiv.scrollHeight;
-    }
-
-    function setStepStatus(stepNumber, state) {
-        const el = document.getElementById(`stepStatus${stepNumber}`);
-        if (!el) return;
-
-        const labels = {
-            awaiting: '⏳ Очікування',
-            working: '🔄 Виконується...',
-            success: '✅ Успішно',
-            fail: '❌ Помилка'
-        };
-
-        el.className = `step-status ${state}`;
-        el.textContent = labels[state] || labels.awaiting;
-    }
-
-    function resetAllStepStatuses() {
-        setStepStatus(1, 'awaiting');
-        setStepStatus(2, 'awaiting');
-        for (let i = 0; i < 4; i++) {
-            setEscBadge(i, 'pending', 'Очікування');
-        }
-    }
-
-    function showPopup(type, title, message, autoCloseMs = 0, callback = null) {
-        const modal = document.getElementById('statusModal');
-        const box = document.getElementById('modalBox');
-        const closeBtn = document.getElementById('modalCloseBtn');
-
-        if (popupTimer) {
-            clearTimeout(popupTimer);
-            popupTimer = null;
-        }
-
-        box.className = 'modal-box ' + type;
-        document.getElementById('modalTitle').textContent = title;
-        document.getElementById('modalMsg').textContent = message;
-
-        if (type === 'success' && autoCloseMs > 0) {
-            closeBtn.style.display = 'none';
-            modal.classList.add('active');
-            popupTimer = setTimeout(() => {
-                closeModal();
-                if (typeof callback === 'function') callback();
-            }, autoCloseMs);
-        } else {
-            closeBtn.style.display = 'inline-block';
-            modal.classList.add('active');
-        }
-    }
-
-    function closeModal() {
-        document.getElementById('statusModal').classList.remove('active');
-        if (popupTimer) {
-            clearTimeout(popupTimer);
-            popupTimer = null;
-        }
-    }
+    window.closeModal = closeModal;
 
     // --- PORT MANAGEMENT ---
-    async function refreshPortList() {
-        if (!('serial' in navigator)) return;
-        availablePorts = await navigator.serial.getPorts();
-        portSelect.innerHTML = '';
-
-        let bestIndex = -1;
-        availablePorts.forEach((p, idx) => {
-            const info = p.getInfo();
-            const vid = info.usbVendorId ? '0x' + info.usbVendorId.toString(16).padStart(4, '0') : null;
-            const pid = info.usbProductId ? '0x' + info.usbProductId.toString(16).padStart(4, '0') : null;
-
-            let label = `Пристрій ${idx + 1}`;
-            let isFC = false;
-            if (info.usbVendorId === 0x0483 || info.usbVendorId === 1155) {
-                label = `Betaflight STM32 (VID:${vid} PID:${pid})`;
-                isFC = true;
-            } else if (vid && pid) {
-                label = `Serial (VID:${vid} PID:${pid})`;
-            }
-
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.textContent = label;
-            portSelect.appendChild(opt);
-
-            if (isFC && bestIndex === -1) bestIndex = idx;
-        });
-
-        const optNew = document.createElement('option');
-        optNew.value = 'new';
-        optNew.textContent = '+ Обрати / Додати новий порт...';
-        portSelect.appendChild(optNew);
-
-        if (bestIndex !== -1) {
-            portSelect.value = bestIndex;
-        } else if (availablePorts.length > 0) {
-            portSelect.value = 0;
-        } else {
-            portSelect.value = 'new';
-        }
-    }
-
-    if ('serial' in navigator) {
-        navigator.serial.addEventListener('connect', () => {
-            log('Виявлено підключення USB. Оновлення списку...');
-            refreshPortList();
-            if (Date.now() > ignoreRebootEventsUntil) {
-                resetAllStepStatuses();
-            }
-        });
-        navigator.serial.addEventListener('disconnect', () => {
-            log('USB-пристрій відключено.');
-            refreshPortList();
-            if (Date.now() > ignoreRebootEventsUntil) {
-                resetAllStepStatuses();
-            }
-        });
-        refreshPortList();
-    }
-
-    async function resolveSelectedPort() {
-        const selectedVal = portSelect.value;
-        if (selectedVal === 'new' || !availablePorts[selectedVal]) {
-            log('Відкриття діалогу вибору COM-порту...');
-            const requested = await navigator.serial.requestPort();
-            await refreshPortList();
-            return requested;
-        }
-        return availablePorts[selectedVal];
-    }
-
-    async function closeSerialSession(portObj, readerObj, writerObj, encoderObj) {
-        if (readerObj) {
-            try { await readerObj.cancel(); readerObj.releaseLock(); } catch (_) {}
-        }
-        if (writerObj) {
-            try { writerObj.releaseLock(); } catch (_) {}
-        }
-        if (encoderObj) {
-            try { await encoderObj.readable.cancel(); } catch (_) {}
-        }
-        if (portObj) {
-            try {
-                await delay(50);
-                await portObj.close();
-            } catch (e) {
-                console.warn('port.close() warning:', e);
-            }
-        }
-    }
-
-    function downloadTextFile(filename, text) {
-        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }
+    initSerialEvents(log, () => {
+        resetAllStepStatuses();
+        resetInfoPanel();
+    });
 
     // --- STEP 1: BETAFLIGHT CLI PRESET FLASHER ---
-    async function readCliResponse(reader, timeoutMs = 2500, stopOnPrompt = true) {
-        let output = '';
-        const start = Date.now();
-        while (Date.now() - start < timeoutMs) {
-            const { value, done } = await Promise.race([
-                reader.read(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 200))
-            ]).catch(() => ({ value: null, done: false }));
-
-            if (done) break;
-            if (value) {
-                output += value;
-                if (stopOnPrompt && (output.includes('\n# ') || output.trim().endsWith('#'))) break;
-            }
-        }
-        return output;
-    }
-
-    function parseBoardName(text) {
-        if (!text) return null;
-        const nameMatch = text.match(/name:\s*([A-Za-z0-9_-]+)/i) ||
-            text.match(/board_name\s+([A-Za-z0-9_-]+)/i) ||
-            text.match(/Board:\s*([A-Za-z0-9_-]+)/i);
-        if (nameMatch) return nameMatch[1].toUpperCase();
-        if (text.toUpperCase().includes('SPEDIXF722')) return 'SPEDIXF722';
-        return null;
-    }
-
-    btnFlashFC.addEventListener('click', async () => {
-        if (!('serial' in navigator)) {
-            setStepStatus(1, 'fail');
-            showPopup('error', 'Помилка', 'Web Serial API не підтримується цим браузером.');
-            return;
-        }
-
-        const script = document.getElementById('presetInput').value.trim();
-        btnFlashFC.disabled = true;
-        setStepStatus(1, 'working');
-        let reader = null, writer = null, textEncoder = null;
-        let isRebooting = false;
-
-        try {
-            port = await resolveSelectedPort();
-            await port.open({ baudRate: 115200 });
-            log('Порт відкрито на 115200.');
-
-            textEncoder = new TextEncoderStream();
-            textEncoder.readable.pipeTo(port.writable);
-            writer = textEncoder.writable.getWriter();
-
-            const textDecoder = new TextDecoderStream();
-            port.readable.pipeTo(textDecoder.writable);
-            reader = textDecoder.readable.getReader();
-
-            // Enter CLI mode
-            log('Ініціалізація Betaflight CLI (#)...');
-            await writer.write('#\r\n');
-            await delay(350);
-            let initEcho = await readCliResponse(reader, 800);
-            if (!initEcho.includes('#')) {
-                await writer.write('\r\n#\r\n');
-                await delay(350);
-                initEcho += await readCliResponse(reader, 800);
-            }
-
-            // Read status & board validation
-            log('Зчитування даних плати...');
-            await writer.write('version\r\n');
-            await delay(150);
-            const verText = await readCliResponse(reader, 1000);
-            await writer.write('status\r\n');
-            await delay(150);
-            const statusText = await readCliResponse(reader, 1200);
-
-            const actualBoard = parseBoardName(initEcho + '\n' + verText + '\n' + statusText);
-            const expectedBoardMatch = script.match(/(?:board_name|#\s*target:?)\s+([A-Za-z0-9_-]+)/i);
-            const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].toUpperCase() : null;
-
-            log(`Виявлено плату: [${actualBoard || 'UNKNOWN'}]`);
-
-            if (expectedBoard && actualBoard && !actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
-                try { await writer.write('exit\r\n'); } catch (_) {}
-                throw new Error(`Невідповідність плати! Очікувалось [${expectedBoard}], підключено [${actualBoard}].`);
-            }
-
-            log('Заливання команд пресету...');
-            const lines = script.split('\n');
-            let containsSave = false;
-
-            for (let line of lines) {
-                line = line.trim();
-                if (!line || line.startsWith('#')) continue;
-                if (line.toLowerCase() === 'save') {
-                    containsSave = true;
-                    continue;
-                }
-
-                log(`> ${line}`);
-                await writer.write(line + '\r\n');
-                
-                // Читаємо відповідь від FC для кожної команди для виявлення помилок (abort on error)
-                const resp = await readCliResponse(reader, 600);
-                if (resp) {
-                    const cleanResp = resp.trim();
-                    // Перевіряємо маркери помилок CLI Betaflight
-                    const errorMatch = cleanResp.match(/(###ERROR[^\r\n#]*###|PARSE ERROR[^\r\n#]*|UNKNOWN COMMAND[^\r\n#]*|INVALID[^\r\n#]*)/i);
-                    if (errorMatch) {
-                        const errMsg = errorMatch[1].trim();
-                        log(`[УВАГА / ПОМИЛКА FC]: ${errMsg}`);
-                        // ПРИМУСОВИЙ ABORT:
-                        // Захищаємо статус від випадкового скидання через reboot/disconnect
-                        ignoreRebootEventsUntil = Date.now() + 6000;
-                        try {
-                            await writer.write('exit\r\n');
-                            await delay(200);
-                        } catch (_) {}
-                        throw new Error(`Помилка у команді "${line}":\n${errMsg}\nЗапис перервано (ABORT), зміни НЕ збережено!`);
-                    }
-                }
-            }
-
-            isRebooting = true;
-            ignoreRebootEventsUntil = Date.now() + 5000;
-            log('> save');
-            await writer.write('save\r\n');
-            await delay(400);
-
-            await closeSerialSession(port, reader, writer, textEncoder);
-            port = null;
-
-            setStepStatus(1, 'success');
-            log('Пресет успішно залито. Контролер перезавантажився.');
-            showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
-                log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
-            });
-
-        } catch (err) {
-            if (isRebooting || err.message.includes('device has been lost')) {
-                ignoreRebootEventsUntil = Date.now() + 5000;
-                setStepStatus(1, 'success');
-                log('Контролер перезавантажився штатно.');
-                port = null;
-                showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
-            } else {
-                console.error(err);
-                ignoreRebootEventsUntil = Date.now() + 6000;
-                setStepStatus(1, 'fail');
-                log(`Помилка кроку 1: ${err.message}`);
-                await closeSerialSession(port, reader, writer, textEncoder);
-                port = null;
-                showPopup('error', 'Збій заливання пресету', err.message);
-            }
-        } finally {
-            btnFlashFC.disabled = false;
-        }
-    });
-
-    btnSkipToEsc.addEventListener('click', () => {
-        log('Пропущено крок 1. Перехід до конфігурації ESC.');
-    });
-
-    btnBackup.addEventListener('click', async () => {
-        if (!('serial' in navigator)) {
-            showPopup('error', 'Браузер не підтримується', 'Потрібен браузер із підтримкою Web Serial API.');
-            return;
-        }
-
-        btnFlashFC.disabled = true;
-        btnBackup.disabled = true;
-        let reader = null, writer = null, textEncoder = null;
-        const cmd = backupTypeSelect.value;
-
-        try {
-            port = await resolveSelectedPort();
-            await port.open({ baudRate: 115200 });
-            log(`[Бекап] Порт відкрито на 115200. Ініціалізація CLI...`);
-
-            textEncoder = new TextEncoderStream();
-            textEncoder.readable.pipeTo(port.writable);
-            writer = textEncoder.writable.getWriter();
-
-            const textDecoder = new TextDecoderStream();
-            port.readable.pipeTo(textDecoder.writable);
-            reader = textDecoder.readable.getReader();
-
-            await writer.write('#\r\n');
-            await delay(350);
-            let initEcho = await readCliResponse(reader, 800);
-            if (!initEcho.includes('#')) {
-                await writer.write('\r\n#\r\n');
-                await delay(350);
-                initEcho += await readCliResponse(reader, 800);
-            }
-
-            log('Зчитування ідентифікатора плати...');
-            await writer.write('status\r\n');
-            await delay(150);
-            const statusText = await readCliResponse(reader, 1200);
-            const boardName = parseBoardName(initEcho + '\n' + statusText) || 'SPEDIXF722';
-            log(`Виявлена плата: ${boardName}`);
-
-            log(`Виконується команда "${cmd}"...`);
-            await writer.write(`${cmd}\r\n`);
-
-            let dumpContent = '';
-            const dumpStart = Date.now();
-            const maxDumpTime = 14000;
-
-            while (Date.now() - dumpStart < maxDumpTime) {
-                const chunk = await readCliResponse(reader, 1500, false);
-                if (chunk) {
-                    dumpContent += chunk;
-                    if (dumpContent.includes('\n# ') || dumpContent.trim().endsWith('#')) {
-                        break;
-                    }
-                }
-            }
-
-            if (!dumpContent || dumpContent.length < 80) {
-                throw new Error('Отримано порожню або обірвану відповідь від контролера.');
-            }
-
-            const now = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            const timeStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-            const filename = `BTFL_backup_${boardName}_${timeStr}.txt`;
-
-            downloadTextFile(filename, dumpContent);
-            log(`Бекап завантажено: ${filename}`);
-
-            try { await writer.write('exit\r\n'); await delay(200); } catch (_) {}
-            await closeSerialSession(port, reader, writer, textEncoder);
-            port = null;
-
-            log('[Бекап] COM-порт звільнено.');
-            showPopup('success', 'Бекап збережено', `Конфігурацію (${cmd}) успішно експортовано у файл ${filename}!`, 2500);
-
-        } catch (err) {
-            console.error(err);
-            log(`[Помилка бекапу]: ${err.message}`);
-            await closeSerialSession(port, reader, writer, textEncoder);
-            port = null;
-            showPopup('error', 'Збій створення бекапу', err.message);
-        } finally {
-            btnFlashFC.disabled = false;
-            btnBackup.disabled = false;
-        }
-    });
+    btnFlashFC.addEventListener('click', flashBetaflightPreset);
+    btnSkipToEsc.addEventListener('click', skipToEsc);
+    btnBackup.addEventListener('click', backupBetaflightConfig);
 
     // =========================================================================
     // --- STEP 2: OFFICIAL BLHELI_32 4-WAY PASSTHROUGH (from BLHeliSuite32 Log)
     // =========================================================================
-
-    const CMD_LOCAL_ESCAPE         = 0x2F; // '/'
-    const CMD_REMOTE_ESCAPE        = 0x2E; // '.'
-    
-    // Official 4-Way Command codes from serial_4way.c & BLHeliSuite32:
-    const CMD_INTERFACE_TEST_ALIVE = 0x30;
-    const CMD_PROTOCOL_GET_VERSION = 0x31;
-    const CMD_INTERFACE_GET_NAME   = 0x32;
-    const CMD_INTERFACE_GET_VER    = 0x33;
-    const CMD_INTERFACE_EXIT       = 0x34;
-    const CMD_DEVICE_RESET         = 0x35;
-    const CMD_DEVICE_INIT_FLASH    = 0x37;
-    const CMD_DEVICE_READ          = 0x3A;
-    const CMD_DEVICE_WRITE         = 0x3B;
-    const CMD_INTERFACE_SET_MODE   = 0x3F; // 0x04 = BLHeli32 mode
 
     // EEPROM Address and Verified Preset Blocks in BLHeli_32
     const BL32_EEPROM_ADDR         = 0xF800;
@@ -1121,200 +465,6 @@ rateprofile 0
         0x1F, 0xF3, 0x4B, 0x5B, 0x52, 0xA5, 0x18, 0x9A
     ]);
 
-    function setEscBadge(escIndex, state, text) {
-        const badge = document.getElementById(`badgeEsc${escIndex}`);
-        if (badge) {
-            badge.className = `esc-badge ${state}`;
-            badge.textContent = `ESC #${escIndex + 1}: ${text}`;
-        }
-    }
-
-    // CRC-16/CCITT (XMODEM): Poly 0x1021, Init 0x0000
-    function crc16Xmodem(bytes) {
-        let crc = 0x0000;
-        for (let b of bytes) {
-            crc ^= (b << 8);
-            for (let i = 0; i < 8; i++) {
-                if (crc & 0x8000) {
-                    crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
-                } else {
-                    crc = (crc << 1) & 0xFFFF;
-                }
-            }
-        }
-        return crc;
-    }
-
-    // Sends standard MSP command to Flight Controller
-    async function sendMsp(writer, cmd, payload = []) {
-        const size = payload.length;
-        let checksum = size ^ cmd;
-        for (let b of payload) checksum ^= b;
-        const frame = new Uint8Array([0x24, 0x4D, 0x3C, size, cmd, ...payload, checksum]);
-        await writer.write(frame);
-        await delay(50);
-    }
-
-    // Accumulates incoming bytes from reader until expected length or timeout
-    async function read4WayRaw(reader, timeoutMs = 2500) {
-        const start = Date.now();
-        let buffer = new Uint8Array(0);
-
-        while (Date.now() - start < timeoutMs) {
-            const { value, done } = await Promise.race([
-                reader.read(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 800))
-            ]).catch(() => ({ value: null, done: false }));
-
-            if (done) break;
-            if (value && value.length > 0) {
-                const next = new Uint8Array(buffer.length + value.length);
-                next.set(buffer);
-                next.set(value, buffer.length);
-                buffer = next;
-
-                // 4-Way packet structure:
-                // [0] Escape (0x2E)
-                // [1] CMD
-                // [2,3] Addr Lo, Hi
-                // [4] Param Len (0 = 256 for read)
-                if (buffer.length >= 6 && buffer[0] === CMD_REMOTE_ESCAPE) {
-                    const rawLen = buffer[4];
-                    const expectedDataLen = (rawLen === 0 && (buffer[1] === CMD_DEVICE_READ || buffer[1] === CMD_DEVICE_WRITE)) ? 256 : rawLen;
-                    // Total frame = 5 header bytes + data + 1 ACK byte + 2 CRC bytes
-                    const totalExpected = 5 + expectedDataLen + 1 + 2;
-                    if (buffer.length >= totalExpected) {
-                        break;
-                    }
-                }
-            }
-        }
-        return buffer;
-    }
-
-    // Sends official 4-Way packet: [0x2F, CMD, AddrHi, AddrLo, ParamLen, ...params, CrcHi, CrcLo]
-    // NOTE: 4-Way Address is Big-Endian: [AddrHi, AddrLo] (e.g. 0xF800 -> [0xF8, 0x00] giving CRC 0x93F4)
-    async function send4WayCmd(writer, reader, cmd, addr = 0, params = [], timeoutMs = 2500) {
-        const pLen = params.length > 255 ? 0 : params.length;
-        const addrHi = (addr >> 8) & 0xFF;
-        const addrLo = addr & 0xFF;
-        const header = [CMD_LOCAL_ESCAPE, cmd, addrHi, addrLo, pLen];
-        const body = [...header, ...params];
-        const crc = crc16Xmodem(body);
-        const packet = new Uint8Array([...body, (crc >> 8) & 0xFF, crc & 0xFF]);
-
-        await writer.write(packet);
-
-        const resp = await read4WayRaw(reader, timeoutMs);
-        if (!resp || resp.length < 6) {
-            return { ok: false, msg: `Таймаут (отримано ${resp ? resp.length : 0} байт)` };
-        }
-
-        // Find escape byte if any noise preceded it
-        let escIdx = -1;
-        for (let i = 0; i < resp.length; i++) {
-            if (resp[i] === CMD_REMOTE_ESCAPE) {
-                escIdx = i;
-                break;
-            }
-        }
-
-        if (escIdx === -1) {
-            return { ok: false, msg: `Немає 0x2E у відповіді (отримано: ${Array.from(resp.slice(0, 8)).map(b => '0x' + b.toString(16)).join(' ')})` };
-        }
-
-        const cleanResp = resp.slice(escIdx);
-        if (cleanResp.length < 6) {
-            return { ok: false, msg: 'Неповний 4-Way кадр' };
-        }
-
-        const rawParamLen = cleanResp[4];
-        const dataLen = (rawParamLen === 0 && (cleanResp[1] === CMD_DEVICE_READ || cleanResp[1] === CMD_DEVICE_WRITE)) ? 256 : rawParamLen;
-        const ackIndex = 5 + dataLen;
-        const ack = cleanResp[ackIndex];
-
-        if (ack !== 0x00) {
-            return { ok: false, msg: `Помилка ACK від ESC: 0x${(ack !== undefined ? ack.toString(16) : 'null')}`, ack };
-        }
-
-        const dataBytes = cleanResp.slice(5, 5 + dataLen);
-
-        // Перевірка CRC відповіді (CRC16/XMODEM по всьому кадру без двох останніх байтів)
-        const frameLen = ackIndex + 1;
-        let crcOk = false;
-        if (cleanResp.length >= frameLen + 2) {
-            const calc = crc16Xmodem(cleanResp.slice(0, frameLen));
-            const got = (cleanResp[frameLen] << 8) | cleanResp[frameLen + 1];
-            crcOk = calc === got;
-        }
-        return { ok: true, data: dataBytes, raw: cleanResp, crcOk };
-    }
-
-    // Switches FC to 4-Way, verifies BLHeli32 interface mode
-    async function init4WayInterface(writer, reader) {
-        log('[4-Way] Ініціалізація 4-Way passthrough (MSP 245)...');
-        // Exact MSP payload from BLHeliSuite32 log: [0x24, 0x4D, 0x3C, 0x00, 0xF5, 0xF5]
-        await sendMsp(writer, 245, []);
-        
-        // Wait for MSP response from FC: [0x24, 0x4D, 0x3E, 0x01, 0xF5, 0x04, 0xF0]
-        try {
-            await Promise.race([
-                reader.read(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 500))
-            ]);
-        } catch (_) {}
-        await delay(150);
-
-        // 1. Check protocol version (cmd 0x31)
-        const pVer = await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 1500);
-        if (pVer.ok) {
-            log(`[4-Way] Протокол 4-Way активний: v${pVer.data[0] || '108'}`);
-        }
-
-        // 2. Set Interface Mode to BLHeli32 (cmd 0x3F, param [0x04]) - MANDATORY!
-        log('[4-Way] Активація режиму BLHeli32 (InterfaceSetMode 0x04)...');
-        const mRes = await send4WayCmd(writer, reader, CMD_INTERFACE_SET_MODE, 0, [0x04], 1500);
-        if (!mRes.ok) {
-            log(`[4-Way попередження]: ${mRes.msg}`);
-        } else {
-            log('[4-Way] Режим BLHeli32 успішно активовано.');
-        }
-        // Пауза перед початком опитування моторів
-        await delay(300);
-    }
-
-    // Connects to a specific ESC bootloader (STM32G0 ARM) exactly like BLHeliSuite32
-    async function connectEscDevice(writer, reader, escIndex) {
-        // Step A: cmd_ProtocolGetVersion (resets channel state in FC)
-        await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 800);
-        await delay(30);
-
-        // Step B: cmd_DeviceReset(escIndex)
-        await send4WayCmd(writer, reader, CMD_DEVICE_RESET, 0, [escIndex], 800);
-        await delay(100); // 100ms bootloader delay as in BLHeliSuite32
-
-        // Step C: cmd_DeviceInitFlash(escIndex) -> returns chip signature & bootloader
-        const initRes = await send4WayCmd(writer, reader, CMD_DEVICE_INIT_FLASH, 0, [escIndex], 1200);
-        if (!initRes.ok) {
-            return { ok: false, msg: initRes.msg };
-        }
-
-        let chipInfo = 'ARM 32-bit';
-        if (initRes.data.length >= 4) {
-            const sig = ((initRes.data[1] << 8) | initRes.data[0]).toString(16).toUpperCase();
-            chipInfo = `Сигнатура: 0x${sig}`;
-        }
-        return { ok: true, chipInfo };
-    }
-
-    // Disconnects an ESC device cleanly
-    async function disconnectEscDevice(writer, reader, escIndex) {
-        try {
-            await send4WayCmd(writer, reader, CMD_DEVICE_RESET, 0, [escIndex], 600);
-            await delay(30);
-        } catch (_) {}
-    }
-
     // --- BUTTON: READ CURRENT ESC SETTINGS ---
     btnReadESC.addEventListener('click', async () => {
         if (!('serial' in navigator)) {
@@ -1331,12 +481,12 @@ rateprofile 0
         let reader = null, writer = null;
 
         try {
-            port = await resolveSelectedPort();
-            await port.open({ baudRate: 115200 });
+            state.port = await resolveSelectedPort(log);
+            await state.port.open({ baudRate: 115200 });
             log('\n[BLHeli_32] COM-порт відкрито на 115200.');
 
-            writer = port.writable.getWriter();
-            reader = port.readable.getReader();
+            writer = state.port.writable.getWriter();
+            reader = state.port.readable.getReader();
 
             // Ініціалізація 4-Way з режимом BLHeli32
             await init4WayInterface(writer, reader);
@@ -1369,28 +519,62 @@ rateprofile 0
                 foundEscCount++;
                 const pageData = readRes.data;
 
-                // Повний hex-дамп 256 байтів. Формат сторінки BLHeli_32 закритий, тому параметри
-                // (Rampup/LowRPM/Beacon) тут НЕ розшифровуються: зміщення раніше були припущенням.
-                log(`ESC #${esc + 1} RAW 0xF800 (${pageData.length} байт):`);
+                // Перевірка напрямку та відповідності нашому пресету
+                const direction = detectMotorDirection(pageData.slice(0, 8), esc);
+                const hasPresetSettings = pageData.length >= 32 && bytesEqual(pageData.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
+                const expectedHeader = (direction === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
+                const hasPresetHeader = bytesEqual(pageData.slice(0, 8), expectedHeader);
+                const presetMatched = hasPresetSettings && hasPresetHeader;
+
+                // Витяг відкритого ASCII тексту назви та версії прошивки з блоку (якщо присутні друковані символи)
+                let asciiName = '';
+                for (let i = 0x20; i < pageData.length - 8; i++) {
+                    const slice = pageData.slice(i, i + 32);
+                    let str = '';
+                    for (let b of slice) {
+                        if (b >= 32 && b <= 126) str += String.fromCharCode(b);
+                        else break;
+                    }
+                    if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
+                        asciiName = str;
+                        break;
+                    }
+                }
+
+                escDetails.push({
+                    esc,
+                    direction,
+                    presetMatched,
+                    chip: connRes.chipInfo,
+                    mcu: connRes.mcu || 'ARM 32-bit',
+                    signature: connRes.signatureHex || '0x????',
+                    ack: 'OK (LiPo є)',
+                    modelName: asciiName || 'BLHeli_32'
+                });
+
+                // Повний hex-дамп 256 байтів
+                log(`ESC #${esc + 1} RAW 0xF800 (${pageData.length} байт, ${direction.toUpperCase()}, ${presetMatched ? 'Пресет 100% OK' : 'Stock/Інше'}):`);
                 for (let off = 0; off < pageData.length; off += 16) {
                     const row = Array.from(pageData.slice(off, off + 16)).map(b => b.toString(16).padStart(2, '0')).join(' ');
                     log(`  ${off.toString(16).padStart(4, '0')}: ${row}`);
                 }
 
-                setEscBadge(esc, 'ok', 'Зчитано (RAW)');
-                escDetails.push(`ESC #${esc + 1}: ${connRes.chipInfo}, зчитано ${pageData.length} байт (RAW, без розшифровки)`);
+                setEscBadge(esc, 'ok', presetMatched ? `${direction.toUpperCase()} (100%)` : `${direction.toUpperCase()}`);
 
                 // Чисто відключаємо поточний ESC перед переходом до наступного
                 await disconnectEscDevice(writer, reader, esc);
             }
+
+            // Оновлюємо інфо-панель зліва даними про мотори
+            updateEscInfoPanel(escDetails);
 
             // Вихід з 4-Way режиму (cmd 0x34)
             try {
                 await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
             } catch (_) {}
 
-            await closeSerialSession(port, reader, writer, null);
-            port = null;
+            await closeSerialSession(state.port, reader, writer, null);
+            state.port = null;
             log('\n[BLHeli_32] Зчитування завершено. COM-порт звільнено.');
 
             if (foundEscCount === 4) {
@@ -1408,8 +592,13 @@ rateprofile 0
             console.error(err);
             setStepStatus(2, 'fail');
             log(`[ESC Помилка читання]: ${err.message}`);
-            await closeSerialSession(port, reader, writer, null);
-            port = null;
+            try {
+                if (writer && reader) {
+                    await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
+                }
+            } catch (_) {}
+            await closeSerialSession(state.port, reader, writer, null);
+            state.port = null;
             showPopup('error', 'Збій зчитування ESC', err.message);
         } finally {
             btnReadESC.disabled = false;
@@ -1425,40 +614,6 @@ rateprofile 0
     const ESC_BACKUP_FORMAT = 'blheli32-esc-raw-backup';
     const ESC_BLOCK_LEN = 256;
     const ESC_COUNT = 4;
-
-    function bytesToHex(bytes) {
-        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    function hexToBytes(hex) {
-        if (typeof hex !== 'string' || hex.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(hex)) return null;
-        const out = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
-        return out;
-    }
-
-    function bytesEqual(a, b) {
-        if (a.length !== b.length) return false;
-        for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-        return true;
-    }
-
-    function crcHex(bytes) {
-        return crc16Xmodem(Array.from(bytes)).toString(16).padStart(4, '0');
-    }
-
-    function timestampStr() {
-        const now = new Date();
-        const pad = n => String(n).padStart(2, '0');
-        return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    }
-
-    function setAllEscButtons(disabled) {
-        btnReadESC.disabled = disabled;
-        btnBackupESC.disabled = disabled;
-        btnRestoreESC.disabled = disabled;
-        btnConfigureESC.disabled = disabled;
-    }
 
     function buildBackupObject(escs, complete) {
         return {
@@ -1477,17 +632,17 @@ rateprofile 0
         let reader = null, writer = null;
         setAllEscButtons(true);
         try {
-            port = await resolveSelectedPort();
-            await port.open({ baudRate: 115200 });
+            state.port = await resolveSelectedPort(log);
+            await state.port.open({ baudRate: 115200 });
             log('\n[BLHeli_32] COM-порт відкрито на 115200.');
-            writer = port.writable.getWriter();
-            reader = port.readable.getReader();
+            writer = state.port.writable.getWriter();
+            reader = state.port.readable.getReader();
             await init4WayInterface(writer, reader);
             return await fn(writer, reader);
         } finally {
             try { await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300); } catch (_) {}
-            await closeSerialSession(port, reader, writer, null);
-            port = null;
+            await closeSerialSession(state.port, reader, writer, null);
+            state.port = null;
             setAllEscButtons(false);
             log('[BLHeli_32] COM-порт звільнено.');
         }
@@ -1505,7 +660,7 @@ rateprofile 0
         for (let attempt = 1; attempt <= 3; attempt++) {
             const res = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
             if (res.ok && res.data.length === ESC_BLOCK_LEN && res.crcOk) {
-                return { ok: true, data: new Uint8Array(res.data), signature };
+                return { ok: true, data: new Uint8Array(res.data), signature, mcu: conn.mcu, signatureHex: conn.signatureHex };
             }
             lastMsg = !res.ok ? res.msg
                 : (res.data.length !== ESC_BLOCK_LEN ? `довжина ${res.data.length} замість ${ESC_BLOCK_LEN}` : 'CRC відповіді не збігся');
@@ -1764,22 +919,6 @@ rateprofile 0
             return;
         }
 
-        const confirmApply = window.confirm(
-            'ЗАСТОСУВАННЯ ПРЕСЕТУ ДО 4 ESC:\n\n' +
-            '• Rampup Power: 100%\n' +
-            '• Low RPM Power Protect: Off (Вимкнено)\n' +
-            '• Beacon Delay: Off (Вимкнено)\n\n' +
-            'Програма виконає бінарну заміну блоків 0x00..0x07 (напрямок) та 0x10..0x1F (параметри).\n' +
-            'Усі інші 232 байти (калібрування, залізо, таймінги) залишаться недоторканими.\n' +
-            'Перед записом автоматично буде створено резервну копію поточного стану.\n' +
-            'Після запису відбудеться побайтова верифікація 256 з 256 байт.\n\n' +
-            'Перед продовженням: зніміть пропелери та підключіть LiPo!\n\nПродовжити?'
-        );
-        if (!confirmApply) {
-            log('[Пресет ESC] Скасовано користувачем.');
-            return;
-        }
-
         setStepStatus(2, 'working');
         for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
 
@@ -1798,6 +937,41 @@ rateprofile 0
                     }
                     currentBlocks.push(r);
                 }
+
+                // Витяг відкритого ASCII тексту назви та оновлення лівої інфо-панелі
+                const escInfoList = [];
+                for (let esc = 0; esc < ESC_COUNT; esc++) {
+                    const block = currentBlocks[esc];
+                    let asciiName = '';
+                    for (let i = 0x20; i < block.data.length - 8; i++) {
+                        const slice = block.data.slice(i, i + 32);
+                        let str = '';
+                        for (let b of slice) {
+                            if (b >= 32 && b <= 126) str += String.fromCharCode(b);
+                            else break;
+                        }
+                        if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
+                            asciiName = str;
+                            break;
+                        }
+                    }
+                    const dir = detectMotorDirection(block.data.slice(0, 8), esc);
+                    const hasSettings = block.data.length >= 32 && bytesEqual(block.data.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
+                    const expHdr = (dir === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
+                    const matched = hasSettings && bytesEqual(block.data.slice(0, 8), expHdr);
+
+                    escInfoList.push({
+                        esc,
+                        direction: dir,
+                        presetMatched: matched,
+                        chip: block.signature,
+                        mcu: block.mcu || 'ARM 32-bit',
+                        signature: block.signature || '0x????',
+                        ack: 'OK (LiPo є)',
+                        modelName: asciiName || 'BLHeli_32'
+                    });
+                }
+                updateEscInfoPanel(escInfoList);
 
                 // Підготовка патчів для кожного ESC
                 const targets = [];
@@ -1876,6 +1050,18 @@ rateprofile 0
             const written = outcome.results.filter(r => r.status === 'written').length;
             const same = outcome.results.filter(r => r.status === 'unchanged').length;
             setStepStatus(2, 'success');
+
+            // Якщо запис відбувся успішно, оновлюємо інфо-панель: усі ESC тепер мають 100% пресет
+            if (written > 0) {
+                const postInfoList = outcome.results.map(r => ({
+                    esc: r.esc,
+                    direction: r.direction,
+                    presetMatched: true,
+                    ack: 'OK (LiPo є)'
+                }));
+                updateEscInfoPanel(postInfoList);
+            }
+
             log(`\n[Пресет ESC] Успішно завершено: оновлено ${written}, вже були актуальні ${same}.`);
             showPopup('success', 'Пресет застосовано', `Оновлено ESC: ${written}, без змін: ${same}.\nУсі регулятори отримали пресет!`, 3500);
 
