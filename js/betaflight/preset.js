@@ -89,7 +89,12 @@ export async function flashBetaflightPreset() {
         log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
         log(`[Аналіз пресету] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
 
-        if (expectedBoard && actualBoard && !actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
+        if (!actualBoard) {
+            try { await writer.write('exit\r\n'); } catch (_) {}
+            throw new Error('Неможливо визначити плату польотного контролера (UNKNOWN). Запис скасовано для безпеки.');
+        }
+
+        if (expectedBoard && !actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
             try { await writer.write('exit\r\n'); } catch (_) {}
             throw new Error(`Невідповідність плати! Очікувалось [${expectedBoard}], підключено [${actualBoard}].`);
         }

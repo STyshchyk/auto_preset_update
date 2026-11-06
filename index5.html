@@ -592,6 +592,11 @@ rateprofile 0
             console.error(err);
             setStepStatus(2, 'fail');
             log(`[ESC Помилка читання]: ${err.message}`);
+            try {
+                if (writer && reader) {
+                    await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
+                }
+            } catch (_) {}
             await closeSerialSession(state.port, reader, writer, null);
             state.port = null;
             showPopup('error', 'Збій зчитування ESC', err.message);

@@ -48,6 +48,7 @@ The application operates as a modularized single-page application (`index5.html`
     * Живлення та статус ACK (`OK (4/4 LiPo є)` / `Частково` / `Fail`).
     * Напрямок обертання та стан пресету для кожного мотора (`#1..#4: N/R (100% / Stock)`).
     * Підсумкова відповідність пресету 100% (`Застосовано (4/4)` / `Потрібен запис`).
+- Strict Target Verification: Added an immediate abort check in `flashBetaflightPreset` if the FC target board cannot be detected (`actualBoard === null`/`UNKNOWN`).
 * **Strict On-Click Security Rule:**
   * No COM port access or polling occurs before the user explicitly clicks «Залити пресет у FC» or «Зчитати налаштування ESC».
 * **One-Click Instant Execution:**

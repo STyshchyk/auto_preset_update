@@ -79,15 +79,45 @@ export async function resolveSelectedPort(log) {
 }
 
 export async function closeSerialSession(portObj, readerObj, writerObj, encoderObj) {
+    // 1. Reader cancellation
     if (readerObj) {
-        try { await readerObj.cancel(); readerObj.releaseLock(); } catch (_) {}
+        try {
+            await readerObj.cancel();
+        } catch (e) {
+            console.warn('reader.cancel() warning:', e);
+        }
+        // 2. Reader lock release attempted independently
+        try {
+            readerObj.releaseLock();
+        } catch (e) {
+            console.warn('reader.releaseLock() warning:', e);
+        }
     }
+
+    // 3. Writer operations finishing & lock release attempted independently
     if (writerObj) {
-        try { writerObj.releaseLock(); } catch (_) {}
+        try {
+            await writerObj.close();
+        } catch (e) {
+            // If writer is already closed or errored, close() may throw
+        }
+        try {
+            writerObj.releaseLock();
+        } catch (e) {
+            console.warn('writer.releaseLock() warning:', e);
+        }
     }
-    if (encoderObj) {
-        try { await encoderObj.readable.cancel(); } catch (_) {}
+
+    // 4. Encoder cancellation if pipeline used
+    if (encoderObj && encoderObj.readable) {
+        try {
+            await encoderObj.readable.cancel();
+        } catch (e) {
+            console.warn('encoder.readable.cancel() warning:', e);
+        }
     }
+
+    // 5. Port closing attempted with explicit logging
     if (portObj) {
         try {
             await delay(50);
