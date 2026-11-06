@@ -10,7 +10,7 @@
 | Розділ | Елементи / Селектори | Опис |
 | :--- | :--- | :--- |
 | **Панель вибору COM-порту** | `.top-bar`, `#portSelect`, `#boardTargetBadge` | Верхній бар вибору Web Serial пристрою та індикатор цільової плати (`Target: SPEDIXF722`). |
-| **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card` | Інформація про польотник (`#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`) та бейдж неспівпадіння (`#infoMismatchBadge`, `#infoMismatchNote`). |
+| **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card` | Інформація про польотник (`#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`), бейдж неспівпадіння (`#infoMismatchBadge`, `#infoMismatchNote`) та блок телеметрії моторів (`#infoEscModel`, `#infoEscMcu`, `#infoEscPowerAck`, `#infoEscDirs`, `#infoEscPresetStatus`). |
 | **Крок 1: Заливання пресету FC** | `#cardStep1`, `#presetInput`, `#btnFlashFC`, `#btnBackup`, `#btnSkipToEsc` | Картка Betaflight CLI Flasher для аналізу поточної конфігурації, розрахунку % неспівпадіння та запису команд. |
 | **Крок 2: Настройка BLHeli_32** | `#cardStep2`, `#badgeEsc0`..`#badgeEsc3`, `#btnReadESC`, `#btnConfigureESC` | Статуси 4-х ESC, читання налаштувань, бекап, відновлення та бінарне застосування пресету. |
 | **Панель логування (Console)** | `.log-panel`, `#log` | Консоль реального часу для деталізованого виводу операцій із портом. |
@@ -28,13 +28,18 @@
 * `#log` — контейнер термінального логу.
 * `#statusModal`, `#modalBox`, `#modalTitle`, `#modalMsg`, `#modalCloseBtn` — елементи модального вікна.
 
-### Ліва інфо-панель польотника (FC Info & Preset Mismatch)
+### Ліва інфо-панель польотника та ESC (FC & ESC Info Panel)
 * `#infoBoardName` — назва плати / target польотного контролера.
 * `#infoFirmwareVer` — версія прошивки Betaflight (наприклад, `4.5.1`).
 * `#infoBuildDate` — дата та час збірки прошивки.
 * `#infoMcuType` — архітектура/модель MCU (наприклад, `STM32F7X2`).
 * `#infoMismatchBadge` — відсоток неспівпадіння конфігурації стеку з пресетом (`match-exact`, `match-low-diff`, `match-high-diff`).
 * `#infoMismatchNote` — лічильник неспівпалих змінних (`X із Y змінних відрізняються`).
+* `#infoEscModel` — відкрита текстова назва моделі ESC та версія прошивки (ASCII з блоку).
+* `#infoEscMcu` — апаратна модель процесора ESC на базі сигнатури (наприклад, `STM32G071 (0x0460)`).
+* `#infoEscPowerAck` — апаратний статус зв'язку та живлення регуляторів (`OK (4/4 LiPo є)` / `Частково` / `Fail`).
+* `#infoEscDirs` — помоторний напрямок обертання та стан пресету (`#1:N(100%) #2:R(100%) ...`).
+* `#infoEscPresetStatus` — загальний індикатор відповідності 4-х моторів пресету 100%.
 
 ### Кнопки та інпути Кроку 1 (Betaflight FC)
 * `#presetInput` — `<textarea>` з командами CLI (`defaults nosave`, `batch start`, ресурси, мікси, OSD, VTX, профілі PID/Rate).
@@ -47,7 +52,7 @@
 * `#btnReadESC` — **«🔍 Зчитати поточні налаштування ESC»** (читання 256 байт RAW EEPROM `0xF800` з кожного ESC у лог).
 * `#btnBackupESC` — **«💾 Копія всіх 4 ESC»** (експорт RAW дампу всіх 4 ESC у `.json`).
 * `#btnRestoreESC` + `#fileRestoreESC` — **«♻️ Відновити з файлу»** (відновлення конфігурації ESC із `.json`).
-* `#btnConfigureESC` — **«⚡ Застосувати пресет до 4 ESC»** (безпечна бінарна заміна блоків `0x00..0x07` та `0x10..0x1F`).
+* `#btnConfigureESC` — **«⚡ Застосувати пресет до 4 ESC»** (миттєвий старт в один клік без модальних діалогів, безпечна бінарна заміна блоків `0x00..0x07` та `0x10..0x1F` з автоматичним оновленням лівої інфо-панелі до та після запису).
 
 ---
 
@@ -58,7 +63,7 @@
 * **`js/core/serial.js`**: життєвий цикл Web Serial, безпечне відкриття/закриття дескрипторів потоків `closeSerialSession`, обробники `connect`/`disconnect`.
 * **`js/ui/log.js`**: вивід у консоль DOM з автоскролом.
 * **`js/ui/status.js`**: оновлення статусних бейджів кроків та ESC.
-* **`js/ui/infoPanel.js`**: рендеринг телеметрії FC та стану неспівпадіння (`updateInfoPanel`, `resetInfoPanel`).
+* **`js/ui/infoPanel.js`**: рендеринг телеметрії FC, стану неспівпадіння пресету та апаратної телеметрії моторів BLHeli_32 (`updateInfoPanel`, `updateEscInfoPanel`, `resetInfoPanel`).
 * **`js/ui/modal.js`**: модальні повідомлення успіху/помилки.
 * **`js/utils/bytes.js`**: утиліти роботи з масивами байтів, hex-конвертери, завантаження файлів.
 * **`js/utils/crc.js`**: апаратні контрольні суми `CRC-16/CCITT (XMODEM)`.

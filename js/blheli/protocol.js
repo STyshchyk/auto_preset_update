@@ -171,12 +171,32 @@ export async function connectEscDevice(writer, reader, escIndex) {
         return { ok: false, msg: initRes.msg };
     }
 
+    const KNOWN_MCUS = {
+        '0460': 'STM32G071',
+        '0466': 'STM32G031',
+        '0467': 'STM32G0B1',
+        '0444': 'STM32F051',
+        '0440': 'STM32F030',
+        '0448': 'STM32F070',
+        '0410': 'STM32F103',
+        '0421': 'STM32F446',
+        '0452': 'STM32F722',
+        '0450': 'STM32F745',
+        '0484': 'STM32G474'
+    };
+
     let chipInfo = 'ARM 32-bit';
+    let mcu = 'ARM 32-bit';
+    let signatureHex = '0x????';
+
     if (initRes.data.length >= 4) {
-        const sig = ((initRes.data[1] << 8) | initRes.data[0]).toString(16).toUpperCase();
-        chipInfo = `Сигнатура: 0x${sig}`;
+        const rawSig = ((initRes.data[1] << 8) | initRes.data[0]).toString(16).toUpperCase().padStart(4, '0');
+        signatureHex = `0x${rawSig}`;
+        mcu = KNOWN_MCUS[rawSig] || `MCU 0x${rawSig}`;
+        chipInfo = `${mcu} (${signatureHex})`;
     }
-    return { ok: true, chipInfo };
+
+    return { ok: true, chipInfo, mcu, signatureHex };
 }
 
 // Disconnects an ESC device cleanly

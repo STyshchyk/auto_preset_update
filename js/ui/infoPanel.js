@@ -46,6 +46,86 @@ export function updateInfoPanel(fcDetails = {}, mismatchResult = null) {
 }
 
 /**
+ * Updates the ESC telemetry block in the left panel.
+ * @param {Array<{esc: number, direction: string, presetMatched: boolean, chip: string}>} escList
+ */
+export function updateEscInfoPanel(escList = []) {
+    let allPreset = true;
+    let foundCount = 0;
+    const dirParts = [];
+    let detectedModel = null;
+    let detectedMcu = null;
+    let detectedSig = null;
+
+    for (let i = 0; i < 4; i++) {
+        const item = escList.find(e => e.esc === i);
+        if (item) {
+            foundCount++;
+            if (!detectedModel && item.modelName) detectedModel = item.modelName;
+            if (!detectedMcu && item.mcu) detectedMcu = item.mcu;
+            if (!detectedSig && item.signature) detectedSig = item.signature;
+
+            const dirLabel = item.direction === 'reversed' ? 'R' : 'N';
+            const color = item.presetMatched ? '#00ff88' : '#ffaa00';
+            dirParts.push(`#${i + 1}:<span style="color:#00ccff">${dirLabel}</span><span style="color:${color}">(${item.presetMatched ? '100%' : 'Stk'})</span>`);
+            if (!item.presetMatched) allPreset = false;
+        } else {
+            dirParts.push(`#${i + 1}:<span style="color:#666">—</span>`);
+            allPreset = false;
+        }
+    }
+
+    // 1. Модель ESC та прошивка
+    const elModel = document.getElementById('infoEscModel');
+    if (elModel) {
+        elModel.textContent = detectedModel || (foundCount > 0 ? 'BLHeli_32' : '—');
+    }
+
+    // 2. Модель процесора (MCU Signature)
+    const elMcu = document.getElementById('infoEscMcu');
+    if (elMcu) {
+        if (detectedMcu && detectedSig) {
+            elMcu.innerHTML = `<span style="color:#fff">${detectedMcu}</span> <span style="font-size:10px; color:#888;">(${detectedSig})</span>`;
+        } else {
+            elMcu.textContent = detectedMcu || '—';
+        }
+    }
+
+    // 3. Живлення та ACK
+    const elPower = document.getElementById('infoEscPowerAck');
+    if (elPower) {
+        if (foundCount === 4) {
+            elPower.innerHTML = '<span style="color:#00ff88;">OK (4/4 LiPo є)</span>';
+        } else if (foundCount > 0) {
+            elPower.innerHTML = `<span style="color:#ffaa00;">Частково (${foundCount}/4)</span>`;
+        } else {
+            elPower.innerHTML = '<span style="color:#ff4444;">Немає живлення / Fail</span>';
+        }
+    }
+
+    // 4. Помоторний статус
+    const elDirs = document.getElementById('infoEscDirs');
+    if (elDirs) {
+        elDirs.innerHTML = dirParts.join(' ');
+    }
+
+    // 5. Загальний стан пресету
+    const elPresetStatus = document.getElementById('infoEscPresetStatus');
+    if (elPresetStatus) {
+        if (foundCount === 0) {
+            elPresetStatus.textContent = '—';
+            elPresetStatus.style.color = '#fff';
+        } else if (foundCount === 4 && allPreset) {
+            elPresetStatus.textContent = 'Застосовано (4/4)';
+            elPresetStatus.style.color = '#00ff88';
+        } else {
+            elPresetStatus.textContent = `Потрібен запис (${4 - (allPreset ? 4 : escList.filter(e => e.presetMatched).length)}/4)`;
+            elPresetStatus.style.color = '#ffaa00';
+        }
+    }
+}
+
+/**
  * Resets the left info panel to its initial awaiting state.
  */
 export function resetInfoPanel() {
@@ -67,5 +147,23 @@ export function resetInfoPanel() {
     }
     if (elNote) {
         elNote.textContent = 'Очікує запуску (натисніть «Залити»)...';
+    }
+
+    const elModel = document.getElementById('infoEscModel');
+    if (elModel) elModel.textContent = '—';
+
+    const elEscMcu = document.getElementById('infoEscMcu');
+    if (elEscMcu) elEscMcu.textContent = '—';
+
+    const elPower = document.getElementById('infoEscPowerAck');
+    if (elPower) elPower.textContent = '—';
+
+    const elDirs = document.getElementById('infoEscDirs');
+    if (elDirs) elDirs.textContent = '—';
+
+    const elPresetStatus = document.getElementById('infoEscPresetStatus');
+    if (elPresetStatus) {
+        elPresetStatus.textContent = '—';
+        elPresetStatus.style.color = '#fff';
     }
 }

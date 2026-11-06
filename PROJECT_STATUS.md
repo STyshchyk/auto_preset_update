@@ -35,13 +35,22 @@ The application operates as a modularized single-page application (`index5.html`
 
 ---
 
-## 2. Recent Feature Additions (Telemetry & Preset Mismatch)
+## 2. Recent Feature Additions (Telemetry & ESC Info Integration)
 
 * **Left Info Panel UI:**
   * Sidebar displays Flight Controller Telemetry: Target / Board Name, Firmware Version, Build Date & Time, MCU Type.
   * Mismatch Box shows % Mismatch with color-coded badge (`match-exact` 0%, `match-low-diff` $\le 30\%$, `match-high-diff` $> 30\%$) and mismatch count.
+  * Motor Telemetry Block (`#infoGroupEsc`):
+    * ESC Model & Firmware Name (open ASCII decoding).
+    * ESC MCU Architecture & Hardware Signature (e.g., `STM32G071 (0x0460)`).
+    * Power & ACK Health Status (`OK (4/4 LiPo є)` / `Частково` / `Fail`).
+    * Per-motor rotation direction & preset status badges (`#1..#4: N/R (100% / Stock)`).
+    * Global 100% preset compliance indicator (`Застосовано (4/4)` / `Потрібен запис`).
 * **Strict On-Click Security Rule:**
-  * No COM port access or polling occurs before the user explicitly clicks «Залити пресет у FC».
+  * No COM port access or polling occurs before the user explicitly clicks «Залити пресет у FC» or «Зчитати налаштування ESC».
+* **One-Click Instant Execution:**
+  * Removed redundant confirmation dialog (`window.confirm`) from «⚡ Застосувати пресет до 4 ESC» for streamlined zero-friction operation.
+  * Live status and telemetry refresh dynamically during Phase 1 (pre-read) and Phase 2 (post-write).
 * **Preset Comparison Engine:**
   * Uses `diff all` to capture complete parameters across all PID and Rate profiles.
   * Inspects exclusively variables defined in the preset (ignoring non-preset flight controller settings).

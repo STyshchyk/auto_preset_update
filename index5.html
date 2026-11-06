@@ -60,6 +60,30 @@
                         <div class="mismatch-note" id="infoMismatchNote">Очікує запуску (натисніть «Залити»)...</div>
                     </div>
                 </div>
+
+                <div class="info-group" id="infoGroupEsc">
+                    <div class="info-group-title">Стан моторів (BLHeli_32)</div>
+                    <div class="info-row">
+                        <span class="info-label">Модель ESC:</span>
+                        <span class="info-val" id="infoEscModel" style="max-width:180px;">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">MCU ESC:</span>
+                        <span class="info-val" id="infoEscMcu">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Живлення / ACK:</span>
+                        <span class="info-val" id="infoEscPowerAck">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">ESC #1..#4:</span>
+                        <span class="info-val" id="infoEscDirs" style="font-size:11px;">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Пресет 100%:</span>
+                        <span class="info-val" id="infoEscPresetStatus">—</span>
+                    </div>
+                </div>
             </div>
         </aside>
 
@@ -372,7 +396,7 @@ rateprofile 0
     import { refreshPortList, initSerialEvents, resolveSelectedPort, closeSerialSession } from './js/core/serial.js';
     import { log } from './js/ui/log.js';
     import { setStepStatus, resetAllStepStatuses, setEscBadge, setAllEscButtons } from './js/ui/status.js';
-    import { resetInfoPanel } from './js/ui/infoPanel.js';
+    import { resetInfoPanel, updateEscInfoPanel } from './js/ui/infoPanel.js';
     import { showPopup, closeModal } from './js/ui/modal.js';
     import { flashBetaflightPreset, skipToEsc } from './js/betaflight/preset.js';
     import { backupBetaflightConfig } from './js/betaflight/backup.js';
@@ -502,20 +526,54 @@ rateprofile 0
                 foundEscCount++;
                 const pageData = readRes.data;
 
-                // Повний hex-дамп 256 байтів. Формат сторінки BLHeli_32 закритий, тому параметри
-                // (Rampup/LowRPM/Beacon) тут НЕ розшифровуються: зміщення раніше були припущенням.
-                log(`ESC #${esc + 1} RAW 0xF800 (${pageData.length} байт):`);
+                // Перевірка напрямку та відповідності нашому пресету
+                const direction = detectMotorDirection(pageData.slice(0, 8), esc);
+                const hasPresetSettings = pageData.length >= 32 && bytesEqual(pageData.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
+                const expectedHeader = (direction === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
+                const hasPresetHeader = bytesEqual(pageData.slice(0, 8), expectedHeader);
+                const presetMatched = hasPresetSettings && hasPresetHeader;
+
+                // Витяг відкритого ASCII тексту назви та версії прошивки з блоку (якщо присутні друковані символи)
+                let asciiName = '';
+                for (let i = 0x20; i < pageData.length - 8; i++) {
+                    const slice = pageData.slice(i, i + 32);
+                    let str = '';
+                    for (let b of slice) {
+                        if (b >= 32 && b <= 126) str += String.fromCharCode(b);
+                        else break;
+                    }
+                    if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
+                        asciiName = str;
+                        break;
+                    }
+                }
+
+                escDetails.push({
+                    esc,
+                    direction,
+                    presetMatched,
+                    chip: connRes.chipInfo,
+                    mcu: connRes.mcu || 'ARM 32-bit',
+                    signature: connRes.signatureHex || '0x????',
+                    ack: 'OK (LiPo є)',
+                    modelName: asciiName || 'BLHeli_32'
+                });
+
+                // Повний hex-дамп 256 байтів
+                log(`ESC #${esc + 1} RAW 0xF800 (${pageData.length} байт, ${direction.toUpperCase()}, ${presetMatched ? 'Пресет 100% OK' : 'Stock/Інше'}):`);
                 for (let off = 0; off < pageData.length; off += 16) {
                     const row = Array.from(pageData.slice(off, off + 16)).map(b => b.toString(16).padStart(2, '0')).join(' ');
                     log(`  ${off.toString(16).padStart(4, '0')}: ${row}`);
                 }
 
-                setEscBadge(esc, 'ok', 'Зчитано (RAW)');
-                escDetails.push(`ESC #${esc + 1}: ${connRes.chipInfo}, зчитано ${pageData.length} байт (RAW, без розшифровки)`);
+                setEscBadge(esc, 'ok', presetMatched ? `${direction.toUpperCase()} (100%)` : `${direction.toUpperCase()}`);
 
                 // Чисто відключаємо поточний ESC перед переходом до наступного
                 await disconnectEscDevice(writer, reader, esc);
             }
+
+            // Оновлюємо інфо-панель зліва даними про мотори
+            updateEscInfoPanel(escDetails);
 
             // Вихід з 4-Way режиму (cmd 0x34)
             try {
@@ -604,7 +662,7 @@ rateprofile 0
         for (let attempt = 1; attempt <= 3; attempt++) {
             const res = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
             if (res.ok && res.data.length === ESC_BLOCK_LEN && res.crcOk) {
-                return { ok: true, data: new Uint8Array(res.data), signature };
+                return { ok: true, data: new Uint8Array(res.data), signature, mcu: conn.mcu, signatureHex: conn.signatureHex };
             }
             lastMsg = !res.ok ? res.msg
                 : (res.data.length !== ESC_BLOCK_LEN ? `довжина ${res.data.length} замість ${ESC_BLOCK_LEN}` : 'CRC відповіді не збігся');
@@ -863,22 +921,6 @@ rateprofile 0
             return;
         }
 
-        const confirmApply = window.confirm(
-            'ЗАСТОСУВАННЯ ПРЕСЕТУ ДО 4 ESC:\n\n' +
-            '• Rampup Power: 100%\n' +
-            '• Low RPM Power Protect: Off (Вимкнено)\n' +
-            '• Beacon Delay: Off (Вимкнено)\n\n' +
-            'Програма виконає бінарну заміну блоків 0x00..0x07 (напрямок) та 0x10..0x1F (параметри).\n' +
-            'Усі інші 232 байти (калібрування, залізо, таймінги) залишаться недоторканими.\n' +
-            'Перед записом автоматично буде створено резервну копію поточного стану.\n' +
-            'Після запису відбудеться побайтова верифікація 256 з 256 байт.\n\n' +
-            'Перед продовженням: зніміть пропелери та підключіть LiPo!\n\nПродовжити?'
-        );
-        if (!confirmApply) {
-            log('[Пресет ESC] Скасовано користувачем.');
-            return;
-        }
-
         setStepStatus(2, 'working');
         for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
 
@@ -897,6 +939,41 @@ rateprofile 0
                     }
                     currentBlocks.push(r);
                 }
+
+                // Витяг відкритого ASCII тексту назви та оновлення лівої інфо-панелі
+                const escInfoList = [];
+                for (let esc = 0; esc < ESC_COUNT; esc++) {
+                    const block = currentBlocks[esc];
+                    let asciiName = '';
+                    for (let i = 0x20; i < block.data.length - 8; i++) {
+                        const slice = block.data.slice(i, i + 32);
+                        let str = '';
+                        for (let b of slice) {
+                            if (b >= 32 && b <= 126) str += String.fromCharCode(b);
+                            else break;
+                        }
+                        if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
+                            asciiName = str;
+                            break;
+                        }
+                    }
+                    const dir = detectMotorDirection(block.data.slice(0, 8), esc);
+                    const hasSettings = block.data.length >= 32 && bytesEqual(block.data.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
+                    const expHdr = (dir === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
+                    const matched = hasSettings && bytesEqual(block.data.slice(0, 8), expHdr);
+
+                    escInfoList.push({
+                        esc,
+                        direction: dir,
+                        presetMatched: matched,
+                        chip: block.signature,
+                        mcu: block.mcu || 'ARM 32-bit',
+                        signature: block.signature || '0x????',
+                        ack: 'OK (LiPo є)',
+                        modelName: asciiName || 'BLHeli_32'
+                    });
+                }
+                updateEscInfoPanel(escInfoList);
 
                 // Підготовка патчів для кожного ESC
                 const targets = [];
@@ -975,6 +1052,18 @@ rateprofile 0
             const written = outcome.results.filter(r => r.status === 'written').length;
             const same = outcome.results.filter(r => r.status === 'unchanged').length;
             setStepStatus(2, 'success');
+
+            // Якщо запис відбувся успішно, оновлюємо інфо-панель: усі ESC тепер мають 100% пресет
+            if (written > 0) {
+                const postInfoList = outcome.results.map(r => ({
+                    esc: r.esc,
+                    direction: r.direction,
+                    presetMatched: true,
+                    ack: 'OK (LiPo є)'
+                }));
+                updateEscInfoPanel(postInfoList);
+            }
+
             log(`\n[Пресет ESC] Успішно завершено: оновлено ${written}, вже були актуальні ${same}.`);
             showPopup('success', 'Пресет застосовано', `Оновлено ESC: ${written}, без змін: ${same}.\nУсі регулятори отримали пресет!`, 3500);
 
