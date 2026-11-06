@@ -18,10 +18,13 @@ export async function readCliResponse(reader, timeoutMs = 2500, stopOnPrompt = t
 
 export function parseBoardName(text) {
     if (!text) return null;
-    const nameMatch = text.match(/name:\s*([A-Za-z0-9_-]+)/i) ||
-        text.match(/board_name\s+([A-Za-z0-9_-]+)/i) ||
-        text.match(/Board:\s*([A-Za-z0-9_-]+)/i);
-    if (nameMatch) return nameMatch[1].toUpperCase();
+    const match = text.match(/board_name[:\s]+([A-Za-z0-9_-]+)/i) ||
+                  text.match(/Board:\s*(?!manufacturer_id)([A-Za-z0-9_-]+)/i) ||
+                  text.match(/(?:^|\n)\s*name:\s*([A-Za-z0-9_-]+)/i);
+    if (match) {
+        const val = match[1].toUpperCase();
+        if (val !== 'MANUFACTURER_ID') return val;
+    }
     if (text.toUpperCase().includes('SPEDIXF722')) return 'SPEDIXF722';
     return null;
 }

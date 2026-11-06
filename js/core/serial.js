@@ -80,9 +80,11 @@ export async function resolveSelectedPort(log) {
 
 export async function closeSerialSession(portObj, readerObj, writerObj, encoderObj) {
     if (readerObj) {
-        try { await readerObj.cancel(); readerObj.releaseLock(); } catch (_) {}
+        try { await readerObj.cancel(); } catch (_) {}
+        try { readerObj.releaseLock(); } catch (_) {}
     }
     if (writerObj) {
+        try { await writerObj.close(); } catch (_) {}
         try { writerObj.releaseLock(); } catch (_) {}
     }
     if (encoderObj) {
@@ -90,7 +92,18 @@ export async function closeSerialSession(portObj, readerObj, writerObj, encoderO
     }
     if (portObj) {
         try {
-            await delay(50);
+            await delay(100);
+            if (portObj.readable && portObj.readable.locked) {
+                // If piped stream locked it, unlocking via reader cancel
+                const r = portObj.readable.getReader();
+                try { await r.cancel(); } catch (_) {}
+                r.releaseLock();
+            }
+            if (portObj.writable && portObj.writable.locked) {
+                const w = portObj.writable.getWriter();
+                try { await w.close(); } catch (_) {}
+                w.releaseLock();
+            }
             await portObj.close();
         } catch (e) {
             console.warn('port.close() warning:', e);

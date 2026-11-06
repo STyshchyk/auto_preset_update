@@ -5,6 +5,8 @@ import { log } from '../ui/log.js';
 import { setStepStatus } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
+import { presetComparator } from './comparison_coordinator.js';
+import { ComparisonStatus } from '../ui/fc_panel.js';
 
 export async function flashBetaflightPreset() {
     if (!('serial' in navigator)) {
@@ -17,6 +19,38 @@ export async function flashBetaflightPreset() {
     const script = document.getElementById('presetInput').value.trim();
     btnFlashFC.disabled = true;
     setStepStatus(1, 'working');
+
+    // =========================================================================
+    // PRE-FLASH PRESET COMPARISON & VALIDATION (Read-Only)
+    // Runs or checks comparison: if configuration already matches, bypasses flashing.
+    // =========================================================================
+    try {
+        let compResult = presetComparator.lastComparisonResult;
+        const textMatches = presetComparator.lastComparedPresetText === script;
+
+        if (!compResult || !textMatches || compResult.status === ComparisonStatus.NOT_CHECKED) {
+            log('\n[Pre-Flash Перевірка] Запуск порівняння поточної конфігурації з пресетом...');
+            compResult = await presetComparator.runComparison({
+                presetScript: script,
+                log
+            });
+        }
+
+        if (compResult && compResult.status === ComparisonStatus.MATCH) {
+            setStepStatus(1, 'success');
+            log('✅ [PASS] Конфігурація вже повністю відповідає пресету. Повторне заливання скасовано.');
+            btnFlashFC.disabled = false;
+            showPopup('success', 'Пресет актуальний', 'Конфігурація FC вже повністю відповідає обраному пресету. Повторне заливання не потрібне.', 3000);
+            return;
+        }
+
+        if (compResult && compResult.diffCount > 0) {
+            log(`⚠️ [Конфігурація відрізняється]: Виявлено ${compResult.diffCount} відмінностей. Переходимо до заливання пресету...`);
+        }
+    } catch (valErr) {
+        log(`ℹ️ [Попередження порівняння]: ${valErr.message}. Продовжуємо стандартне заливання...`);
+    }
+
     let reader = null, writer = null, textEncoder = null;
     let isRebooting = false;
 

@@ -256,3 +256,171 @@ button:disabled {
     background: #2a2e38;
     color: #fff;
 }
+
+/* --- Phase 12A: Step 1 Split Layout & Flight Controller Info Panel --- */
+.step-layout-row {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+    width: 100%;
+}
+
+.step-layout-row > #cardStep1 {
+    flex: 1 1 58%;
+    min-width: 0;
+}
+
+.fc-info-card {
+    flex: 0 0 320px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-sizing: border-box;
+}
+
+.fc-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fc-info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+}
+
+.fc-info-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fc-info-title.preset {
+    color: var(--secondary);
+}
+
+.fc-conn-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+
+.fc-conn-badge.connected {
+    background: rgba(0, 255, 102, 0.12);
+    color: var(--success);
+    border-color: rgba(0, 255, 102, 0.3);
+}
+
+.fc-conn-badge.disconnected {
+    background: #20232a;
+    color: var(--text-muted);
+    border-color: #333;
+}
+
+.fc-data-table {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.fc-data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.fc-data-label {
+    color: var(--text-muted);
+}
+
+.fc-data-val {
+    font-family: monospace, system-ui;
+    color: #f1f5f9;
+    font-weight: 500;
+    text-align: right;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #333;
+    display: inline-block;
+    text-align: right;
+}
+
+.status-pill.not-checked {
+    background: #20232a;
+    color: var(--text-muted);
+}
+
+.status-pill.checking {
+    background: rgba(0, 170, 238, 0.15);
+    color: var(--secondary);
+    border-color: rgba(0, 170, 238, 0.3);
+}
+
+.status-pill.match {
+    background: rgba(0, 255, 102, 0.15);
+    color: var(--success);
+    border-color: rgba(0, 255, 102, 0.4);
+}
+
+.status-pill.mismatch {
+    background: rgba(255, 68, 68, 0.15);
+    color: var(--error);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.status-pill.unverified {
+    background: rgba(255, 170, 0, 0.15);
+    color: var(--primary);
+    border-color: rgba(255, 170, 0, 0.4);
+}
+
+.stat-val-match {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.stat-val-diff {
+    color: var(--error);
+    font-weight: 700;
+}
+
+.stat-val-warn {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* Responsive adjustment for small screens */
+@media (max-width: 860px) {
+    .step-layout-row {
+        flex-direction: column;
+    }
+    .fc-info-card {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+}
