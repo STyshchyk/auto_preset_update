@@ -1,9 +1,10 @@
-﻿# PROJECT STATUS — Drone Setup Station Refactoring
+# PROJECT STATUS — Drone Setup Station Refactoring
 
 **Last Updated:** 2026-11-09  
 **Active Entry Point:** `index5.html`  
 **Refactoring Progress:** Phases 1–10 Completed (100% Modular ES Architecture, Zero Inline JavaScript)  
-**Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry & Diff) and Step 2 (`#infoCardEsc`, BLHeli_32 Live Status) cards
+**Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Unique Device ID & Diff) and Step 2 (`#infoCardEsc`, BLHeli_32 Live Status) cards  
+**Simplified Mode & Progression Engine:** Unified one-click master action button, 125% font scaling, timeline progression report, FAQ, and daily/all-time device statistics by unique hardware UID.
 
 ---
 
@@ -82,3 +83,22 @@ The application operates as a clean, fully modular single-page application (`ind
 * **ESC Direction Control:** Forced all 4 ESCs to flash with NORMAL direction header (BL32_HEADER_NORMAL_100 = `90 BD 5D F6 AA 06 4C 53`) in index5.html.
 * **Betaflight CLI Preset:** Replaced default <textarea id="presetInput"> content with the defaults nosave SPEDIXF722 batch script (craft name T-System 15).
 * **Session Documentation:** Created docs/JOB_SUMMARY_2026_11_09.md detailing dump byte mapping, CRC16 verification, and reasoning.
+
+## 4. Simplified Mode & Progression Engine Status (2026-11-09)
+* **Mode Toggle & Ergonomics**:
+  - Top bar switch: `⚡ Спрощений режим ⇄ ⚙️ Експертний режим` (preference persisted in `localStorage`).
+  - Font scaling by **125%** for high visibility at assembly stations.
+  - Automatically hides expert controls: preset `<textarea>`, backup dropdown/buttons, skip buttons, manual ESC operations, and raw terminal log.
+* **Unified Sequential Flashing Pipeline (`js/core/pipeline.js`)**:
+  - Single-click master action button: «🚀 ПРОШИТИ ДРОН (FC + ESC)».
+  - Step 1 (Betaflight preset flashing & telemetry parsing) ➔ 3.5s reboot delay & dynamic port re-enumeration ➔ Step 2 (BLHeli_32 4 ESC 100% preset configuration).
+* **Hardware Unique ID (`mcu_id`) & Telemetry Verification**:
+  - Direct execution of `mcu_id` CLI command extracts full hardware hex UID (e.g. `0x0026001e3036510834323839`).
+  - Added `#infoDeviceId` row in the Left Panel under FC Parameters.
+* **LiPo Voltage Pre-Check**:
+  - Parses `Voltage:` from Betaflight `status` output. In simplified mode, immediately halts if battery is missing (`NOT PRESENT` / `0S`), preventing disconnected ESC timeouts.
+* **Progression Timeline & Status Badge**:
+  - Top overall status badge in progression header: `pending`, `progressing` (with continuous gear spin), `success`, and `failed`.
+  - Step 1 immediately transitions to success upon reading board target and UID, simultaneously kicking Step 2 («Заливання пресету FC») into active spinning state during CLI streaming.
+* **Dual-Scope Flashing Statistics (`js/utils/stats.js`)**:
+  - Deduplicated counts for **Сьогодні** (auto-resets daily) and **За весь час** (persisted forever in `localStorage`).

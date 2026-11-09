@@ -38,8 +38,26 @@ export async function withEscSession(fn) {
     let reader = null, writer = null;
     setAllEscButtons(true);
     try {
-        state.port = await resolveSelectedPort(log);
-        await state.port.open({ baudRate: 115200 });
+        // Retry loop to accommodate OS COM port re-enumeration after FC reboot
+        let opened = false;
+        let lastOpenErr = null;
+        for (let attempt = 1; attempt <= 7; attempt++) {
+            try {
+                state.port = await resolveSelectedPort(log);
+                await state.port.open({ baudRate: 115200 });
+                opened = true;
+                break;
+            } catch (openErr) {
+                lastOpenErr = openErr;
+                log(`[BLHeli_32] Очікування готовності COM-порту (спроба ${attempt}/7: ${openErr.message})...`);
+                await delay(700);
+            }
+        }
+
+        if (!opened) {
+            throw lastOpenErr || new Error('Не вдалося відкрити COM-порт.');
+        }
+
         log('\n[BLHeli_32] COM-порт відкрито на 115200.');
         writer = state.port.writable.getWriter();
         reader = state.port.readable.getReader();

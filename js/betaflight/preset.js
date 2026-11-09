@@ -8,7 +8,7 @@ import { readCliResponse, parseBoardName } from './cli.js';
 import { parseFcDetails, calculateMismatch } from './info.js';
 import { updateInfoPanel } from '../ui/infoPanel.js';
 
-export async function flashBetaflightPreset() {
+export async function flashBetaflightPreset(onTelemetryReady = null) {
     if (!('serial' in navigator)) {
         setStepStatus(1, 'fail');
         showPopup('error', 'Помилка', 'Web Serial API не підтримується цим браузером.');
@@ -54,8 +54,11 @@ export async function flashBetaflightPreset() {
         await writer.write('status\r\n');
         await delay(150);
         const statusText = await readCliResponse(reader, 1200);
+        await writer.write('mcu_id\r\n');
+        await delay(150);
+        const mcuIdText = await readCliResponse(reader, 800);
 
-        const actualBoard = parseBoardName(initEcho + '\n' + verText + '\n' + statusText);
+        const actualBoard = parseBoardName(initEcho + '\n' + verText + '\n' + statusText + '\n' + mcuIdText);
         const expectedBoardMatch = script.match(/(?:board_name|#\s*target:?)\s+([A-Za-z0-9_-]+)/i);
         const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].toUpperCase() : null;
 
@@ -83,11 +86,16 @@ export async function flashBetaflightPreset() {
         }
         log(`[Зчитування] Отримано ${diffContent.length} байт конфігурації FC.`);
 
-        const fcDetails = parseFcDetails(verText, statusText);
+        const fcDetails = parseFcDetails(verText, statusText + '\n' + mcuIdText);
+        state.lastFcDetails = fcDetails;
         const mismatchStats = calculateMismatch(script, diffContent);
         updateInfoPanel(fcDetails, mismatchStats);
         log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
         log(`[Аналіз пресету] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
+
+        if (typeof onTelemetryReady === 'function') {
+            try { onTelemetryReady(fcDetails); } catch (_) {}
+        }
 
         if (!actualBoard) {
             try { await writer.write('exit\r\n'); } catch (_) {}
