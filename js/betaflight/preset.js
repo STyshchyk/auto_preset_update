@@ -2,12 +2,36 @@ import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log } from '../ui/log.js';
-import { setStepStatus } from '../ui/status.js';
+import { setStepStatus, setFcSubStep, resetFcSubSteps } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
 import { parseFcDetails, calculateMismatch } from './info.js';
 import { updateInfoPanel } from '../ui/infoPanel.js';
 import { isEscSessionActive, disconnectEscSession } from '../blheli/session.js';
+
+/**
+ * Reusable helper to request and read 'diff all' from Betaflight CLI.
+ * Streams chunks until prompt '#' is received or timeout occurs.
+ */
+async function fetchCliDiff(reader, writer, timeoutMs = 4000) {
+    await writer.write('diff all\r\n');
+    await delay(100);
+    let diffContent = '';
+    const diffStart = Date.now();
+
+    while (Date.now() - diffStart < timeoutMs) {
+        const chunk = await readCliResponse(reader, 400, false);
+        if (chunk) {
+            diffContent += chunk;
+            if (diffContent.length > 50 && (diffContent.includes('\n# ') || diffContent.trim().endsWith('#'))) {
+                break;
+            }
+        } else if (diffContent.length > 50) {
+            break;
+        }
+    }
+    return diffContent;
+}
 
 export async function flashBetaflightPreset(onTelemetryReady = null) {
     if (!('serial' in navigator)) {
@@ -20,6 +44,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
     const script = document.getElementById('presetInput').value.trim();
     btnFlashFC.disabled = true;
     setStepStatus(1, 'working');
+    resetFcSubSteps();
     let reader = null, writer = null, textEncoder = null;
     let isRebooting = false;
 
@@ -69,26 +94,9 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         log(`Виявлено плату: [${actualBoard || 'UNKNOWN'}]`);
 
-        // Аналіз польотника та розрахунок % неспівпадіння через diff all
+        // Аналіз польотника та розрахунок % неспівпадіння через diff all (до прошивки)
         log('Аналіз поточної конфігурації польотника (diff all)...');
-        await writer.write('diff all\r\n');
-        await delay(100);
-        let diffContent = '';
-        const diffStart = Date.now();
-        const maxDiffWait = 4000;
-
-        while (Date.now() - diffStart < maxDiffWait) {
-            const chunk = await readCliResponse(reader, 400, false);
-            if (chunk) {
-                diffContent += chunk;
-                // Зупиняємося одразу, як тільки diff all завершився фінальним промптом CLI
-                if (diffContent.length > 50 && (diffContent.includes('\n# ') || diffContent.trim().endsWith('#'))) {
-                    break;
-                }
-            } else if (diffContent.length > 50) {
-                break;
-            }
-        }
+        const diffContent = await fetchCliDiff(reader, writer, 4000);
         log(`[Зчитування] Отримано ${diffContent.length} байт конфігурації FC.`);
 
         const fcDetails = parseFcDetails(verText, statusText + '\n' + mcuIdText);
@@ -96,7 +104,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
         const mismatchStats = calculateMismatch(script, diffContent);
         updateInfoPanel(fcDetails, mismatchStats);
         log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
-        log(`[Аналіз пресету] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
+        log(`[Аналіз пресету (до запису)] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
 
         if (typeof onTelemetryReady === 'function') {
             try { onTelemetryReady(fcDetails); } catch (_) {}
@@ -115,6 +123,8 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
         // Швидке очищення залишкового ехо перед відправкою команд
         await readCliResponse(reader, 150, false).catch(() => {});
 
+        // --- ПІДПУНКТ 1: ПРОШИВКА КОМАНД ---
+        setFcSubStep('flash', 'working');
         log('Заливання команд пресету...');
         const lines = script.split('\n');
         let containsSave = false;
@@ -139,6 +149,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
                 if (errorMatch) {
                     const errMsg = errorMatch[1].trim();
                     log(`[УВАГА / ПОМИЛКА FC]: ${errMsg}`);
+                    setFcSubStep('flash', 'fail');
                     state.ignoreRebootEventsUntil = Date.now() + 6000;
                     try {
                         await writer.write('exit\r\n');
@@ -148,6 +159,45 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
                 }
             }
         }
+        setFcSubStep('flash', 'ok');
+        log('[Крок 1.1] Усі команди пресету успішно надіслано в польотник.');
+
+        // --- ПІДПУНКТ 2: ФІНАЛЬНЕ ЧИТАННЯ (БЕЗ РОЗРИВУ З'ЄДНАННЯ) ---
+        setFcSubStep('readDiff', 'working');
+        log('[Фінальний контроль] Запит поточної конфігурації (diff all) після заливки...');
+        await readCliResponse(reader, 150, false).catch(() => {});
+        const postDiffContent = await fetchCliDiff(reader, writer, 4000);
+        log(`[Зчитування після запису] Отримано ${postDiffContent.length} байт актуального diff.`);
+        setFcSubStep('readDiff', 'ok');
+
+        // --- ПІДПУНКТ 3: ПЕРЕВІРКА ПРЕСЕТУ (100% ЗБІГ) ---
+        setFcSubStep('verify', 'working');
+        log('[Фінальний контроль] Порівняння зразка пресету з актуальним станом FC...');
+        const postMismatchStats = calculateMismatch(script, postDiffContent);
+        log(`[Результат перевірки] Неспівпадіння: ${postMismatchStats.mismatchPercent}% (${postMismatchStats.mismatchCount}/${postMismatchStats.totalPresetVars} змінних)`);
+
+        if (postMismatchStats.mismatchCount > 0) {
+            setFcSubStep('verify', 'fail');
+            const diffSummary = postMismatchStats.mismatchedKeys
+                .slice(0, 5)
+                .map(m => `  • ${m.key}: очікувалось "${m.expected}", в FC "${m.actual || 'відсутній'}"`)
+                .join('\n');
+            const totalDiffMsg = `Не співпало ${postMismatchStats.mismatchCount} змінних:\n${diffSummary}${postMismatchStats.mismatchCount > 5 ? '\n  ...та інші' : ''}`;
+            log(`[ПОМИЛКА ВЕРИФІКАЦІЇ]:\n${totalDiffMsg}`);
+
+            // Безпечне скасування змін без запису у постійну пам'ять
+            try {
+                await writer.write('exit\r\n');
+                await delay(200);
+            } catch (_) {}
+
+            throw new Error(`Помилка перевірки пресету після запису!\n${totalDiffMsg}\nЗапис НЕ збережено (команда save не виконувалась).`);
+        }
+
+        // Повна відповідність пресету!
+        setFcSubStep('verify', 'ok');
+        updateInfoPanel(fcDetails, postMismatchStats);
+        log('✅ [ВЕРИФІКАЦІЯ УСПІШНА]: Конфігурація 100% відповідає зразку пресету (0 розбіжностей). Збереження...');
 
         isRebooting = true;
         state.ignoreRebootEventsUntil = Date.now() + 5000;

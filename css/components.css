@@ -181,6 +181,56 @@ textarea {
     user-select: none;
 }
 
+.fc-flash-progress {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 12px 0 16px 0;
+}
+
+.fc-sub-step {
+    background: #11141a;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.fc-sub-step.pending {
+    border-color: #333a48;
+    color: var(--text-muted);
+}
+
+.fc-sub-step.working {
+    border-color: #0284c7;
+    background: rgba(2, 132, 199, 0.12);
+    color: #38bdf8;
+}
+
+.fc-sub-step.working .sub-step-icon {
+    display: inline-block;
+    animation: spinIcon 1.2s linear infinite;
+}
+
+.fc-sub-step.ok {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+}
+
+.fc-sub-step.fail {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+}
+
 .esc-status-badges {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

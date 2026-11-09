@@ -78,9 +78,58 @@ export function resetEscFlowPipeline() {
     stages.forEach(s => setEscFlowStep(s.key, 'awaiting', s.label));
 }
 
+/**
+ * Updates an individual sub-step badge in Step 1 (Betaflight Flash Progress).
+ * @param {'flash'|'readDiff'|'verify'} stepKey
+ * @param {'pending'|'working'|'ok'|'fail'} state
+ * @param {string} [customLabel]
+ */
+export function setFcSubStep(stepKey, state, customLabel = null) {
+    const map = {
+        flash:    'subStepFlash',
+        readDiff: 'subStepReadDiff',
+        verify:   'subStepVerify'
+    };
+    const id = map[stepKey];
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    el.className = `fc-sub-step ${state}`;
+    const icon = el.querySelector('.sub-step-icon');
+    const label = el.querySelector('.sub-step-label');
+
+    const defaultLabels = {
+        flash:    '1. Прошивка команд',
+        readDiff: '2. Фінальне читання',
+        verify:   '3. Перевірка пресету'
+    };
+
+    if (icon) {
+        if (state === 'working') icon.textContent = '⚙️';
+        else if (state === 'ok') icon.textContent = '✅';
+        else if (state === 'fail') icon.textContent = '❌';
+        else icon.textContent = '⏳';
+    }
+
+    if (label) {
+        label.textContent = customLabel || defaultLabels[stepKey] || '';
+    }
+}
+
+/**
+ * Resets the 3 sub-steps in Step 1 to pending.
+ */
+export function resetFcSubSteps() {
+    setFcSubStep('flash', 'pending');
+    setFcSubStep('readDiff', 'pending');
+    setFcSubStep('verify', 'pending');
+}
+
 export function resetAllStepStatuses() {
     setStepStatus(1, 'awaiting');
     setStepStatus(2, 'awaiting');
+    resetFcSubSteps();
     for (let i = 0; i < 4; i++) {
         setEscBadge(i, 'pending', 'Очікування');
     }
