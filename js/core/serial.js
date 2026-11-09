@@ -65,6 +65,9 @@ export function initSerialEvents(log, resetAllStepStatuses) {
 }
 
 export async function resolveSelectedPort(log) {
+    if ('serial' in navigator) {
+        await refreshPortList();
+    }
     const portSelect = document.getElementById('portSelect');
     const selectedVal = portSelect.value;
     if (selectedVal === 'new' || !state.availablePorts[selectedVal]) {

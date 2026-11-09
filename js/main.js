@@ -13,20 +13,72 @@ import { backupBetaflightConfig } from './betaflight/backup.js';
 import { readAllEscSettings } from './blheli/eeprom.js';
 import { backupAllEscs, triggerRestoreFileSelect, handleRestoreFileChange } from './blheli/backup.js';
 import { applyEscPreset } from './blheli/preset.js';
+import { runFullDroneSequence } from './core/pipeline.js';
+import { renderStatsWidget, resetDailyStats } from './utils/stats.js';
 
 // Expose closeModal globally for modal HTML onclick handler
 window.closeModal = closeModal;
 
 // DOM Elements
-const btnFlashFC       = document.getElementById('btnFlashFC');
-const btnBackup        = document.getElementById('btnBackup');
-const btnSkipToEsc     = document.getElementById('btnSkipToEsc');
-const btnReadESC       = document.getElementById('btnReadESC');
-const btnBackupESC     = document.getElementById('btnBackupESC');
-const btnRestoreESC    = document.getElementById('btnRestoreESC');
-const fileRestoreESC   = document.getElementById('fileRestoreESC');
-const btnConfigureESC  = document.getElementById('btnConfigureESC');
-const modalCloseBtn    = document.getElementById('modalCloseBtn');
+const btnFlashFC          = document.getElementById('btnFlashFC');
+const btnBackup           = document.getElementById('btnBackup');
+const btnSkipToEsc        = document.getElementById('btnSkipToEsc');
+const btnReadESC          = document.getElementById('btnReadESC');
+const btnBackupESC        = document.getElementById('btnBackupESC');
+const btnRestoreESC       = document.getElementById('btnRestoreESC');
+const fileRestoreESC      = document.getElementById('fileRestoreESC');
+const btnConfigureESC     = document.getElementById('btnConfigureESC');
+const modalCloseBtn       = document.getElementById('modalCloseBtn');
+const btnToggleMode       = document.getElementById('btnToggleMode');
+const btnRunSimplified    = document.getElementById('btnRunSimplified');
+const btnResetDailyStats  = document.getElementById('btnResetDailyStats');
+
+// --- SIMPLIFIED MODE TOGGLE ---
+const MODE_STORAGE_KEY = 'drone_station_mode';
+
+function applyMode(isSimplified) {
+    if (isSimplified) {
+        document.body.classList.add('simplified-mode');
+        if (btnToggleMode) {
+            btnToggleMode.textContent = '⚡ Спрощений режим: УВІМК';
+            btnToggleMode.classList.add('active');
+        }
+    } else {
+        document.body.classList.remove('simplified-mode');
+        if (btnToggleMode) {
+            btnToggleMode.textContent = '⚙️ Експертний режим: УВІМК';
+            btnToggleMode.classList.remove('active');
+        }
+    }
+    localStorage.setItem(MODE_STORAGE_KEY, isSimplified ? 'simplified' : 'expert');
+}
+
+// Default to simplified mode unless explicitly set to expert
+const savedMode = localStorage.getItem(MODE_STORAGE_KEY);
+const initialIsSimplified = savedMode !== 'expert';
+applyMode(initialIsSimplified);
+
+if (btnToggleMode) {
+    btnToggleMode.addEventListener('click', () => {
+        const currentlySimplified = document.body.classList.contains('simplified-mode');
+        applyMode(!currentlySimplified);
+    });
+}
+
+// --- STATS INITIALIZATION ---
+renderStatsWidget();
+if (btnResetDailyStats) {
+    btnResetDailyStats.addEventListener('click', () => {
+        if (window.confirm('Скинути статистику за сьогодні?')) {
+            resetDailyStats();
+        }
+    });
+}
+
+// --- MASTER ACTION BUTTON FOR SIMPLIFIED MODE ---
+if (btnRunSimplified) {
+    btnRunSimplified.addEventListener('click', runFullDroneSequence);
+}
 
 // --- PORT MANAGEMENT ---
 initSerialEvents(log, () => {

@@ -56,8 +56,8 @@ export function detectMotorDirection(header8, escIndex) {
     if (bytesEqual(header8, BL32_HEADER_NORMAL_100) || bytesEqual(header8, BL32_HEADER_NORMAL_50)) {
         return 'normal';
     }
-    // Стандартна конвенція для quad: мотори 2 і 4 (індекси 1 та 3) - reversed
-    return (escIndex === 1 || escIndex === 3) ? 'reversed' : 'normal';
+    // За замовчуванням NORMAL для всіх ESC
+    return 'normal';
 }
 
 /**
@@ -134,10 +134,9 @@ export async function applyEscPreset() {
                 const originalData = currentBlocks[esc].data;
                 const patchData = new Uint8Array(originalData);
 
-                // Визначаємо напрямок мотора
-                const currentHeader = originalData.slice(0, 8);
-                const direction = detectMotorDirection(currentHeader, esc);
-                const targetHeader = (direction === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
+                // Примусово NORMAL для всіх ESC до окремої вказівки
+                const direction = 'normal';
+                const targetHeader = BL32_HEADER_NORMAL_100;
 
                 // Підставляємо зв'язані блоки (0x00..0x07 та 0x10..0x1F)
                 patchData.set(targetHeader, 0x00);

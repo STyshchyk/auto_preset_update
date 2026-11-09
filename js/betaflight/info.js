@@ -45,11 +45,40 @@ export function parseFcDetails(versionText = '', statusText = '') {
         mcu = mcuMatch[1].toUpperCase();
     }
 
+    // Unique Device ID (MCU UID or mcu_id)
+    let deviceId = null;
+    const uidMatch = combined.match(/(?:MCU\s*UID|mcu_id|unique\s*id):\s*(0x[0-9a-fA-F]+|[0-9a-fA-F]{16,32})/i) ||
+                     combined.match(/mcu_id\s+([0-9a-fA-F]{16,32})/i);
+    if (uidMatch) {
+        let rawId = uidMatch[1].trim();
+        if (!rawId.toLowerCase().startsWith('0x')) {
+            rawId = '0x' + rawId;
+        }
+        deviceId = rawId.toLowerCase();
+    }
+
+    // Battery / Voltage Status from Betaflight 'status' output
+    // e.g. "Voltage: 3251 * 0.01V (8S battery - OK)" or "Voltage: 291 * 0.01V (0S battery - NOT PRESENT)"
+    let batteryPresent = true; // default optimistic
+    let batteryInfo = '—';
+    const voltMatch = combined.match(/Voltage:\s*([0-9]+)\s*\*\s*0\.01V\s*\(([^)]+)\)/i);
+    if (voltMatch) {
+        const rawVolts = (parseInt(voltMatch[1], 10) / 100).toFixed(2);
+        const desc = voltMatch[2].trim();
+        batteryInfo = `${rawVolts}V (${desc})`;
+        if (desc.toUpperCase().includes('NOT PRESENT') || desc.toUpperCase().includes('0S') || parseFloat(rawVolts) < 5.0) {
+            batteryPresent = false;
+        }
+    }
+
     return {
         board: board || 'НЕВІДОМО',
         firmware: firmware || '—',
         buildDate: buildDate || '—',
-        mcu: mcu || '—'
+        mcu: mcu || '—',
+        deviceId: deviceId || '—',
+        batteryPresent,
+        batteryInfo
     };
 }
 

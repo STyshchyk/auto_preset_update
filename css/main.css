@@ -24,7 +24,7 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -39,7 +39,7 @@ body {
 }
 
 .sidebar-col {
-    width: 320px;
+    width: 300px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -52,6 +52,23 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+.right-col {
+    width: 340px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@media (max-width: 1200px) {
+    .app-layout {
+        flex-wrap: wrap;
+    }
+    .right-col {
+        width: 100%;
+    }
 }
 
 @media (max-width: 960px) {
