@@ -131,6 +131,13 @@
 
         <!-- RIGHT MAIN COLUMN: Steps & Console -->
         <main class="main-col">
+        <!-- Master Run Box for Simplified Mode -->
+        <div class="simplified-master-box" id="simplifiedMasterBox">
+            <button id="btnRunSimplified" class="btn-master-run">
+                🚀 ПРОШИТИ ДРОН (FC + ESC)
+            </button>
+        </div>
+
     <!-- BLOCK 1: Betaflight CLI Flasher -->
     <div class="step-card" id="cardStep1">
         <div class="step-header">
@@ -371,13 +378,19 @@ rateprofile 0
 </textarea>
         </div>
 
-        <!-- Master Run Box for Simplified Mode -->
-        <div class="simplified-master-box" id="simplifiedMasterBox">
-            <button id="btnRunSimplified" class="btn-master-run">
-                🚀 ПРОШИТИ ДРОН (FC + ESC)
-            </button>
-            <div class="master-hint">
-                Автоматичний конвеєр: Крок 1 (Betaflight) ➔ Перезавантаження ➔ Крок 2 (BLHeli_32)
+        <!-- Step 1 Sub-stage Progress Badges -->
+        <div class="fc-flash-progress" id="fcFlashProgress">
+            <div class="fc-sub-step pending" id="subStepFlash">
+                <span class="sub-step-icon">⏳</span>
+                <span class="sub-step-label">1. Прошивка команд</span>
+            </div>
+            <div class="fc-sub-step pending" id="subStepReadDiff">
+                <span class="sub-step-icon">⏳</span>
+                <span class="sub-step-label">2. Фінальне читання</span>
+            </div>
+            <div class="fc-sub-step pending" id="subStepVerify">
+                <span class="sub-step-icon">⏳</span>
+                <span class="sub-step-label">3. Перевірка пресету</span>
             </div>
         </div>
 
@@ -404,6 +417,34 @@ rateprofile 0
             </div>
         </div>
 
+        <!-- ESC Pipeline Flow Status Bar (Підключення -> Заливка -> Перевірка -> Статус OK -> Закриття сесії) -->
+        <div class="esc-flow-pipeline" id="escFlowPipeline">
+            <div class="esc-flow-step awaiting" id="escFlowConnect">
+                <span class="step-dot">🔗</span>
+                <span class="step-label">1. Підключення</span>
+            </div>
+            <span class="esc-flow-arrow">➜</span>
+            <div class="esc-flow-step awaiting" id="escFlowFlash">
+                <span class="step-dot">⚡</span>
+                <span class="step-label">2. Заливка</span>
+            </div>
+            <span class="esc-flow-arrow">➜</span>
+            <div class="esc-flow-step awaiting" id="escFlowVerify">
+                <span class="step-dot">🔍</span>
+                <span class="step-label">3. Перевірка</span>
+            </div>
+            <span class="esc-flow-arrow">➜</span>
+            <div class="esc-flow-step awaiting" id="escFlowStatus">
+                <span class="step-dot">🎯</span>
+                <span class="step-label">4. Статус OK</span>
+            </div>
+            <span class="esc-flow-arrow">➜</span>
+            <div class="esc-flow-step awaiting" id="escFlowClose">
+                <span class="step-dot">🔒</span>
+                <span class="step-label">5. Закриття</span>
+            </div>
+        </div>
+
         <!-- ESC 1-4 Real-Time Status -->
         <div class="esc-status-badges">
             <div class="esc-badge pending" id="badgeEsc0">ESC #1: Очікування</div>
@@ -413,11 +454,13 @@ rateprofile 0
         </div>
 
         <div class="controls expert-only">
-            <button id="btnReadESC" class="btn-read">🔍 Зчитати поточні налаштування ESC</button>
-            <button id="btnBackupESC" class="btn-backup">💾 Копія всіх 4 ESC</button>
-            <button id="btnRestoreESC" class="btn-restore">♻️ Відновити з файлу</button>
+            <button id="btnConnectESC" class="btn-connect">🔗 З'єднатися з ESC</button>
+            <button id="btnDisconnectESC" class="btn-disconnect" disabled>❌ Від'єднатися від ESC</button>
+            <button id="btnReadESC" class="btn-read" disabled>🔍 Зчитати поточні налаштування ESC</button>
+            <button id="btnBackupESC" class="btn-backup" disabled>💾 Копія всіх 4 ESC</button>
+            <button id="btnRestoreESC" class="btn-restore" disabled>♻️ Відновити з файлу</button>
             <input type="file" id="fileRestoreESC" accept=".json,application/json" style="display:none">
-            <button id="btnConfigureESC" class="btn-primary" style="background:#007acc; border-color:#0099ff;">⚡ Застосувати пресет до 4 ESC</button>
+            <button id="btnConfigureESC" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled>⚡ Застосувати пресет до 4 ESC</button>
         </div>
     </div>
 

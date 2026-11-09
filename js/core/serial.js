@@ -115,6 +115,8 @@ export function initSerialEvents(log, resetAllStepStatuses) {
         });
         navigator.serial.addEventListener('disconnect', () => {
             log('USB-пристрій відключено.');
+            state.escSession = { isConnected: false, port: null, reader: null, writer: null };
+            state.port = null;
             refreshPortList();
             if (Date.now() > state.ignoreRebootEventsUntil) {
                 resetAllStepStatuses();

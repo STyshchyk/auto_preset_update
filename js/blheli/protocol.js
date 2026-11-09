@@ -212,15 +212,19 @@ export async function send4WayCmd(writer, reader, cmd, addr = 0, params = [], ti
 
 // Switches FC to 4-Way, verifies BLHeli32 interface mode
 export async function init4WayInterface(writer, reader) {
-    log('[4-Way] Ініціалізація 4-Way passthrough (MSP 245)...');
-    // Exact MSP payload from BLHeliSuite32 log: [0x24, 0x4D, 0x3C, 0x00, 0xF5, 0xF5]
-    await sendMsp(writer, 245, []);
+    // 0. Check if FC is already in 4-Way mode before sending MSP 245
+    let pVer = await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 400);
+    if (!pVer.ok) {
+        log('[4-Way] Ініціалізація 4-Way passthrough (MSP 245)...');
+        // Exact MSP payload from BLHeliSuite32 log: [0x24, 0x4D, 0x3C, 0x00, 0xF5, 0xF5]
+        await sendMsp(writer, 245, []);
 
-    // Give FC enough time to switch UART muxing to 4-Way
-    await delay(200);
+        // Give FC enough time to switch UART muxing to 4-Way
+        await delay(250);
 
-    // 1. Check protocol version (cmd 0x31)
-    const pVer = await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 1500);
+        // 1. Check protocol version (cmd 0x31)
+        pVer = await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 1500);
+    }
     if (!pVer.ok) {
         throw new Error(`Помилка 4-Way GET_VERSION: ${pVer.msg}`);
     }

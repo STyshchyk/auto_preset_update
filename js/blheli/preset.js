@@ -4,7 +4,7 @@
 
 import { delay, bytesEqual } from '../utils/bytes.js';
 import { log } from '../ui/log.js';
-import { setStepStatus, setEscBadge } from '../ui/status.js';
+import { setStepStatus, setEscBadge, setEscFlowStep } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
 import {
@@ -76,6 +76,9 @@ export async function applyEscPreset() {
     let cachedEscInfo = [];
 
     try {
+        setEscFlowStep('connect', 'success');
+        setEscFlowStep('flash', 'working');
+
         const outcome = await withEscSession(async (writer, reader) => {
             // ФАЗА 1: Зчитуємо поточні блоки всіх 4 ESC
             const currentBlocks = [];
@@ -152,8 +155,13 @@ export async function applyEscPreset() {
                 for (let esc = 0; esc < ESC_COUNT; esc++) {
                     setEscBadge(esc, 'ok', 'Вже застосовано');
                 }
+                setEscFlowStep('flash', 'success', '2. Заливка (Вже OK)');
+                setEscFlowStep('verify', 'success');
+                setEscFlowStep('status', 'success');
                 return { results: targets.map(t => ({ esc: t.esc, status: 'unchanged', direction: t.direction })) };
             }
+
+            setEscFlowStep('flash', 'working');
 
             // ФАЗА 2: Запис регуляторів, які потребують оновлення (з підтвердженням ACK)
             const writeResults = [];
@@ -181,6 +189,7 @@ export async function applyEscPreset() {
 
                 if (!wr.ok) {
                     setEscBadge(esc, 'fail', 'Збій запису');
+                    setEscFlowStep('flash', 'fail');
                     return { aborted: `ESC #${esc + 1}: помилка запису Flash (${wr.msg}).`, results: writeResults };
                 }
 
@@ -189,6 +198,22 @@ export async function applyEscPreset() {
                 writeResults.push({ esc, status: 'written', direction: t.direction });
                 await delay(100);
             }
+
+            setEscFlowStep('flash', 'success');
+            setEscFlowStep('verify', 'working');
+
+            // Контрольна перевірка запису (зчитування та валідація)
+            log('\n--- Контрольна перевірка 4-х ESC після запису ---');
+            for (let esc = 0; esc < ESC_COUNT; esc++) {
+                const verifyBlock = await readEscBlock(writer, reader, esc);
+                await disconnectEscDevice(writer, reader, esc);
+                if (!verifyBlock.ok) {
+                    setEscFlowStep('verify', 'fail');
+                    return { aborted: `ESC #${esc + 1}: не пройшов контрольну перевірку (${verifyBlock.msg}).`, results: writeResults };
+                }
+            }
+            setEscFlowStep('verify', 'success');
+            setEscFlowStep('status', 'success');
 
             return { results: writeResults };
         });

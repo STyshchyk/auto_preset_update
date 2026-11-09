@@ -99,7 +99,7 @@ export async function runFullDroneSequence() {
             throw new Error('Помилка під час налаштування ESC (Крок 2 не пройдено). Перевірте живлення LiPo!');
         }
 
-        setProgressionStep(4, 'success', '4 ESC налаштовано 100%');
+        setProgressionStep(4, 'success', '4 ESC: Заливка ➔ Перевірка ➔ Статус OK');
         setProgressionBanner('success', 'ДРОН ПРОШИТО УСПІШНО! 🎉', `UID: ${capturedDeviceId || 'Успішно'}. Всі 4 мотори готові до польоту.`);
 
         // Record successful run by UID
