@@ -1,15 +1,15 @@
 ﻿# PROJECT STATUS — Drone Setup Station Refactoring
 
-**Last Updated:** 2026-11-06  
+**Last Updated:** 2026-11-09  
 **Active Entry Point:** `index5.html`  
-**Refactoring Progress:** Phases 1–7 Completed; Telemetry & Preset Mismatch Analysis Implemented (Phase 8 Pending)  
+**Refactoring Progress:** Phases 1–10 Completed (100% Modular ES Architecture, Zero Inline JavaScript)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry & Diff) and Step 2 (`#infoCardEsc`, BLHeli_32 Live Status) cards
 
 ---
 
 ## 1. Current Implementation State
 
-The application operates as a modularized single-page application (`index5.html`) using browser-native ES Modules and Web Serial API.
+The application operates as a clean, fully modular single-page application (`index5.html`) using browser-native ES Modules and Web Serial API.
 
 ### Extracted & Active Modules
 * **CSS Layer:**
@@ -33,6 +33,12 @@ The application operates as a modularized single-page application (`index5.html`
   * `backup.js`: Flight controller configuration backup (`backupBetaflightConfig`).
 * **BLHeli_32 Feature (`js/blheli/`):**
   * `protocol.js`: MSPv1 framing (`sendMsp`), low-level 4-Way protocol (`read4WayRaw`, `send4WayCmd`), FC 4-Way mode setup (`init4WayInterface`), and device connection/disconnection (`connectEscDevice`, `disconnectEscDevice`).
+  * `eeprom.js`: Session lifecycle wrapper (`withEscSession`), 256-byte block reader with CRC retries (`readEscBlock`), and full 4-ESC settings readout handler (`readAllEscSettings`).
+  * `preset.js`: Preset constants (`BL32_PRESET_SETTINGS`, normal/reversed headers), motor rotation detection (`detectMotorDirection`), and 4-ESC preset flasher preserving 232 calibration bytes (`applyEscPreset`).
+  * `backup.js`: Raw backup format serializer (`buildBackupObject`), JSON schema/checksum validator (`parseEscBackup`), backup generator (`backupAllEscs`), and two-phase restore handler (`triggerRestoreFileSelect`, `handleRestoreFileChange`).
+* **Main Bootstrap Entry (`js/main.js`):**
+  * Single application bootstrap wiring serial listeners and DOM events to buttons (`btnFlashFC`, `btnBackup`, `btnSkipToEsc`, `btnReadESC`, `btnBackupESC`, `btnRestoreESC`, `fileRestoreESC`, `btnConfigureESC`, `modalCloseBtn`).
+  * Exposes `window.closeModal = closeModal`.
 
 ---
 
@@ -64,7 +70,8 @@ The application operates as a modularized single-page application (`index5.html`
 
 ## 3. Verification Performed
 
-* **Syntax & Module Validation:** All `.js` modules and inline `<script type="module">` verified via `node --check`.
+* **Syntax & Module Validation:** All `.js` modules and bootstrap code verified via Node.js syntax checks (`node --check`).
+* **Clean HTML Entry Point:** `index5.html` contains 0 inline JavaScript lines and loads modules via `<script type="module" src="./js/main.js"></script>`.
 * **Telemetry & Mismatch Logic Tests:** Tested against multi-line version outputs and diff dumps; verified exact match yields 0% mismatch.
 * **Execution Latency:** Verified CLI flashing throughput retains rapid execution without blocking waits.
 

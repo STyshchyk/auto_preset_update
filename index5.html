@@ -113,8 +113,8 @@
         <label for="presetInput" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">
             CLI Dump / Diff команди:
         </label>
-        <textarea id="presetInput">
-defaults nosave
+        <textarea id="presetInput">defaults nosave
+
 
 # version
 # Betaflight / STM32F7X2 (S7X2) 4.5.1 Dec  2 2024 / 10:06:22 (77d01ba3b) MSP API: 1.46
@@ -123,31 +123,25 @@ defaults nosave
 # start the command batch
 batch start
 
-# reset configuration to default settings
+# reset configuration to default settings 123
 defaults nosave
 
 board_name SPEDIXF722
 manufacturer_id SPDX
-mcu_id 0024002d3036510834323839
+mcu_id 003c004c3335510b37373437
 signature 
 
-# name: T-System 15
+# name: T-System 13
 
 # resources
 resource MOTOR 5 NONE
-resource SERVO 1 A03
-resource SERIAL_TX 2 NONE
-resource SERIAL_RX 2 A02
+resource SERVO 1 B06
+resource LED_STRIP 1 C14
+resource LED 1 NONE
 
 # feature
 feature SERVO_TILT
 feature OSD
-feature ESC_SENSOR
-
-# serial
-serial 0 64 115200 57600 0 115200
-serial 1 0 115200 57600 0 115200
-serial 4 1024 115200 57600 0 115200
 
 # servo
 servo 0 1000 2000 1500 100 7
@@ -176,14 +170,11 @@ beeper -CAM_CONNECTION_OPEN
 beeper -CAM_CONNECTION_CLOSE
 beeper -RC_SMOOTHING_INIT_FAIL
 
-# beacon
-beacon RX_LOST
-
 # aux
 aux 0 0 0 1700 2100 0 0
 aux 1 1 2 1300 1700 0 0
 aux 2 2 2 1700 2100 0 0
-aux 3 40 1 1300 2100 0 0
+aux 3 40 1 1500 2100 0 0
 aux 4 40 0 900 900 0 33
 
 # adjrange
@@ -204,62 +195,55 @@ vtxtable powerlevels 6
 vtxtable powervalues 25 400 800 1500 3000 0
 vtxtable powerlabels 25 400 800 1.5 3.0 0MW
 
-# rxfail
-rxfail 3 h
-rxfail 5 s 1000
-
 # master
 set gyro_lpf1_type = PT2
 set gyro_lpf1_static_hz = 0
+set gyro_lpf2_type = PT2
 set gyro_lpf2_static_hz = 0
-set dyn_notch_count = 5
-set dyn_notch_q = 250
+set dyn_notch_q = 450
 set dyn_notch_min_hz = 60
-set gyro_lpf1_dyn_min_hz = 0
+set gyro_lpf1_dyn_min_hz = 75
 set gyro_lpf1_dyn_max_hz = 150
-set acc_trim_pitch = -2
 set acc_calibration = 14,-15,22,1
+set blackbox_sample_rate = 1/2
 set dshot_idle_value = 250
-set failsafe_delay = 30
 set failsafe_throttle = 1280
-set vbat_min_cell_voltage = 360
-set vbat_warning_cell_voltage = 360
+set vbat_min_cell_voltage = 260
+set vbat_warning_cell_voltage = 300
 set beeper_dshot_beacon_tone = 5
 set yaw_motors_reversed = ON
-set gps_rescue_min_start_dist = 10
-set gps_rescue_return_alt = 40
-set gps_rescue_throttle_max = 2000
-set gps_rescue_throttle_hover = 1350
+set small_angle = 45
+set pid_process_denom = 2
 set simplified_gyro_filter_multiplier = 30
-set osd_vbat_pos = 14722
+set osd_vbat_pos = 14625
 set osd_rssi_pos = 87
 set osd_link_quality_pos = 55
-set osd_tim_2_pos = 14712
-set osd_flymode_pos = 14745
-set osd_throttle_pos = 14562
+set osd_tim_2_pos = 14743
+set osd_flymode_pos = 14712
+set osd_throttle_pos = 14563
 set osd_vtx_channel_pos = 33
 set osd_crosshairs_pos = 14573
-set osd_ah_pos = 110
-set osd_current_pos = 14657
+set osd_ah_pos = 14446
+set osd_current_pos = 14688
 set osd_mah_drawn_pos = 14722
 set osd_motor_diag_pos = 377
-set osd_craft_name_pos = 14347
+set osd_craft_name_pos = 14380
 set osd_pilot_name_pos = 72
-set osd_gps_speed_pos = 14585
-set osd_gps_lon_pos = 17
-set osd_gps_lat_pos = 0
-set osd_gps_sats_pos = 58
+set osd_gps_speed_pos = 14584
+set osd_gps_lon_pos = 14353
+set osd_gps_lat_pos = 14336
+set osd_gps_sats_pos = 14394
 set osd_home_dir_pos = 72
-set osd_home_dist_pos = 121
-set osd_flight_dist_pos = 14680
-set osd_altitude_pos = 14700
-set osd_warnings_pos = 14730
-set osd_avg_cell_voltage_pos = 14690
+set osd_home_dist_pos = 14369
+set osd_flight_dist_pos = 14679
+set osd_altitude_pos = 14699
+set osd_warnings_pos = 14729
+set osd_avg_cell_voltage_pos = 14657
 set osd_pit_ang_pos = 161
 set osd_rol_ang_pos = 129
-set osd_disarmed_pos = 14731
+set osd_disarmed_pos = 14634
 set osd_esc_rpm_freq_pos = 216
-set osd_core_temp_pos = 89
+set osd_core_temp_pos = 2359
 set osd_profile_name_pos = 14465
 set osd_sys_delay_pos = 336
 set osd_sys_lq_pos = 88
@@ -276,37 +260,37 @@ set vtx_channel = 3
 set vtx_power = 1
 set vtx_freq = 5665
 set vcd_video_system = AUTO
-set craft_name = T-System 15
+set craft_name = T-System 13
 
 profile 0
 
 # profile 0
-set dterm_lpf1_dyn_min_hz = 41
-set dterm_lpf1_dyn_max_hz = 82
+set dterm_lpf1_dyn_min_hz = 37
+set dterm_lpf1_dyn_max_hz = 75
 set dterm_lpf1_dyn_expo = 7
-set dterm_lpf1_type = PT2
-set dterm_lpf1_static_hz = 41
-set dterm_lpf2_static_hz = 0
+set dterm_lpf1_type = PT3
+set dterm_lpf1_static_hz = 37
+set dterm_lpf2_static_hz = 75
 set anti_gravity_gain = 35
 set iterm_rotation = ON
 set iterm_relax_type = GYRO
 set iterm_relax_cutoff = 6
-set yaw_lowpass_hz = 1
+set yaw_lowpass_hz = 0
 set i_pitch = 63
-set d_pitch = 41
+set d_pitch = 50
 set f_pitch = 93
 set i_roll = 60
-set d_roll = 36
+set d_roll = 44
 set f_roll = 90
 set i_yaw = 60
 set f_yaw = 90
-set d_min_roll = 27
-set d_min_pitch = 30
+set d_min_roll = 33
+set d_min_pitch = 37
 set feedforward_jitter_factor = 10
 set simplified_i_gain = 75
-set simplified_d_gain = 90
+set simplified_d_gain = 110
 set simplified_feedforward_gain = 75
-set simplified_dterm_filter_multiplier = 55
+set simplified_dterm_filter_multiplier = 50
 
 profile 1
 
@@ -333,8 +317,7 @@ rateprofile 3
 # restore original rateprofile selection
 rateprofile 0
 
-# save configuration
-</textarea>
+# save configuration</textarea>
 
         <div class="controls">
             <button id="btnFlashFC" class="btn-primary">Залити пресет у FC</button>
@@ -399,696 +382,7 @@ rateprofile 0
     </div>
 </div>
 
-<script type="module">
-    import { delay, bytesToHex, hexToBytes, bytesEqual, timestampStr, downloadTextFile } from './js/utils/bytes.js';
-    import { crc16Xmodem, crcHex } from './js/utils/crc.js';
-    import { state } from './js/core/state.js';
-    import { refreshPortList, initSerialEvents, resolveSelectedPort, closeSerialSession } from './js/core/serial.js';
-    import { log } from './js/ui/log.js';
-    import { setStepStatus, resetAllStepStatuses, setEscBadge, setAllEscButtons } from './js/ui/status.js';
-    import { resetInfoPanel, updateEscInfoPanel } from './js/ui/infoPanel.js';
-    import { showPopup, closeModal } from './js/ui/modal.js';
-    import { flashBetaflightPreset, skipToEsc } from './js/betaflight/preset.js';
-    import { backupBetaflightConfig } from './js/betaflight/backup.js';
-    import {
-        CMD_LOCAL_ESCAPE,
-        CMD_REMOTE_ESCAPE,
-        CMD_INTERFACE_TEST_ALIVE,
-        CMD_PROTOCOL_GET_VERSION,
-        CMD_INTERFACE_GET_NAME,
-        CMD_INTERFACE_GET_VER,
-        CMD_INTERFACE_EXIT,
-        CMD_DEVICE_RESET,
-        CMD_DEVICE_INIT_FLASH,
-        CMD_DEVICE_READ,
-        CMD_DEVICE_WRITE,
-        CMD_INTERFACE_SET_MODE,
-        sendMsp,
-        read4WayRaw,
-        send4WayCmd,
-        init4WayInterface,
-        connectEscDevice,
-        disconnectEscDevice
-    } from './js/blheli/protocol.js';
-
-    const btnFlashFC = document.getElementById('btnFlashFC');
-    const btnBackup = document.getElementById('btnBackup');
-    const btnSkipToEsc = document.getElementById('btnSkipToEsc');
-    const btnReadESC = document.getElementById('btnReadESC');
-    const btnBackupESC = document.getElementById('btnBackupESC');
-    const btnRestoreESC = document.getElementById('btnRestoreESC');
-    const fileRestoreESC = document.getElementById('fileRestoreESC');
-    const btnConfigureESC = document.getElementById('btnConfigureESC');
-
-    window.closeModal = closeModal;
-
-    // --- PORT MANAGEMENT ---
-    initSerialEvents(log, () => {
-        resetAllStepStatuses();
-        resetInfoPanel();
-    });
-
-    // --- STEP 1: BETAFLIGHT CLI PRESET FLASHER ---
-    btnFlashFC.addEventListener('click', flashBetaflightPreset);
-    btnSkipToEsc.addEventListener('click', skipToEsc);
-    btnBackup.addEventListener('click', backupBetaflightConfig);
-
-    // =========================================================================
-    // --- STEP 2: OFFICIAL BLHELI_32 4-WAY PASSTHROUGH (from BLHeliSuite32 Log)
-    // =========================================================================
-
-    // EEPROM Address and Verified Preset Blocks in BLHeli_32
-    const BL32_EEPROM_ADDR         = 0xF800;
-
-    // Еталонний блок налаштувань для Rampup=100%, LowRPM=Off, Beacon=Off (16 байт на зміщенні 0x10..0x1F)
-    const BL32_PRESET_SETTINGS     = new Uint8Array([
-        0x9E, 0xDF, 0xFF, 0x55, 0x21, 0xE8, 0x2E, 0x9C,
-        0x16, 0xBA, 0xC7, 0xD7, 0x50, 0xE7, 0xFA, 0x5B
-    ]);
-
-    // Синхронізовані заголовки напрямку обертання (хеш 0x00..0x07) для пресету 100%:
-    const BL32_HEADER_NORMAL_100   = new Uint8Array([
-        0x90, 0xBD, 0x5D, 0xF6, 0xAA, 0x06, 0x4C, 0x53
-    ]);
-    const BL32_HEADER_REVERSED_100 = new Uint8Array([
-        0x3F, 0xB9, 0xC0, 0xBA, 0x9A, 0x73, 0x5D, 0x27
-    ]);
-
-    // Відомі заголовки для стану 50% (для автоматичного розпізнавання напрямку мотора):
-    const BL32_HEADER_NORMAL_50    = new Uint8Array([
-        0xA6, 0x8B, 0x9C, 0xD8, 0x35, 0x54, 0x67, 0x7C
-    ]);
-    const BL32_HEADER_REVERSED_50  = new Uint8Array([
-        0x1F, 0xF3, 0x4B, 0x5B, 0x52, 0xA5, 0x18, 0x9A
-    ]);
-
-    // --- BUTTON: READ CURRENT ESC SETTINGS ---
-    btnReadESC.addEventListener('click', async () => {
-        if (!('serial' in navigator)) {
-            setStepStatus(2, 'fail');
-            showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
-            return;
-        }
-
-        btnReadESC.disabled = true;
-        btnConfigureESC.disabled = true;
-        setStepStatus(2, 'working');
-        for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
-
-        let reader = null, writer = null;
-
-        try {
-            state.port = await resolveSelectedPort(log);
-            await state.port.open({ baudRate: 115200 });
-            log('\n[BLHeli_32] COM-порт відкрито на 115200.');
-
-            writer = state.port.writable.getWriter();
-            reader = state.port.readable.getReader();
-
-            // Ініціалізація 4-Way з режимом BLHeli32
-            await init4WayInterface(writer, reader);
-
-            let foundEscCount = 0;
-            const escDetails = [];
-
-            for (let esc = 0; esc < 4; esc++) {
-                log(`\n--- Зчитування ESC #${esc + 1} (Канал ${esc}) ---`);
-                setEscBadge(esc, 'working', 'Підключення...');
-
-                // 1. Підключення до бутлоадера ESC (Reset + InitFlash)
-                const connRes = await connectEscDevice(writer, reader, esc);
-                if (!connRes.ok) {
-                    log(`ESC #${esc + 1}: не відповідає. Перевірте LiPo живлення! (${connRes.msg})`);
-                    setEscBadge(esc, 'fail', 'Немає відповіді');
-                    continue;
-                }
-                log(`ESC #${esc + 1}: Знайдено (${connRes.chipInfo})`);
-
-                // 2. Зчитування 256 байтів EEPROM/Setup (cmd_DeviceRead 0x3A, Addr: 0xF800, len 0 = 256)
-                setEscBadge(esc, 'working', 'Читання EEPROM...');
-                const readRes = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
-                if (!readRes.ok || readRes.data.length < 32) {
-                    log(`ESC #${esc + 1}: помилка зчитування Flash/EEPROM (${readRes.msg})`);
-                    setEscBadge(esc, 'fail', 'Збій читання');
-                    continue;
-                }
-
-                foundEscCount++;
-                const pageData = readRes.data;
-
-                // Перевірка напрямку та відповідності нашому пресету
-                const direction = detectMotorDirection(pageData.slice(0, 8), esc);
-                const hasPresetSettings = pageData.length >= 32 && bytesEqual(pageData.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
-                const expectedHeader = (direction === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
-                const hasPresetHeader = bytesEqual(pageData.slice(0, 8), expectedHeader);
-                const presetMatched = hasPresetSettings && hasPresetHeader;
-
-                // Витяг відкритого ASCII тексту назви та версії прошивки з блоку (якщо присутні друковані символи)
-                let asciiName = '';
-                for (let i = 0x20; i < pageData.length - 8; i++) {
-                    const slice = pageData.slice(i, i + 32);
-                    let str = '';
-                    for (let b of slice) {
-                        if (b >= 32 && b <= 126) str += String.fromCharCode(b);
-                        else break;
-                    }
-                    if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
-                        asciiName = str;
-                        break;
-                    }
-                }
-
-                escDetails.push({
-                    esc,
-                    direction,
-                    presetMatched,
-                    chip: connRes.chipInfo,
-                    mcu: connRes.mcu || 'ARM 32-bit',
-                    signature: connRes.signatureHex || '0x????',
-                    ack: 'OK (LiPo є)',
-                    modelName: asciiName || 'BLHeli_32'
-                });
-
-                // Повний hex-дамп 256 байтів
-                log(`ESC #${esc + 1} RAW 0xF800 (${pageData.length} байт, ${direction.toUpperCase()}, ${presetMatched ? 'Пресет 100% OK' : 'Stock/Інше'}):`);
-                for (let off = 0; off < pageData.length; off += 16) {
-                    const row = Array.from(pageData.slice(off, off + 16)).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                    log(`  ${off.toString(16).padStart(4, '0')}: ${row}`);
-                }
-
-                setEscBadge(esc, 'ok', presetMatched ? `${direction.toUpperCase()} (100%)` : `${direction.toUpperCase()}`);
-
-                // Чисто відключаємо поточний ESC перед переходом до наступного
-                await disconnectEscDevice(writer, reader, esc);
-            }
-
-            // Оновлюємо інфо-панель зліва даними про мотори
-            updateEscInfoPanel(escDetails);
-
-            // Вихід з 4-Way режиму (cmd 0x34)
-            try {
-                await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
-            } catch (_) {}
-
-            await closeSerialSession(state.port, reader, writer, null);
-            state.port = null;
-            log('\n[BLHeli_32] Зчитування завершено. COM-порт звільнено.');
-
-            if (foundEscCount === 4) {
-                setStepStatus(2, 'success');
-                showPopup('success', 'Дані успішно зчитано', `Зчитано всі 4 ESC!\n\n` + escDetails.join('\n'), 3500);
-            } else if (foundEscCount > 0) {
-                setStepStatus(2, 'awaiting');
-                showPopup('error', 'Зчитано частково', `Знайдено ${foundEscCount} з 4 ESC.\nПеревірте живлення LiPo!\n\n` + escDetails.join('\n'));
-            } else {
-                setStepStatus(2, 'fail');
-                showPopup('error', 'ESC не відповідають', 'Жоден регулятор не відповів. Переконайтеся, що LiPo батарея підключена і мотори пропіщали!');
-            }
-
-        } catch (err) {
-            console.error(err);
-            setStepStatus(2, 'fail');
-            log(`[ESC Помилка читання]: ${err.message}`);
-            try {
-                if (writer && reader) {
-                    await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
-                }
-            } catch (_) {}
-            await closeSerialSession(state.port, reader, writer, null);
-            state.port = null;
-            showPopup('error', 'Збій зчитування ESC', err.message);
-        } finally {
-            btnReadESC.disabled = false;
-            btnConfigureESC.disabled = false;
-        }
-    });
-
-    // =========================================================================
-    // --- RAW BACKUP / RESTORE блоку налаштувань BLHeli_32 (256 байт @ 0xF800) ---
-    // Формат блоку закритий, тому він НЕ розшифровується: копіюється і відновлюється "як є".
-    // Послідовність запису повторює BLHeliSuite32: TestAlive -> DeviceWrite(256 @0xF800) -> Read back.
-    // =========================================================================
-    const ESC_BACKUP_FORMAT = 'blheli32-esc-raw-backup';
-    const ESC_BLOCK_LEN = 256;
-    const ESC_COUNT = 4;
-
-    function buildBackupObject(escs, complete) {
-        return {
-            format: ESC_BACKUP_FORMAT,
-            version: 1,
-            created: new Date().toISOString(),
-            address: '0xF800',
-            length: ESC_BLOCK_LEN,
-            complete,
-            escs
-        };
-    }
-
-    // Відкриває порт, вмикає 4-Way, виконує fn, гарантовано закриває порт
-    async function withEscSession(fn) {
-        let reader = null, writer = null;
-        setAllEscButtons(true);
-        try {
-            state.port = await resolveSelectedPort(log);
-            await state.port.open({ baudRate: 115200 });
-            log('\n[BLHeli_32] COM-порт відкрито на 115200.');
-            writer = state.port.writable.getWriter();
-            reader = state.port.readable.getReader();
-            await init4WayInterface(writer, reader);
-            return await fn(writer, reader);
-        } finally {
-            try { await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300); } catch (_) {}
-            await closeSerialSession(state.port, reader, writer, null);
-            state.port = null;
-            setAllEscButtons(false);
-            log('[BLHeli_32] COM-порт звільнено.');
-        }
-    }
-
-    // Підключається до ESC і читає 256 байт з перевіркою CRC (до 3 спроб)
-    async function readEscBlock(writer, reader, esc) {
-        const conn = await connectEscDevice(writer, reader, esc);
-        if (!conn.ok) return { ok: false, msg: conn.msg };
-
-        const sigMatch = conn.chipInfo.match(/0x[0-9A-F]+/i);
-        const signature = sigMatch ? sigMatch[0].toLowerCase() : 'unknown';
-
-        let lastMsg = 'невідома помилка';
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            const res = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
-            if (res.ok && res.data.length === ESC_BLOCK_LEN && res.crcOk) {
-                return { ok: true, data: new Uint8Array(res.data), signature, mcu: conn.mcu, signatureHex: conn.signatureHex };
-            }
-            lastMsg = !res.ok ? res.msg
-                : (res.data.length !== ESC_BLOCK_LEN ? `довжина ${res.data.length} замість ${ESC_BLOCK_LEN}` : 'CRC відповіді не збігся');
-            log(`ESC #${esc + 1}: спроба читання ${attempt}/3 невдала (${lastMsg})`);
-            await delay(150);
-        }
-        return { ok: false, msg: lastMsg };
-    }
-
-    // Перевіряє файл копії; повертає { ok, escs:[{index, signature, data}] } або { ok:false, msg }
-    function parseEscBackup(text) {
-        let obj;
-        try { obj = JSON.parse(text); } catch (e) { return { ok: false, msg: 'Файл не є коректним JSON.' }; }
-
-        if (!obj || obj.format !== ESC_BACKUP_FORMAT) return { ok: false, msg: 'Це не файл копії ESC з цієї програми (невірний format).' };
-        if (obj.version !== 1) return { ok: false, msg: `Непідтримувана версія файлу: ${obj.version}.` };
-        if (obj.address !== '0xF800' || obj.length !== ESC_BLOCK_LEN) return { ok: false, msg: 'Невірна адреса або довжина блоку у файлі.' };
-        if (!Array.isArray(obj.escs) || obj.escs.length === 0) return { ok: false, msg: 'У файлі немає жодного ESC.' };
-
-        const seen = new Set();
-        const escs = [];
-        for (const e of obj.escs) {
-            if (!Number.isInteger(e.index) || e.index < 0 || e.index >= ESC_COUNT) return { ok: false, msg: `Невірний номер ESC у файлі: ${e.index}.` };
-            if (seen.has(e.index)) return { ok: false, msg: `ESC #${e.index + 1} повторюється у файлі.` };
-            seen.add(e.index);
-
-            const data = hexToBytes(e.dataHex);
-            if (!data || data.length !== ESC_BLOCK_LEN) return { ok: false, msg: `ESC #${e.index + 1}: дані пошкоджені (очікується ${ESC_BLOCK_LEN} байт).` };
-            if (crcHex(data) !== String(e.crc16).toLowerCase()) return { ok: false, msg: `ESC #${e.index + 1}: контрольна сума файлу не збігається, файл змінено або пошкоджено.` };
-            if (typeof e.signature !== 'string') return { ok: false, msg: `ESC #${e.index + 1}: немає сигнатури чіпа.` };
-
-            escs.push({ index: e.index, signature: e.signature.toLowerCase(), data });
-        }
-        return { ok: true, escs, created: obj.created, complete: obj.complete };
-    }
-
-    // --- BUTTON: BACKUP ALL 4 ESCs ---
-    btnBackupESC.addEventListener('click', async () => {
-        if (!('serial' in navigator)) {
-            setStepStatus(2, 'fail');
-            showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
-            return;
-        }
-
-        setStepStatus(2, 'working');
-        for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
-
-        try {
-            const result = await withEscSession(async (writer, reader) => {
-                const escs = [];
-                const failed = [];
-                for (let esc = 0; esc < ESC_COUNT; esc++) {
-                    log(`\n--- Копія ESC #${esc + 1} ---`);
-                    setEscBadge(esc, 'working', 'Читання...');
-                    const r = await readEscBlock(writer, reader, esc);
-                    await disconnectEscDevice(writer, reader, esc);
-                    if (!r.ok) {
-                        log(`ESC #${esc + 1}: копію не знято (${r.msg})`);
-                        setEscBadge(esc, 'fail', 'Збій читання');
-                        failed.push(esc + 1);
-                        continue;
-                    }
-                    log(`ESC #${esc + 1}: прочитано ${r.data.length} байт, CRC OK, чіп ${r.signature}`);
-                    setEscBadge(esc, 'ok', 'Копію знято');
-                    escs.push({ index: esc, signature: r.signature, crc16: crcHex(r.data), dataHex: bytesToHex(r.data) });
-                }
-                return { escs, failed };
-            });
-
-            if (result.escs.length === 0) {
-                setStepStatus(2, 'fail');
-                showPopup('error', 'Копію не створено', 'Жоден ESC не вдалося прочитати. Перевірте LiPo та зʼєднання.');
-                return;
-            }
-
-            const complete = result.failed.length === 0;
-            const filename = `BLHeli32_ESC_backup_${timestampStr()}.json`;
-            downloadTextFile(filename, JSON.stringify(buildBackupObject(result.escs, complete), null, 2));
-            log(`Файл копії збережено: ${filename}`);
-
-            if (complete) {
-                setStepStatus(2, 'success');
-                showPopup('success', 'Копію створено', `Збережено всі 4 ESC у файл ${filename}`, 3000);
-            } else {
-                setStepStatus(2, 'fail');
-                showPopup('error', 'Копія неповна', `Збережено ESC: ${result.escs.length} з 4. Не прочитано: #${result.failed.join(', #')}.\nФайл: ${filename}`);
-            }
-        } catch (err) {
-            console.error(err);
-            setStepStatus(2, 'fail');
-            log(`[Копія ESC помилка]: ${err.message}`);
-            showPopup('error', 'Збій створення копії', err.message);
-        }
-    });
-
-    // --- BUTTON: RESTORE FROM FILE ---
-    btnRestoreESC.addEventListener('click', () => {
-        if (!('serial' in navigator)) {
-            showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
-            return;
-        }
-        fileRestoreESC.click();
-    });
-
-    fileRestoreESC.addEventListener('change', async () => {
-        const file = fileRestoreESC.files && fileRestoreESC.files[0];
-        fileRestoreESC.value = ''; // дозволяє вибрати той самий файл повторно
-        if (!file) return;
-
-        const parsed = parseEscBackup(await file.text());
-        if (!parsed.ok) {
-            log(`[Відновлення] Файл відхилено: ${parsed.msg}`);
-            showPopup('error', 'Файл не підходить', parsed.msg);
-            return;
-        }
-
-        const list = parsed.escs.map(e => `#${e.index + 1}`).join(', ');
-        const okToWrite = window.confirm(
-            `ВІДНОВЛЕННЯ ESC з файлу "${file.name}"\n` +
-            `Створено: ${parsed.created || 'невідомо'}\n` +
-            `Буде ПЕРЕЗАПИСАНО налаштування ESC: ${list}\n\n` +
-            `Перед записом програма автоматично збереже поточний стан ESC окремим файлом.\n` +
-            `Перед продовженням: зніміть пропелери та підключіть LiPo.\n\nПродовжити?`
-        );
-        if (!okToWrite) {
-            log('[Відновлення] Скасовано користувачем.');
-            return;
-        }
-
-        setStepStatus(2, 'working');
-        for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
-
-        try {
-            const outcome = await withEscSession(async (writer, reader) => {
-                // ФАЗА 1: читаємо поточний стан, перевіряємо чіпи, нічого не пишемо
-                const current = new Map();
-                for (const target of parsed.escs) {
-                    const esc = target.index;
-                    log(`\n--- Перевірка ESC #${esc + 1} перед записом ---`);
-                    setEscBadge(esc, 'working', 'Перевірка...');
-                    const r = await readEscBlock(writer, reader, esc);
-                    await disconnectEscDevice(writer, reader, esc);
-                    if (!r.ok) {
-                        setEscBadge(esc, 'fail', 'Збій читання');
-                        return { aborted: `ESC #${esc + 1} не прочитано (${r.msg}). Нічого не записано.` };
-                    }
-                    if (r.signature !== target.signature) {
-                        setEscBadge(esc, 'fail', 'Інший чіп');
-                        return { aborted: `ESC #${esc + 1}: чіп ${r.signature} не збігається з файлом (${target.signature}). Нічого не записано.` };
-                    }
-                    current.set(esc, r);
-                }
-
-                // Автоматична копія поточного стану ПЕРЕД будь-яким записом
-                const pre = [...current.entries()].map(([index, r]) => ({
-                    index, signature: r.signature, crc16: crcHex(r.data), dataHex: bytesToHex(r.data)
-                }));
-                const preName = `BLHeli32_ESC_pre-restore_${timestampStr()}.json`;
-                downloadTextFile(preName, JSON.stringify(buildBackupObject(pre, pre.length === ESC_COUNT), null, 2));
-                log(`Поточний стан збережено: ${preName}`);
-                await delay(400);
-
-                // ФАЗА 2: запис і контрольне читання
-                const results = [];
-                for (const target of parsed.escs) {
-                    const esc = target.index;
-                    log(`\n--- Відновлення ESC #${esc + 1} ---`);
-
-                    if (bytesEqual(current.get(esc).data, target.data)) {
-                        log(`ESC #${esc + 1}: вже збігається з файлом, запис не потрібен.`);
-                        setEscBadge(esc, 'ok', 'Без змін');
-                        results.push({ esc, status: 'unchanged' });
-                        continue;
-                    }
-
-                    setEscBadge(esc, 'working', 'Запис...');
-                    const conn = await connectEscDevice(writer, reader, esc);
-                    if (!conn.ok) {
-                        setEscBadge(esc, 'fail', 'Немає відповіді');
-                        return { aborted: `ESC #${esc + 1}: втрачено звʼязок перед записом (${conn.msg}). Далі нічого не записано.`, results };
-                    }
-
-                    await send4WayCmd(writer, reader, CMD_INTERFACE_TEST_ALIVE, 0, [0], 800);
-                    const wr = await send4WayCmd(writer, reader, CMD_DEVICE_WRITE, BL32_EEPROM_ADDR, Array.from(target.data), 4000);
-                    if (!wr.ok) {
-                        setEscBadge(esc, 'fail', 'Збій запису');
-                        await disconnectEscDevice(writer, reader, esc);
-                        return { aborted: `ESC #${esc + 1}: запис не підтверджено (${wr.msg}). Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
-                    }
-                    
-                    // Контрольне зчитування одразу в тій самій сесії (як у BLHeliSuite32, без зайвого reset)
-                    setEscBadge(esc, 'working', 'Верифікація...');
-                    await delay(100);
-                    let vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00], 2500);
-
-                    // Якщо перша спроба дала збій, одна повторна спроба
-                    if (!vr.ok || vr.data.length !== ESC_BLOCK_LEN || !vr.crcOk) {
-                        await delay(150);
-                        vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00], 2500);
-                    }
-
-                    // Чисто закриваємо ESC тільки ПІСЛЯ завершення перевірки
-                    await disconnectEscDevice(writer, reader, esc);
-                    await delay(50);
-
-                    if (vr.ok && vr.data.length === ESC_BLOCK_LEN && bytesEqual(vr.data, target.data)) {
-                        log(`ESC #${esc + 1}: записано і перевірено (збіг 256 з 256 байт).`);
-                        setEscBadge(esc, 'ok', 'Відновлено');
-                        results.push({ esc, status: 'written' });
-                    } else {
-                        const reason = !vr.ok ? vr.msg : (vr.data.length !== ESC_BLOCK_LEN ? `довжина ${vr.data.length}` : 'дані у флеші не збігаються з файлом');
-                        setEscBadge(esc, 'fail', 'Збій верифікації');
-                        return { aborted: `ESC #${esc + 1}: після запису ${reason}. Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
-                    }
-                }
-                return { results };
-            });
-
-            if (outcome.aborted) {
-                setStepStatus(2, 'fail');
-                log(`[Відновлення] ЗУПИНЕНО: ${outcome.aborted}`);
-                showPopup('error', 'Відновлення зупинено', outcome.aborted);
-                return;
-            }
-
-            const written = outcome.results.filter(r => r.status === 'written').length;
-            const same = outcome.results.filter(r => r.status === 'unchanged').length;
-            setStepStatus(2, 'success');
-            log(`[Відновлення] Готово: записано ${written}, без змін ${same}.`);
-            showPopup('success', 'Відновлення завершено', `Записано ESC: ${written}, без змін: ${same}. Усі записані блоки перевірено читанням.`, 3500);
-        } catch (err) {
-            console.error(err);
-            setStepStatus(2, 'fail');
-            log(`[Відновлення помилка]: ${err.message}`);
-            showPopup('error', 'Збій відновлення', err.message);
-        }
-    });
-
-    // Визначає напрямок обертання мотора за його 8-байтним заголовком або номером каналу
-    function detectMotorDirection(header8, escIndex) {
-        if (bytesEqual(header8, BL32_HEADER_REVERSED_100) || bytesEqual(header8, BL32_HEADER_REVERSED_50)) {
-            return 'reversed';
-        }
-        if (bytesEqual(header8, BL32_HEADER_NORMAL_100) || bytesEqual(header8, BL32_HEADER_NORMAL_50)) {
-            return 'normal';
-        }
-        // За замовчуванням NORMAL для всіх ESC
-        return 'normal';
-    }
-
-    // --- BUTTON: APPLY DUMMY BINARY PRESET TO ALL 4 ESCs ---
-    btnConfigureESC.addEventListener('click', async () => {
-        if (!('serial' in navigator)) {
-            setStepStatus(2, 'fail');
-            showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
-            return;
-        }
-
-        setStepStatus(2, 'working');
-        for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
-
-        try {
-            const outcome = await withEscSession(async (writer, reader) => {
-                // ФАЗА 1: Зчитуємо поточні блоки всіх 4 ESC
-                const currentBlocks = [];
-                for (let esc = 0; esc < ESC_COUNT; esc++) {
-                    log(`\n--- Зчитування ESC #${esc + 1} ---`);
-                    setEscBadge(esc, 'working', 'Читання...');
-                    const r = await readEscBlock(writer, reader, esc);
-                    await disconnectEscDevice(writer, reader, esc);
-                    if (!r.ok) {
-                        setEscBadge(esc, 'fail', 'Збій читання');
-                        return { aborted: `ESC #${esc + 1} не прочитано (${r.msg}). Пресет не застосовано.` };
-                    }
-                    currentBlocks.push(r);
-                }
-
-                // Витяг відкритого ASCII тексту назви та оновлення лівої інфо-панелі
-                const escInfoList = [];
-                for (let esc = 0; esc < ESC_COUNT; esc++) {
-                    const block = currentBlocks[esc];
-                    let asciiName = '';
-                    for (let i = 0x20; i < block.data.length - 8; i++) {
-                        const slice = block.data.slice(i, i + 32);
-                        let str = '';
-                        for (let b of slice) {
-                            if (b >= 32 && b <= 126) str += String.fromCharCode(b);
-                            else break;
-                        }
-                        if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
-                            asciiName = str;
-                            break;
-                        }
-                    }
-                    const dir = detectMotorDirection(block.data.slice(0, 8), esc);
-                    const hasSettings = block.data.length >= 32 && bytesEqual(block.data.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
-                    const expHdr = (dir === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
-                    const matched = hasSettings && bytesEqual(block.data.slice(0, 8), expHdr);
-
-                    escInfoList.push({
-                        esc,
-                        direction: dir,
-                        presetMatched: matched,
-                        chip: block.signature,
-                        mcu: block.mcu || 'ARM 32-bit',
-                        signature: block.signature || '0x????',
-                        ack: 'OK (LiPo є)',
-                        modelName: asciiName || 'BLHeli_32'
-                    });
-                }
-                updateEscInfoPanel(escInfoList);
-
-                // Підготовка патчів для кожного ESC
-                const targets = [];
-                let writeCount = 0;
-                for (let esc = 0; esc < ESC_COUNT; esc++) {
-                    const originalData = currentBlocks[esc].data;
-                    const patchData = new Uint8Array(originalData);
-
-                    // Примусово NORMAL для всіх ESC до окремої вказівки
-                    const direction = 'normal';
-                    const targetHeader = BL32_HEADER_NORMAL_100;
-
-                    // Підставляємо зв'язані блоки (0x00..0x07 та 0x10..0x1F)
-                    patchData.set(targetHeader, 0x00);
-                    patchData.set(BL32_PRESET_SETTINGS, 0x10);
-
-                    const needsWrite = !bytesEqual(originalData, patchData);
-                    if (needsWrite) writeCount++;
-                    targets.push({ esc, originalData, patchData, direction, needsWrite });
-                }
-
-                if (writeCount === 0) {
-                    log('\n[Пресет ESC] Усі 4 ESC вже мають цей пресет, запис не потрібен.');
-                    for (let esc = 0; esc < ESC_COUNT; esc++) {
-                        setEscBadge(esc, 'ok', 'Вже застосовано');
-                    }
-                    return { results: targets.map(t => ({ esc: t.esc, status: 'unchanged', direction: t.direction })) };
-                }
-
-                // ФАЗА 2: Запис регуляторів, які потребують оновлення (з підтвердженням ACK)
-                const writeResults = [];
-                for (const t of targets) {
-                    const esc = t.esc;
-                    if (!t.needsWrite) {
-                        log(`\nESC #${esc + 1} (Напрямок: ${t.direction.toUpperCase()}): вже має цей пресет, запис пропущено.`);
-                        setEscBadge(esc, 'ok', 'Вже застосовано');
-                        writeResults.push({ esc, status: 'unchanged', direction: t.direction });
-                        continue;
-                    }
-
-                    log(`\n--- Запис ESC #${esc + 1} (Напрямок: ${t.direction.toUpperCase()}) ---`);
-                    setEscBadge(esc, 'working', 'Запис Flash...');
-
-                    const conn = await connectEscDevice(writer, reader, esc);
-                    if (!conn.ok) {
-                        setEscBadge(esc, 'fail', 'Немає відповіді');
-                        return { aborted: `ESC #${esc + 1}: втрачено зв'язок перед записом (${conn.msg}).`, results: writeResults };
-                    }
-
-                    await send4WayCmd(writer, reader, CMD_INTERFACE_TEST_ALIVE, 0, [0], 800);
-                    const wr = await send4WayCmd(writer, reader, CMD_DEVICE_WRITE, BL32_EEPROM_ADDR, Array.from(t.patchData), 4000);
-                    await disconnectEscDevice(writer, reader, esc);
-
-                    if (!wr.ok) {
-                        setEscBadge(esc, 'fail', 'Збій запису');
-                        return { aborted: `ESC #${esc + 1}: помилка запису Flash (${wr.msg}).`, results: writeResults };
-                    }
-
-                    log(`ESC #${esc + 1}: Flash записано успішно (ACK OK).`);
-                    setEscBadge(esc, 'ok', 'Записано (OK)');
-                    writeResults.push({ esc, status: 'written', direction: t.direction });
-                    await delay(100);
-                }
-
-                return { results: writeResults };
-            });
-
-            if (outcome.aborted) {
-                setStepStatus(2, 'fail');
-                log(`[Пресет ESC] ЗУПИНЕНО: ${outcome.aborted}`);
-                showPopup('error', 'Застосування пресету зупинено', outcome.aborted);
-                return;
-            }
-
-            const written = outcome.results.filter(r => r.status === 'written').length;
-            const same = outcome.results.filter(r => r.status === 'unchanged').length;
-            setStepStatus(2, 'success');
-
-            // Якщо запис відбувся успішно, оновлюємо інфо-панель: усі ESC тепер мають 100% пресет
-            if (written > 0) {
-                const postInfoList = outcome.results.map(r => ({
-                    esc: r.esc,
-                    direction: r.direction,
-                    presetMatched: true,
-                    ack: 'OK (LiPo є)'
-                }));
-                updateEscInfoPanel(postInfoList);
-            }
-
-            log(`\n[Пресет ESC] Успішно завершено: оновлено ${written}, вже були актуальні ${same}.`);
-            showPopup('success', 'Пресет застосовано', `Оновлено ESC: ${written}, без змін: ${same}.\nУсі регулятори отримали пресет!`, 3500);
-
-        } catch (err) {
-            console.error(err);
-            setStepStatus(2, 'fail');
-            log(`[Пресет ESC помилка]: ${err.message}`);
-            showPopup('error', 'Збій застосування пресету', err.message);
-        }
-    });
-</script>
+<script type="module" src="./js/main.js"></script>
 
 </body>
 </html>
