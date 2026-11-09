@@ -12,11 +12,13 @@ export function updateInfoPanel(fcDetails = {}, mismatchResult = null) {
     const elFw = document.getElementById('infoFirmwareVer');
     const elDate = document.getElementById('infoBuildDate');
     const elMcu = document.getElementById('infoMcuType');
+    const elDeviceId = document.getElementById('infoDeviceId');
 
     if (elBoard) elBoard.textContent = fcDetails.board || '—';
     if (elFw) elFw.textContent = fcDetails.firmware || '—';
     if (elDate) elDate.textContent = fcDetails.buildDate || '—';
     if (elMcu) elMcu.textContent = fcDetails.mcu || '—';
+    if (elDeviceId) elDeviceId.textContent = fcDetails.deviceId || '—';
 
     const elBadge = document.getElementById('infoMismatchBadge');
     const elNote = document.getElementById('infoMismatchNote');
@@ -133,6 +135,7 @@ export function resetInfoPanel() {
     const elFw = document.getElementById('infoFirmwareVer');
     const elDate = document.getElementById('infoBuildDate');
     const elMcu = document.getElementById('infoMcuType');
+    const elDeviceId = document.getElementById('infoDeviceId');
     const elBadge = document.getElementById('infoMismatchBadge');
     const elNote = document.getElementById('infoMismatchNote');
 
@@ -140,6 +143,7 @@ export function resetInfoPanel() {
     if (elFw) elFw.textContent = '—';
     if (elDate) elDate.textContent = '—';
     if (elMcu) elMcu.textContent = '—';
+    if (elDeviceId) elDeviceId.textContent = '—';
 
     if (elBadge) {
         elBadge.textContent = '—';

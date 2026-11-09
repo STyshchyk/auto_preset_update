@@ -1,40 +1,40 @@
 # NEXT STEPS — Drone Setup Station Refactoring
 
-## Immediate Next Action: Phase 8 (BLHeli_32 Feature Extraction)
+## Status: Simplified Mode & Sequential Pipeline Fully Operational! 🎉
 
-Extract the remaining BLHeli_32 high-level domain operations from `index5.html` into dedicated modules inside `js/blheli/`:
-
-1. **`js/blheli/eeprom.js`**:
-   * Constants: `BL32_EEPROM_ADDR` (`0xF800`), `ESC_BLOCK_LEN` (`256`), `ESC_COUNT` (`4`).
-   * Functions:
-     * `withEscSession(fn)` (port lifecycle wrapper with `CMD_INTERFACE_EXIT` in `finally`).
-     * `readEscBlock(writer, reader, esc)` (up to 3 read attempts with CRC validation).
-     * `readAllEscSettings()` (handler logic for `#btnReadESC`).
-
-2. **`js/blheli/backup.js`**:
-   * Constant: `ESC_BACKUP_FORMAT` (`'blheli32-esc-raw-backup'`).
-   * Functions:
-     * `buildBackupObject(escs, complete)`.
-     * `parseEscBackup(text)` (backup JSON schema and checksum validation).
-     * `backupAllEscs()` (handler logic for `#btnBackupESC`).
-     * `triggerRestoreFileSelect()` and `handleRestoreFileChange(event)` (two-phase restore workflow with pre-restore auto-backup).
-
-3. **`js/blheli/preset.js`**:
-   * Constants: `BL32_PRESET_SETTINGS`, `BL32_HEADER_NORMAL_100`, `BL32_HEADER_REVERSED_100`, `BL32_HEADER_NORMAL_50`, `BL32_HEADER_REVERSED_50`.
-   * Functions:
-     * `detectMotorDirection(header8, escIndex)`.
-     * `applyEscPreset()` (handler logic for `#btnConfigureESC`, preserving 232 bytes).
+The Drone Setup Station features a unified one-click simplified assembly pipeline, hardware UID extraction (`mcu_id`), live progression timeline with animated status icons, and localStorage-backed unique device statistics (daily & all-time).
 
 ---
 
-## Subsequent Tasks
+## Completed Architecture Summary
 
-1. **Phase 9 — Application Bootstrap & Main Entry (`js/main.js`)**:
-   * Create `js/main.js` as the single module entry point.
-   * Attach all DOM event listeners (`#btnFlashFC`, `#btnBackup`, `#btnSkipToEsc`, `#btnReadESC`, `#btnBackupESC`, `#btnRestoreESC`, `#fileRestoreESC`, `#btnConfigureESC`, `#modalCloseBtn`).
-   * Update `index5.html` to reference `<script type="module" src="js/main.js"></script>` with zero inline JavaScript.
+1. **`js/main.js`**:
+   - Single point of entry for the application.
+   - Mode switcher (`drone_station_mode`), statistics widget initialization, and master execution trigger.
+2. **`js/core/pipeline.js`**:
+   - Automated sequential runner: Step 1 (Betaflight CLI) ➔ 3.5s reboot wait ➔ Step 2 (BLHeli_32 4-ESC).
+   - LiPo pre-check (aborts before ESC step if battery is missing in simplified mode).
+   - Automatic registration of Unique Device ID (`mcu_id`) into daily and all-time counters.
+3. **`js/betaflight/`**:
+   - `cli.js`: Serial stream reader and board parser.
+   - `info.js`: Telemetry parser, diff/mismatch engine, UID parser (`mcu_id`), and battery detector.
+   - `preset.js`: Flash preset flasher with target verification, `mcu_id` query, and live telemetry callback.
+   - `backup.js`: Config backup generator.
+4. **`js/blheli/`**:
+   - `protocol.js`: MSPv1 and low-level 4-Way commands.
+   - `eeprom.js`: 4-Way session manager with adaptive port opening retry loop for post-reboot stability.
+   - `preset.js`: Preset constants, motor direction detection, and flash updater (100% preset).
+   - `backup.js`: ESC backup generator and restore handlers.
+5. **`js/ui/` & `js/utils/`**:
+   - `progression.js`: 4-Step timeline and top overall status badge (`pending`, `progressing` with rotating icon, `success`, `failed`).
+   - `stats.js`: Daily & all-time device tracking deduplicated by UID.
+   - State, serial lifecycle, UI badges, info panel, and byte/crc utilities.
 
-2. **Phase 10 — Final Audit & Documentation Synchronization**:
-   * Update `PROJECT_MAP.md` to reflect the final modular structure and line references.
-   * Create `REFACTOR_LOG.md` recording all refactoring phases, decisions, and verification steps.
-   * Verify Netlify SPA redirect compatibility and production asset loading.
+---
+
+## Potential Future Tasks
+
+1. **Station Export / Reporting**:
+   - Option to export daily/all-time device flash logs into CSV/JSON for station quality assurance logs.
+2. **Multi-Baud Rate Probing**:
+   - Fallback baud rate probe (e.g. 57600 or 230400) if a non-standard Betaflight build is connected.

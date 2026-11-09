@@ -1,6 +1,46 @@
 import { state } from './state.js';
 import { delay } from '../utils/bytes.js';
 
+export const FLIGHT_CONTROLLER_USB_FILTERS = [
+    { usbVendorId: 0x0483 }, // STMicroelectronics (Standard STM32 Betaflight VCP)
+    { usbVendorId: 1155 },   // STMicroelectronics (decimal notation)
+    { usbVendorId: 0x2e3c }, // AT32 / Artery (AT32F435 / AT32F437)
+    { usbVendorId: 0x10c4 }, // Silicon Labs (CP210x USB to UART bridge)
+    { usbVendorId: 0x1a86 }, // WCH (CH340 / CH341 USB to Serial)
+    { usbVendorId: 0x0403 }, // FTDI (FT232 / FT230X)
+    { usbVendorId: 0x2e8a }, // Raspberry Pi (RP2040 FCs)
+];
+
+export function updateGrantButtonVisibility() {
+    const btnGrantPort = document.getElementById('btnGrantPort');
+    if (!btnGrantPort) return;
+    const portSelect = document.getElementById('portSelect');
+    // If no ports available or selection is 'new', show prompt button if supported
+    if (!state.availablePorts || state.availablePorts.length === 0 || (portSelect && portSelect.value === 'new')) {
+        btnGrantPort.style.display = 'inline-flex';
+    } else {
+        btnGrantPort.style.display = 'none';
+    }
+}
+
+export async function promptGrantNewPort(log) {
+    if (!('serial' in navigator)) return null;
+    try {
+        if (typeof log === 'function') {
+            log('Відкриття фільтрованого списку польотних контролерів...');
+        }
+        const requested = await navigator.serial.requestPort({ filters: FLIGHT_CONTROLLER_USB_FILTERS });
+        await refreshPortList();
+        updateGrantButtonVisibility();
+        return requested;
+    } catch (e) {
+        if (e.name !== 'NotFoundError') {
+            console.warn('requestPort error:', e);
+        }
+        return null;
+    }
+}
+
 export async function refreshPortList() {
     if (!('serial' in navigator)) return;
     const portSelect = document.getElementById('portSelect');
@@ -17,6 +57,12 @@ export async function refreshPortList() {
         let isFC = false;
         if (info.usbVendorId === 0x0483 || info.usbVendorId === 1155) {
             label = `Betaflight STM32 (VID:${vid} PID:${pid})`;
+            isFC = true;
+        } else if (info.usbVendorId === 0x2e3c) {
+            label = `Betaflight AT32 (VID:${vid} PID:${pid})`;
+            isFC = true;
+        } else if (info.usbVendorId === 0x10c4 || info.usbVendorId === 0x1a86 || info.usbVendorId === 0x0403) {
+            label = `Betaflight UART (VID:${vid} PID:${pid})`;
             isFC = true;
         } else if (vid && pid) {
             label = `Serial (VID:${vid} PID:${pid})`;
@@ -42,13 +88,27 @@ export async function refreshPortList() {
     } else {
         portSelect.value = 'new';
     }
+
+    updateGrantButtonVisibility();
 }
 
 export function initSerialEvents(log, resetAllStepStatuses) {
     if ('serial' in navigator) {
-        navigator.serial.addEventListener('connect', () => {
-            log('Виявлено підключення USB. Оновлення списку...');
-            refreshPortList();
+        navigator.serial.addEventListener('connect', async () => {
+            log('Виявлено підключення USB. Перевірка доступності...');
+            const prevCount = state.availablePorts ? state.availablePorts.length : 0;
+            await refreshPortList();
+            const newCount = state.availablePorts ? state.availablePorts.length : 0;
+            
+            // If new hardware was plugged in but browser has no saved permission for it
+            if (newCount === 0 || newCount === prevCount) {
+                log('⚡ Підключено нову плату. Натисніть "🔌 Дозволити новий пристрій" або почніть прошивку.');
+                const btnGrantPort = document.getElementById('btnGrantPort');
+                if (btnGrantPort) {
+                    btnGrantPort.style.display = 'inline-flex';
+                }
+            }
+
             if (Date.now() > state.ignoreRebootEventsUntil) {
                 resetAllStepStatuses();
             }
@@ -65,13 +125,23 @@ export function initSerialEvents(log, resetAllStepStatuses) {
 }
 
 export async function resolveSelectedPort(log) {
+    if ('serial' in navigator) {
+        await refreshPortList();
+    }
     const portSelect = document.getElementById('portSelect');
     const selectedVal = portSelect.value;
     if (selectedVal === 'new' || !state.availablePorts[selectedVal]) {
         if (typeof log === 'function') {
-            log('Відкриття діалогу вибору COM-порту...');
+            log('Відкриття діалогу вибору COM-порту з фільтром FC...');
         }
-        const requested = await navigator.serial.requestPort();
+        let requested;
+        try {
+            requested = await navigator.serial.requestPort({ filters: FLIGHT_CONTROLLER_USB_FILTERS });
+        } catch (e) {
+            // Fallback without filters if user has unusual USB-serial bridge
+            if (e.name === 'NotFoundError') throw e;
+            requested = await navigator.serial.requestPort();
+        }
         await refreshPortList();
         return requested;
     }

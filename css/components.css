@@ -371,3 +371,325 @@ button:disabled {
     font-size: 11px;
     color: var(--text-muted);
 }
+
+/* ==========================================================================
+   SIMPLIFIED MODE & 125% SCALING STYLES
+   ========================================================================== */
+
+/* Toggle Button */
+.btn-mode-toggle {
+    background: #1e293b;
+    color: #38bdf8;
+    border: 1px solid #0284c7;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-mode-toggle:hover {
+    background: #0284c7;
+    color: #fff;
+}
+
+/* Master Action Button */
+.simplified-master-box {
+    display: none;
+    margin: 10px 0 16px 0;
+    text-align: center;
+}
+
+.btn-master-run {
+    width: 100%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+    border: 2px solid #34d399;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    transition: all 0.2s ease;
+}
+
+.btn-master-run:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+}
+
+.btn-master-run:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.master-hint {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+/* Progression Timeline */
+.prog-card {
+    border-color: #0284c7;
+}
+
+.prog-banner {
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.prog-banner.ready {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid #334155;
+    color: #e2e8f0;
+}
+
+.prog-banner.working {
+    background: rgba(2, 132, 199, 0.2);
+    border: 1px solid #0284c7;
+    color: #38bdf8;
+}
+
+.prog-banner.success {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid #10b981;
+    color: #34d399;
+}
+
+.prog-banner.fail {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    color: #f87171;
+}
+
+.banner-title {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.banner-details {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.prog-steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prog-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #11141a;
+    border: 1px solid #232733;
+    border-radius: 6px;
+    padding: 10px 12px;
+    transition: all 0.2s ease;
+}
+
+.prog-step .step-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.prog-step.working .step-icon,
+.step-status.working .status-icon.rotating {
+    display: inline-block;
+    animation: spinIcon 1.2s linear infinite;
+}
+
+@keyframes spinIcon {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.prog-step.working {
+    border-color: #0284c7;
+    background: rgba(2, 132, 199, 0.1);
+}
+
+.prog-step.success {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.prog-step.fail {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.step-title-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.step-subtitle {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* Statistics Widgets */
+.btn-stat-reset {
+    background: transparent;
+    border: 1px solid #475569;
+    color: #94a3b8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.btn-stat-reset:hover {
+    background: #334155;
+    color: #fff;
+}
+
+.stats-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+}
+
+.stat-pill {
+    background: #12151d;
+    border: 1px solid #282e3d;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+}
+
+.stat-pill.success .stat-val { color: #10b981; }
+.stat-pill.fail .stat-val { color: #ef4444; }
+.stat-pill.total .stat-val { color: #38bdf8; }
+
+.stat-val {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.stat-lbl {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+/* FAQ Card */
+.faq-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #cbd5e1;
+}
+
+.faq-item p {
+    margin: 4px 0 0 0;
+    color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   ACTIVATED SIMPLIFIED MODE (body.simplified-mode)
+   -------------------------------------------------------------------------- */
+body.simplified-mode {
+    font-size: 125%; /* 125% Font Scaling */
+}
+
+body.simplified-mode .expert-only {
+    display: none !important;
+}
+
+body.simplified-mode .simplified-master-box {
+    display: block;
+}
+
+body.simplified-mode .step-title {
+    font-size: 1.25em;
+}
+
+body.simplified-mode .btn-mode-toggle {
+    background: #0284c7;
+    color: #fff;
+    border-color: #38bdf8;
+}
+
+body.simplified-mode .esc-badge {
+    font-size: 1em;
+    padding: 10px 12px;
+}
+
+body.simplified-mode .info-val {
+    font-size: 0.95em;
+}
+
+/* --------------------------------------------------------------------------
+   NEW DEVICE AUTHORIZATION BANNER / BUTTON
+   -------------------------------------------------------------------------- */
+.btn-grant-port {
+    background: #0284c7;
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    animation: pulse-grant 1.5s infinite;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn-grant-port:hover {
+    background: #0369a1;
+}
+
+.btn-grant-port:active {
+    transform: scale(0.98);
+}
+
+@keyframes pulse-grant {
+    0% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(56, 189, 248, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+    }
+}
+

@@ -8,7 +8,7 @@ import { readCliResponse, parseBoardName } from './cli.js';
 import { parseFcDetails, calculateMismatch } from './info.js';
 import { updateInfoPanel } from '../ui/infoPanel.js';
 
-export async function flashBetaflightPreset() {
+export async function flashBetaflightPreset(onTelemetryReady = null) {
     if (!('serial' in navigator)) {
         setStepStatus(1, 'fail');
         showPopup('error', 'Помилка', 'Web Serial API не підтримується цим браузером.');
@@ -54,8 +54,11 @@ export async function flashBetaflightPreset() {
         await writer.write('status\r\n');
         await delay(150);
         const statusText = await readCliResponse(reader, 1200);
+        await writer.write('mcu_id\r\n');
+        await delay(150);
+        const mcuIdText = await readCliResponse(reader, 800);
 
-        const actualBoard = parseBoardName(initEcho + '\n' + verText + '\n' + statusText);
+        const actualBoard = parseBoardName(initEcho + '\n' + verText + '\n' + statusText + '\n' + mcuIdText);
         const expectedBoardMatch = script.match(/(?:board_name|#\s*target:?)\s+([A-Za-z0-9_-]+)/i);
         const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].toUpperCase() : null;
 
@@ -83,11 +86,16 @@ export async function flashBetaflightPreset() {
         }
         log(`[Зчитування] Отримано ${diffContent.length} байт конфігурації FC.`);
 
-        const fcDetails = parseFcDetails(verText, statusText);
+        const fcDetails = parseFcDetails(verText, statusText + '\n' + mcuIdText);
+        state.lastFcDetails = fcDetails;
         const mismatchStats = calculateMismatch(script, diffContent);
         updateInfoPanel(fcDetails, mismatchStats);
         log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
         log(`[Аналіз пресету] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
+
+        if (typeof onTelemetryReady === 'function') {
+            try { onTelemetryReady(fcDetails); } catch (_) {}
+        }
 
         if (!actualBoard) {
             try { await writer.write('exit\r\n'); } catch (_) {}
@@ -147,9 +155,13 @@ export async function flashBetaflightPreset() {
 
         setStepStatus(1, 'success');
         log('Пресет успішно залито. Контролер перезавантажився.');
-        showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
-            log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
-        });
+        if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
+            showPopup('error', 'Батарею не виявлено!', 'Прошивка FC успішна, але батареї немає. Прошивка ESC неможлива!', 2000);
+        } else {
+            showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
+                log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
+            });
+        }
 
     } catch (err) {
         if (isRebooting || err.message.includes('device has been lost')) {
@@ -157,7 +169,11 @@ export async function flashBetaflightPreset() {
             setStepStatus(1, 'success');
             log('Контролер перезавантажився штатно.');
             state.port = null;
-            showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
+            if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
+                showPopup('error', 'Батарею не виявлено!', 'Прошивка FC успішна, але батареї немає. Прошивка ESC неможлива!', 2000);
+            } else {
+                showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
+            }
         } else {
             console.error(err);
             state.ignoreRebootEventsUntil = Date.now() + 6000;
