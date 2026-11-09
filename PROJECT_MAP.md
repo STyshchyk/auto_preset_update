@@ -12,9 +12,10 @@
 | **Панель вибору COM-порту** | `.top-bar`, `#portSelect`, `#boardTargetBadge` | Верхній бар вибору Web Serial пристрою та індикатор цільової плати (`Target: SPEDIXF722`). |
 | **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card`, `#infoCardEsc` | Розділена на два блоки: **Крок 1** (параметри FC: `#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`, бейдж неспівпадіння `#infoMismatchBadge`, `#infoMismatchNote`) та **Крок 2** (телеметрія ESC/моторів: `#infoEscModel`, `#infoEscMcu`, `#infoEscPowerAck`, `#infoEscDirs`, `#infoEscPresetStatus`). |
 | **Крок 1: Заливання пресету FC** | `#cardStep1`, `#presetInput`, `#btnFlashFC`, `#btnBackup`, `#btnSkipToEsc` | Картка Betaflight CLI Flasher для аналізу поточної конфігурації, розрахунку % неспівпадіння та запису команд. |
-| **Крок 2: Настройка BLHeli_32** | `#cardStep2`, `#badgeEsc0`..`#badgeEsc3`, `#btnReadESC`, `#btnConfigureESC` | Статуси 4-х ESC, читання налаштувань, бекап, відновлення та бінарне застосування пресету. |
+| **Крок 2: Настройка BLHeli_32** | `#cardStep2`, `#badgeEsc0`..`#badgeEsc3`, `#btnReadESC`, `#btnConfigureESC`, `#btnBackupESC`, `#btnRestoreESC`, `#fileRestoreESC` | Статуси 4-х ESC, читання налаштувань, бекап, відновлення та бінарне застосування пресету. |
 | **Панель логування (Console)** | `.log-panel`, `#log` | Консоль реального часу для деталізованого виводу операцій із портом. |
 | **Модальне вікно статусу** | `#statusModal`, `#modalBox` | Спливаюче вікно для нотифікацій про хід операцій або помилки. |
+| **Точка завантаження скриптів** | `<script type="module" src="./js/main.js"></script>` | Повністю винесений JS код, нуль інлайн-скриптів у HTML. |
 
 ---
 
@@ -58,17 +59,20 @@
 
 ## 3. Модульна JavaScript-архітектура
 
-### 3.1. Ядро та утиліти
+### 3.1. Точка входу
+* **`js/main.js`**: центральна точка ініціалізації додатку. Підключає обробники Web Serial, призначає прослуховувачі подій DOM (`click`, `change`) для всіх кнопок Кроку 1, Кроку 2 та модального вікна.
+
+### 3.2. Ядро та утиліти
 * **`js/core/state.js`**: єдине джерело стану (`port`, `availablePorts`, `popupTimer`, `ignoreRebootEventsUntil`).
 * **`js/core/serial.js`**: життєвий цикл Web Serial, безпечне відкриття/закриття дескрипторів потоків `closeSerialSession`, обробники `connect`/`disconnect`.
 * **`js/ui/log.js`**: вивід у консоль DOM з автоскролом.
 * **`js/ui/status.js`**: оновлення статусних бейджів кроків та ESC.
 * **`js/ui/infoPanel.js`**: рендеринг телеметрії FC, стану неспівпадіння пресету та апаратної телеметрії моторів BLHeli_32 (`updateInfoPanel`, `updateEscInfoPanel`, `resetInfoPanel`).
-* **`js/ui/modal.js`**: модальні повідомлення успіху/помилки.
+* **`js/ui/modal.js`**: модальні повідомлення успіху/помилки (`showPopup`, `closeModal`).
 * **`js/utils/bytes.js`**: утиліти роботи з масивами байтів, hex-конвертери, завантаження файлів.
 * **`js/utils/crc.js`**: апаратні контрольні суми `CRC-16/CCITT (XMODEM)`.
 
-### 3.2. Модуль Betaflight (`js/betaflight/`)
+### 3.3. Модуль Betaflight (`js/betaflight/`)
 * **`cli.js`**: потокове читання `readCliResponse` з контролем промпту `#` та таймаутів; визначення імені плати `parseBoardName`.
 * **`info.js`**:
   * `parseFcDetails(versionText, statusText)`: витяг плати, версії прошивки, дати/часу збірки та типу MCU.
@@ -80,9 +84,11 @@
   * Виконує високошвидкісну построкову передачу команд з контролем помилок.
 * **`backup.js`**: експорт поточної конфігурації FC у файл (`diff all` / `dump all`).
 
-### 3.3. Модуль BLHeli_32 (`js/blheli/`)
+### 3.4. Модуль BLHeli_32 (`js/blheli/`)
 * **`protocol.js`**: низькорівнева реалізація MSPv1 та 4-Way протоколу (команди `0x30..0x3F`, адресація `0xF800`, підключення та опитування ESC).
-* У `index5.html` наразі збережено високорівневі методи читання блоків, автобекапу та застосування пресету до регуляторів.
+* **`eeprom.js`**: обгортка сесії 4-Way (`withEscSession`), надійне зчитування 256 байтів з перевіркою CRC-16 та повторами (`readEscBlock`), повне читання налаштувань 4 ESC (`readAllEscSettings`).
+* **`preset.js`**: визначення напрямку мотора (`detectMotorDirection`), бінарні константи та застосування 100% пресету із збереженням калібрувальних байтів (`applyEscPreset`).
+* **`backup.js`**: створення резервної копії 4 ESC (`backupAllEscs`), валідація формату дампу (`parseEscBackup`), безпечне двоетапне відновлення з автоматичним бекапом перед записом (`handleRestoreFileChange`).
 
 ---
 
