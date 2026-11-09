@@ -1,4 +1,4 @@
-# PROJECT STATUS — Drone Setup Station Refactoring
+﻿# PROJECT STATUS — Drone Setup Station Refactoring
 
 **Last Updated:** 2026-11-09  
 **Active Entry Point:** `index5.html`  
@@ -74,3 +74,11 @@ The application operates as a clean, fully modular single-page application (`ind
 * **Clean HTML Entry Point:** `index5.html` contains 0 inline JavaScript lines and loads modules via `<script type="module" src="./js/main.js"></script>`.
 * **Telemetry & Mismatch Logic Tests:** Tested against multi-line version outputs and diff dumps; verified exact match yields 0% mismatch.
 * **Execution Latency:** Verified CLI flashing throughput retains rapid execution without blocking waits.
+
+
+---
+
+## 3. Latest Session Updates (2026-11-09)
+* **ESC Direction Control:** Forced all 4 ESCs to flash with NORMAL direction header (BL32_HEADER_NORMAL_100 = `90 BD 5D F6 AA 06 4C 53`) in index5.html.
+* **Betaflight CLI Preset:** Replaced default <textarea id="presetInput"> content with the defaults nosave SPEDIXF722 batch script (craft name T-System 15).
+* **Session Documentation:** Created docs/JOB_SUMMARY_2026_11_09.md detailing dump byte mapping, CRC16 verification, and reasoning.
