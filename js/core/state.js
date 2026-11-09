@@ -3,5 +3,11 @@ export const state = {
     availablePorts: [],
     popupTimer: null,
     ignoreRebootEventsUntil: 0,
-    lastFcDetails: null
+    lastFcDetails: null,
+    escSession: {
+        isConnected: false,
+        port: null,
+        reader: null,
+        writer: null
+    }
 };

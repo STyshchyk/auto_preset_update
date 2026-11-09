@@ -21,7 +21,7 @@ The application operates as a clean, fully modular single-page application (`ind
   * `serial.js`: Web Serial lifecycle (`refreshPortList`, `initSerialEvents`, `resolveSelectedPort`, `closeSerialSession`).
 * **UI Layer (`js/ui/`):**
   * `log.js`: DOM terminal logging with automatic auto-scroll.
-  * `status.js`: Step and ESC badge visual updates (`setStepStatus`, `setEscBadge`, `resetAllStepStatuses`, `setAllEscButtons`).
+  * `status.js`: Step, FC flash sub-steps, and ESC badge visual updates (`setStepStatus`, `setFcSubStep`, `resetFcSubSteps`, `setEscBadge`, `resetAllStepStatuses`, `setAllEscButtons`).
   * `infoPanel.js`: Telemetry sidebar updater (`updateInfoPanel`, `resetInfoPanel`) managing FC board telemetry and mismatch indicators.
   * `modal.js`: Modal dialog management with auto-close and callback execution (`showPopup`, `closeModal`).
 * **Utilities (`js/utils/`):**
@@ -30,7 +30,7 @@ The application operates as a clean, fully modular single-page application (`ind
 * **Betaflight Feature (`js/betaflight/`):**
   * `cli.js`: CLI stream reader (`readCliResponse` with prompt detection) and board target parser (`parseBoardName`).
   * `info.js`: Telemetry parser (`parseFcDetails` for target, firmware, date, MCU) and preset diff analyzer (`extractConfigVariables`, `calculateMismatch`).
-  * `preset.js`: Flash preset execution (`flashBetaflightPreset`) with on-click-only telemetry & `diff all` mismatch calculation, abort-on-error, and optimized streaming rate (`delay(35)` + fast check).
+  * `preset.js`: Flash preset execution (`flashBetaflightPreset`) with pre-flash baseline diff, line-by-line CLI execution, post-flash `diff all` re-read without closing connection, 100% verification comparison, and abort-without-save on discrepancy.
   * `backup.js`: Flight controller configuration backup (`backupBetaflightConfig`).
 * **BLHeli_32 Feature (`js/blheli/`):**
   * `protocol.js`: MSPv1 framing (`sendMsp`), low-level 4-Way protocol (`read4WayRaw`, `send4WayCmd`), FC 4-Way mode setup (`init4WayInterface`), and device connection/disconnection (`connectEscDevice`, `disconnectEscDevice`).
@@ -43,7 +43,13 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ---
 
-## 2. Recent Feature Additions (Telemetry & ESC Info Integration)
+## 2. Recent Feature Additions (Telemetry, ESC Info & Step 1 Verification)
+
+* **Step 1 Post-Flash Double Verification:**
+  * Added mandatory post-flash verification in `flashBetaflightPreset` executed **before closing connection and before `save`**.
+  * Re-queries `diff all` from active CLI session and verifies 100% preset compliance (`calculateMismatch === 0`).
+  * If differences occur: aborts via `exit` (changes unsaved), marks step failed, and logs exact mismatched parameters.
+  * Step 1 card visual sub-step indicators (`#fcFlashProgress`): `1. Прошивка команд` ➔ `2. Фінальне читання` ➔ `3. Перевірка пресету`.
 
 * **Left Info Panel UI (Розділено на Крок 1 та Крок 2):**
   * **Картка Крок 1 (Flight Controller & Preset):**
@@ -102,3 +108,13 @@ The application operates as a clean, fully modular single-page application (`ind
   - Step 1 immediately transitions to success upon reading board target and UID, simultaneously kicking Step 2 («Заливання пресету FC») into active spinning state during CLI streaming.
 * **Dual-Scope Flashing Statistics (`js/utils/stats.js`)**:
   - Deduplicated counts for **Сьогодні** (auto-resets daily) and **За весь час** (persisted forever in `localStorage`).
+
+
+## 5. Persistent ESC 4-Way Session & Graceful Exit Fix (2026-11-09)
+* **Explicit Session Controls (`js/blheli/session.js`, `index5.html`)**:
+  - Added `🔗 З'єднатися з ESC` (`#btnConnectESC`) and `❌ Від'єднатися від ESC` (`#btnDisconnectESC`) in Expert Mode.
+  - ESC operations (`Read`, `Backup`, `Restore`, `Configure`) remain disabled until an active 4-Way session is established, and do not close the port on completion.
+* **Protocol-Compliant 4-Way Exit (`CMD_INTERFACE_EXIT`)**:
+  - Fixed `CMD_INTERFACE_EXIT` (`0x34`) payload to send 1 parameter byte `[0]` (`ParamLen = 1`, 8-byte frame `[0x2F, 0x34, 0x00, 0x00, 0x01, 0x00, CRC_H, CRC_L]`) instead of `[]` (`ParamLen = 0`, which Betaflight's `serial_4way.c` parser interprets as a 256-byte payload).
+  - Pre-checks `CMD_PROTOCOL_GET_VERSION` in `init4WayInterface` before sending `MSP 245` (`MSP_SET_4WAY_IF`).
+  - Automatically closes any open 4-Way session if user initiates Betaflight CLI flashing/backup or Simplified Mode pipeline.
