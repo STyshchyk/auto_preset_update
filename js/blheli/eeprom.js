@@ -6,7 +6,7 @@ import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log } from '../ui/log.js';
-import { setStepStatus, setEscBadge, setAllEscButtons } from '../ui/status.js';
+import { setStepStatus, setEscBadge, setAllEscButtons, setEscFlowStep } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
 import {
@@ -24,6 +24,7 @@ import {
     detectMotorDirection
 } from './preset.js';
 import { bytesEqual } from '../utils/bytes.js';
+import { isEscSessionActive } from './session.js';
 
 export const BL32_EEPROM_ADDR = 0xF800;
 export const ESC_BLOCK_LEN    = 256;
@@ -31,10 +32,20 @@ export const ESC_COUNT        = 4;
 
 /**
  * Open serial port, enter 4-Way mode, execute callback, and safely exit 4-Way & close port.
+ * If a persistent session is already active, reuses its writer/reader without closing.
  * @param {Function} fn - async (writer, reader) => result
  * @returns {Promise<any>}
  */
 export async function withEscSession(fn) {
+    if (isEscSessionActive()) {
+        setAllEscButtons(true);
+        try {
+            return await fn(state.escSession.writer, state.escSession.reader);
+        } finally {
+            setAllEscButtons(false);
+        }
+    }
+
     let reader = null, writer = null;
     setAllEscButtons(true);
     try {
@@ -64,10 +75,18 @@ export async function withEscSession(fn) {
         await init4WayInterface(writer, reader);
         return await fn(writer, reader);
     } finally {
-        try { await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300); } catch (_) {}
+        setEscFlowStep('close', 'working');
+        try {
+            const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 600);
+            log(`[BLHeli_32] Команду виходу 0x34 виконано (${exitRes.ok ? 'ACK OK' : exitRes.msg}).`);
+            setEscFlowStep('close', exitRes.ok ? 'success' : 'fail');
+        } catch (_) {
+            setEscFlowStep('close', 'fail');
+        }
+        await delay(200);
         await closeSerialSession(state.port, reader, writer, null);
         state.port = null;
-        setAllEscButtons(false);
+        setAllEscButtons(!isEscSessionActive());
         log('[BLHeli_32] COM-порт звільнено.');
     }
 }
@@ -102,6 +121,7 @@ export async function readEscBlock(writer, reader, esc) {
 
 /**
  * Complete read sequence for all 4 ESCs with telemetry updates and hex dumping.
+ * Operates either within an existing active session or temporary session.
  */
 export async function readAllEscSettings() {
     if (!('serial' in navigator)) {
@@ -110,27 +130,13 @@ export async function readAllEscSettings() {
         return;
     }
 
-    const btnReadESC = document.getElementById('btnReadESC');
-    const btnConfigureESC = document.getElementById('btnConfigureESC');
+    const hasActiveSession = isEscSessionActive();
 
-    if (btnReadESC) btnReadESC.disabled = true;
-    if (btnConfigureESC) btnConfigureESC.disabled = true;
     setStepStatus(2, 'working');
+    setAllEscButtons(true);
     for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
 
-    let reader = null, writer = null;
-
-    try {
-        state.port = await resolveSelectedPort(log);
-        await state.port.open({ baudRate: 115200 });
-        log('\n[BLHeli_32] COM-порт відкрито на 115200.');
-
-        writer = state.port.writable.getWriter();
-        reader = state.port.readable.getReader();
-
-        // Ініціалізація 4-Way з режимом BLHeli32
-        await init4WayInterface(writer, reader);
-
+    const executeRead = async (writer, reader) => {
         let foundEscCount = 0;
         const escDetails = [];
 
@@ -166,7 +172,7 @@ export async function readAllEscSettings() {
             const hasPresetHeader = bytesEqual(pageData.slice(0, 8), expectedHeader);
             const presetMatched = hasPresetSettings && hasPresetHeader;
 
-            // Витяг відкритого ASCII тексту назви та версії прошивки з блоку (якщо присутні друковані символи)
+            // Витяг відкритого ASCII тексту назви та версії прошивки з блоку
             let asciiName = '';
             for (let i = 0x20; i < pageData.length - 8; i++) {
                 const slice = pageData.slice(i, i + 32);
@@ -208,14 +214,22 @@ export async function readAllEscSettings() {
         // Оновлюємо інфо-панель зліва даними про мотори
         updateEscInfoPanel(escDetails);
 
-        // Вихід з 4-Way режиму (cmd 0x34)
-        try {
-            await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
-        } catch (_) {}
+        return { foundEscCount, escDetails };
+    };
 
-        await closeSerialSession(state.port, reader, writer, null);
-        state.port = null;
-        log('\n[BLHeli_32] Зчитування завершено. COM-порт звільнено.');
+    try {
+        let result = null;
+        if (hasActiveSession) {
+            // Використовуємо активну сесію без закриття порту
+            result = await executeRead(state.escSession.writer, state.escSession.reader);
+        } else {
+            // Одноразова сесія (фолбек)
+            result = await withEscSession(async (writer, reader) => {
+                return await executeRead(writer, reader);
+            });
+        }
+
+        const { foundEscCount, escDetails } = result;
 
         if (foundEscCount === 4) {
             setStepStatus(2, 'success');
@@ -232,16 +246,8 @@ export async function readAllEscSettings() {
         console.error(err);
         setStepStatus(2, 'fail');
         log(`[ESC Помилка читання]: ${err.message}`);
-        try {
-            if (writer && reader) {
-                await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [], 300);
-            }
-        } catch (_) {}
-        await closeSerialSession(state.port, reader, writer, null);
-        state.port = null;
         showPopup('error', 'Збій зчитування ESC', err.message);
     } finally {
-        if (btnReadESC) btnReadESC.disabled = false;
-        if (btnConfigureESC) btnConfigureESC.disabled = false;
+        setAllEscButtons(!isEscSessionActive());
     }
 }

@@ -102,3 +102,13 @@ The application operates as a clean, fully modular single-page application (`ind
   - Step 1 immediately transitions to success upon reading board target and UID, simultaneously kicking Step 2 («Заливання пресету FC») into active spinning state during CLI streaming.
 * **Dual-Scope Flashing Statistics (`js/utils/stats.js`)**:
   - Deduplicated counts for **Сьогодні** (auto-resets daily) and **За весь час** (persisted forever in `localStorage`).
+
+
+## 5. Persistent ESC 4-Way Session & Graceful Exit Fix (2026-11-09)
+* **Explicit Session Controls (`js/blheli/session.js`, `index5.html`)**:
+  - Added `🔗 З'єднатися з ESC` (`#btnConnectESC`) and `❌ Від'єднатися від ESC` (`#btnDisconnectESC`) in Expert Mode.
+  - ESC operations (`Read`, `Backup`, `Restore`, `Configure`) remain disabled until an active 4-Way session is established, and do not close the port on completion.
+* **Protocol-Compliant 4-Way Exit (`CMD_INTERFACE_EXIT`)**:
+  - Fixed `CMD_INTERFACE_EXIT` (`0x34`) payload to send 1 parameter byte `[0]` (`ParamLen = 1`, 8-byte frame `[0x2F, 0x34, 0x00, 0x00, 0x01, 0x00, CRC_H, CRC_L]`) instead of `[]` (`ParamLen = 0`, which Betaflight's `serial_4way.c` parser interprets as a 256-byte payload).
+  - Pre-checks `CMD_PROTOCOL_GET_VERSION` in `init4WayInterface` before sending `MSP 245` (`MSP_SET_4WAY_IF`).
+  - Automatically closes any open 4-Way session if user initiates Betaflight CLI flashing/backup or Simplified Mode pipeline.

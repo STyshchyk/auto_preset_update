@@ -7,6 +7,7 @@ import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
 import { parseFcDetails, calculateMismatch } from './info.js';
 import { updateInfoPanel } from '../ui/infoPanel.js';
+import { isEscSessionActive, disconnectEscSession } from '../blheli/session.js';
 
 export async function flashBetaflightPreset(onTelemetryReady = null) {
     if (!('serial' in navigator)) {
@@ -23,6 +24,10 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
     let isRebooting = false;
 
     try {
+        if (isEscSessionActive()) {
+            log('[Betaflight] Закриття активної 4-Way сесії ESC перед входом у CLI...');
+            await disconnectEscSession();
+        }
         state.port = await resolveSelectedPort(log);
         await state.port.open({ baudRate: 115200 });
         log('Порт відкрито на 115200.');

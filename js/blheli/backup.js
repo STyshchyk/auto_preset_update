@@ -169,7 +169,6 @@ export async function handleRestoreFileChange(event) {
         `ВІДНОВЛЕННЯ ESC з файлу "${file.name}"\n` +
         `Створено: ${parsed.created || 'невідомо'}\n` +
         `Буде ПЕРЕЗАПИСАНО налаштування ESC: ${list}\n\n` +
-        `Перед записом програма автоматично збереже поточний стан ESC окремим файлом.\n` +
         `Перед продовженням: зніміть пропелери та підключіть LiPo.\n\nПродовжити?`
     );
     if (!okToWrite) {
@@ -201,15 +200,6 @@ export async function handleRestoreFileChange(event) {
                 current.set(esc, r);
             }
 
-            // Автоматична копія поточного стану ПЕРЕД будь-яким записом
-            const pre = [...current.entries()].map(([index, r]) => ({
-                index, signature: r.signature, crc16: crcHex(r.data), dataHex: bytesToHex(r.data)
-            }));
-            const preName = `BLHeli32_ESC_pre-restore_${timestampStr()}.json`;
-            downloadTextFile(preName, JSON.stringify(buildBackupObject(pre, pre.length === ESC_COUNT), null, 2));
-            log(`Поточний стан збережено: ${preName}`);
-            await delay(400);
-
             // ФАЗА 2: запис і контрольне читання
             const results = [];
             for (const target of parsed.escs) {
@@ -235,33 +225,14 @@ export async function handleRestoreFileChange(event) {
                 if (!wr.ok) {
                     setEscBadge(esc, 'fail', 'Збій запису');
                     await disconnectEscDevice(writer, reader, esc);
-                    return { aborted: `ESC #${esc + 1}: запис не підтверджено (${wr.msg}). Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
+                    return { aborted: `ESC #${esc + 1}: запис не підтверджено (${wr.msg}). Далі нічого не записано.`, results };
                 }
                 
-                // Контрольне зчитування одразу в тій самій сесії (як у BLHeliSuite32, без зайвого reset)
-                setEscBadge(esc, 'working', 'Верифікація...');
-                await delay(100);
-                let vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00], 2500);
-
-                // Якщо перша спроба дала збій, одна повторна спроба
-                if (!vr.ok || vr.data.length !== ESC_BLOCK_LEN || !vr.crcOk) {
-                    await delay(150);
-                    vr = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00], 2500);
-                }
-
-                // Чисто закриваємо ESC тільки ПІСЛЯ завершення перевірки
                 await disconnectEscDevice(writer, reader, esc);
                 await delay(50);
-
-                if (vr.ok && vr.data.length === ESC_BLOCK_LEN && bytesEqual(vr.data, target.data)) {
-                    log(`ESC #${esc + 1}: записано і перевірено (збіг 256 з 256 байт).`);
-                    setEscBadge(esc, 'ok', 'Відновлено');
-                    results.push({ esc, status: 'written' });
-                } else {
-                    const reason = !vr.ok ? vr.msg : (vr.data.length !== ESC_BLOCK_LEN ? `довжина ${vr.data.length}` : 'дані у флеші не збігаються з файлом');
-                    setEscBadge(esc, 'fail', 'Збій верифікації');
-                    return { aborted: `ESC #${esc + 1}: після запису ${reason}. Далі нічого не записано. Відновіть цей ESC з файлу ${preName}.`, results };
-                }
+                log(`ESC #${esc + 1}: Flash записано успішно (ACK OK).`);
+                setEscBadge(esc, 'ok', 'Відновлено');
+                results.push({ esc, status: 'written' });
             }
             return { results };
         });

@@ -4,6 +4,7 @@ import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log } from '../ui/log.js';
 import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
+import { isEscSessionActive, disconnectEscSession } from '../blheli/session.js';
 
 export async function backupBetaflightConfig() {
     if (!('serial' in navigator)) {
@@ -21,6 +22,10 @@ export async function backupBetaflightConfig() {
     const cmd = backupTypeSelect.value;
 
     try {
+        if (isEscSessionActive()) {
+            log('[Бекап] Закриття активної 4-Way сесії ESC перед входом у CLI...');
+            await disconnectEscSession();
+        }
         state.port = await resolveSelectedPort(log);
         await state.port.open({ baudRate: 115200 });
         log(`[Бекап] Порт відкрито на 115200. Ініціалізація CLI...`);
