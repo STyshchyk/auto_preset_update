@@ -12,6 +12,8 @@ import { flashBetaflightPreset } from '../betaflight/preset.js';
 import { applyEscPreset } from '../blheli/preset.js';
 import { setProgressionStep, setProgressionBanner, resetProgression } from '../ui/progression.js';
 import { recordDeviceResult } from '../utils/stats.js';
+import { showPopup } from '../ui/modal.js';
+import { closeSerialSession } from './serial.js';
 
 export async function runFullDroneSequence() {
     const btnRun = document.getElementById('btnRunSimplified');
@@ -21,6 +23,7 @@ export async function runFullDroneSequence() {
     setProgressionBanner('working', 'Запуск автоматичної прошивки...', 'Ініціалізація зв\'язку з польотним контролером.');
 
     let capturedDeviceId = null;
+    let fcPresetSuccess = false;
 
     try {
         // --- STEP 1: BETAFLIGHT FC PRESET FLASHING ---
@@ -50,15 +53,34 @@ export async function runFullDroneSequence() {
             throw new Error('Помилка під час прошивки Betaflight (Крок 1 не пройдено).');
         }
 
-        // --- BATTERY CHECK IN SIMPLIFIED MODE ---
-        // Betaflight 'status' detects battery presence. In simplified mode, ESC cannot be flashed without LiPo!
-        if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
-            log(`[УВАГА] Батарею не виявлено: ${state.lastFcDetails.batteryInfo}`);
-            throw new Error(`Силову батарею (LiPo) не підключено: ${state.lastFcDetails.batteryInfo}! Підключіть LiPo акумулятор перед прошивкою регуляторів ESC.`);
-        }
-
+        // FC preset successfully written and verified
+        fcPresetSuccess = true;
         setProgressionStep(1, 'success', `UID: ${capturedDeviceId || 'OK'}`);
         setProgressionStep(2, 'success', 'Пресет FC успішно записано');
+
+        // --- BATTERY CHECK IN SIMPLIFIED MODE ---
+        // If battery is missing, skip ESC flashing (Step 4) immediately
+        if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
+            log(`[УВАГА] Силову батарею не виявлено (${state.lastFcDetails.batteryInfo}). Крок 4 (прошивка ESC) пропущено.`);
+            
+            // Gracefully ensure any active serial port session with FC is closed
+            if (state.port) {
+                try {
+                    await closeSerialSession(state.port, null, null, null);
+                } catch (e) {
+                    console.warn('Graceful close error:', e);
+                } finally {
+                    state.port = null;
+                }
+            }
+
+            setProgressionStep(3, 'awaiting', 'Пропущено (немає батареї)');
+            setProgressionStep(4, 'fail', 'Пропущено: немає батареї');
+            setProgressionBanner('fail', 'ПРОШИВКУ ESC ПРОПУЩЕНО', 'Польотник прошито успішно, але через відсутність LiPo батареї налаштування ESC не виконувалось.');
+            recordDeviceResult(capturedDeviceId, false);
+            return;
+        }
+
         setProgressionBanner('working', 'Крок 1 успішно!', 'Очікування перезавантаження FC перед налаштуванням ESC...');
 
         // --- STEP 2: REBOOT & 4-WAY HANDSHAKE WAIT ---
@@ -67,7 +89,7 @@ export async function runFullDroneSequence() {
         setProgressionStep(3, 'success', 'FC готовий до 4-Way');
 
         // --- STEP 3: BLHELI_32 ESC FLASHING ---
-        setProgressionStep(4, 'working', 'Запис пресету 4-х ESC (LiPo 4S-6S)...');
+        setProgressionStep(4, 'working', 'Запис пресету 4-х ESC (батарея)...');
         log('\n=== [АВТО-КОНВЕЄР] ЕТАП 2: КОНФІГУРАЦІЯ 4-Х ESC ===');
 
         await applyEscPreset();
@@ -89,11 +111,17 @@ export async function runFullDroneSequence() {
         const errMsg = err.message || 'Невідома помилка під час прошивки.';
         setProgressionBanner('fail', 'ЗБІЙ ПРОШИВКИ ДРОНА', errMsg);
 
-        // Mark corresponding progression steps as failed
+        // Mark corresponding progression steps as failed / preserved
         const stepStatus1 = document.getElementById('stepStatus1');
-        if (stepStatus1 && stepStatus1.classList.contains('fail')) {
+        if ((stepStatus1 && stepStatus1.classList.contains('fail')) || !fcPresetSuccess) {
             setProgressionStep(1, 'fail', 'Збій FC');
             setProgressionStep(2, 'fail', 'Не записано');
+        } else if (err.isBatteryMissing) {
+            // FC preset succeeded, keep step 1 and step 2 green!
+            setProgressionStep(1, 'success', `UID: ${capturedDeviceId || 'OK'}`);
+            setProgressionStep(2, 'success', 'Пресет FC успішно записано');
+            setProgressionStep(3, 'awaiting', 'Пропущено (немає батареї)');
+            setProgressionStep(4, 'fail', 'Збій ESC: немає батареї');
         } else {
             setProgressionStep(4, 'fail', 'Збій ESC (LiPo?)');
         }

@@ -155,9 +155,13 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         setStepStatus(1, 'success');
         log('Пресет успішно залито. Контролер перезавантажився.');
-        showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
-            log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
-        });
+        if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
+            showPopup('error', 'Батарею не виявлено!', 'Прошивка FC успішна, але батареї немає. Прошивка ESC неможлива!', 2000);
+        } else {
+            showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
+                log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
+            });
+        }
 
     } catch (err) {
         if (isRebooting || err.message.includes('device has been lost')) {
@@ -165,7 +169,11 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
             setStepStatus(1, 'success');
             log('Контролер перезавантажився штатно.');
             state.port = null;
-            showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
+            if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
+                showPopup('error', 'Батарею не виявлено!', 'Прошивка FC успішна, але батареї немає. Прошивка ESC неможлива!', 2000);
+            } else {
+                showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
+            }
         } else {
             console.error(err);
             state.ignoreRebootEventsUntil = Date.now() + 6000;

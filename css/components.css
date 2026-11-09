@@ -654,3 +654,42 @@ body.simplified-mode .info-val {
     font-size: 0.95em;
 }
 
+/* --------------------------------------------------------------------------
+   NEW DEVICE AUTHORIZATION BANNER / BUTTON
+   -------------------------------------------------------------------------- */
+.btn-grant-port {
+    background: #0284c7;
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    animation: pulse-grant 1.5s infinite;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn-grant-port:hover {
+    background: #0369a1;
+}
+
+.btn-grant-port:active {
+    transform: scale(0.98);
+}
+
+@keyframes pulse-grant {
+    0% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(56, 189, 248, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+    }
+}
+
