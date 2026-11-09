@@ -1,4 +1,4 @@
-# File Access Restrictions
+﻿# File Access Restrictions
 
 - Never read, open, inspect, parse, or analyze any `.txt` files.
 - Do not use terminal commands to read their contents.
@@ -62,3 +62,10 @@ Single-page HTML application.
 - Update project state after completing significant tasks.
 - Keep documentation concise and actionable.
 - Never assume an implementation is complete without verification.
+
+
+# Pre-Job Verification Protocol
+
+- Before starting any new task, verify current working state and recent modifications (check PROJECT_STATUS.md and latest summary in docs/).
+- Inspect git diff or status to ensure no unverified or stray changes exist.
+- Cross-reference board targets, MCU IDs, or binary presets against verified documentation before flashing or refactoring.
