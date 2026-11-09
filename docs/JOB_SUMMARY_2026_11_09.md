@@ -1,52 +1,84 @@
-# JOB SUMMARY: ESC Flashing & Betaflight CLI Preset Configuration
+# JOB SUMMARY: Full Day Summary — Drone Setup Station Refactoring & Pipeline Optimization
 
 **Date:** 2026-11-09  
-**Target Board:** SPEDIXF722 (Betaflight 4.5.1 STM32F7X2) / MCU 0x4706  
-**Primary Files Modified:** `index5.html`, `PROJECT_STATUS.md`, `AGENTS.md`
+**Branch:** `feature/esc_connection`  
+**Target Platform:** Betaflight 4.5.1 (SPEDIXF722 / MCU STM32F7X2) + BLHeli_32 (MCU `0x4706`)  
+**Status:** Completed & Clean Working Tree  
 
 ---
 
-## 1. ESC Dump Analysis & Binary References
+## 1. Загальний огляд проведеної роботи
 
-A raw 256-byte EEPROM dump (`0xF800`) from 4 connected ESCs (MCU `0x4706`) was analyzed and validated:
-* **Settings Block (`0x10..0x1F`)**:
-  ```
-  9E DF FF 55 21 E8 2E 9C 16 BA C7 D7 50 E7 FA 5B
-  ```
-  Corresponds to: Rampup Power = 100%, Low RPM Power Protect = Off, Beacon = Off.
-* **Direction Header (`0x00..0x07`)**:
-  ```
-  90 BD 5D F6 AA 06 4C 53
-  ```
-  Corresponds to: Motor direction `NORMAL` @ 100% Rampup.
-* **CRC16 (XMODEM CCITT `0x1021`)**: Calculated & verified as `8976`.
+Сьогодні було проведено масштабний комплекс робіт: від аналізу дампів EEPROM регуляторів та оновлення базових пресетів до повної модульної архітектури, впровадження інтелектуального спрощеного режиму («В один клік»), персистентної 4-Way сесії ESC та оптимізації UX інтерфейсу.
 
 ---
 
-## 2. Changes Implemented in `index5.html`
+## 2. Ключові етапи та реалізовані задачі
 
-### A. Forced Motor Direction to `NORMAL` for all 4 ESCs
-* **Problem Identified**: The previous logic inspected the existing flash header (`detectMotorDirection(currentHeader, esc)`). If ESCs #2 and #4 previously had reversed headers, it preserved them, preventing them from being set to normal.
-* **Fix Applied**: Updated `btnConfigureESC` patch generation to force `direction = 'normal'` and `targetHeader = BL32_HEADER_NORMAL_100` for all 4 ESC channels until instructed otherwise:
-  ```javascript
-  // Примусово NORMAL для всіх ESC до окремої вказівки
-  const direction = 'normal';
-  const targetHeader = BL32_HEADER_NORMAL_100;
-  ```
-* Updated `detectMotorDirection` default return fallback to `'normal'`.
+### 2.1. Оновлення конфігурацій та аналіз ESC EEPROM
+- **Аналіз 256-байтного дампу EEPROM (`0xF800`)**: валідовано бінарну структуру налаштувань ESC (`0x10..0x1F`) та заголовка обертання (`0x00..0x07`).
+- **Фіксація напрямку обертання**: примусово встановлено `direction = 'normal'` (`BL32_HEADER_NORMAL_100`) для всіх 4 ESC каналів.
+- **Оновлення дефолтного Betaflight CLI пресету**: інтегровано актуальний виробничий батч (`defaults nosave`, прив'язка ресурсів, фільтри PT2, dynamic notch, D-Shot, PIDs).
 
-### B. Updated Default Betaflight CLI Preset (`#presetInput`)
-Replaced the default contents of `<textarea id="presetInput">` in `index5.html` with the new production batch configuration:
-* Begins with `defaults nosave` (initial full reset without reboot).
-* Target configuration: `board_name SPEDIXF722`, `manufacturer_id SPDX`, craft name `T-System 15`.
-* Hardware resources, features (`SERVO_TILT`, `OSD`, `ESC_SENSOR`), servos, beepers, aux channels, and vtxtables.
-* Filter and motor parameters: PT2 gyro/dterm filters, dynamic notch, `yaw_motors_reversed = ON`.
-* Rates & profile 0 PIDs (`roll/pitch/yaw_srate = 35`, simplified sliders enabled).
-* Closes with `# save configuration` / save sequence.
+### 2.2. Модульна архітектура проекту
+- Монолітний JavaScript розбито на ізольовані ES6-модулі відповідно до зон відповідальності:
+  - `js/core/`: `serial.js`, `state.js`, `pipeline.js`
+  - `js/betaflight/`: `cli.js`, `info.js`, `preset.js`, `backup.js`
+  - `js/blheli/`: `session.js`, `protocol.js`, `eeprom.js`, `preset.js`, `backup.js`
+  - `js/ui/`: `status.js`, `progression.js`, `infoPanel.js`
+  - `js/utils/`: `crc.js`, `bytes.js`, `stats.js`
+  - Головна точка входу: `js/main.js`
+
+### 2.3. Спрощений режим оператора (Simplified Mode)
+- **Перемикач режимів**: Спрощений (за замовчуванням) ⇄ Експертний (`#btnToggleMode`, стан зберігається в `localStorage`).
+- **Автоматизований конвеєр («В один клік»)**:
+  - Крок 1 (Betaflight CLI: прошивка ➔ перевірка пресету ➔ збереження та reboot).
+  - Інтелектуальна пауза перезавантаження FC з адаптивним підключенням.
+  - Попередня перевірка LiPo батареї (захист від запуску налаштування ESC без живлення).
+  - Крок 2 (BLHeli_32: зчитування 4 ESC ➔ застосування пресету ➔ верифікація).
+- **Спрощення та адаптація інтерфейсу**:
+  - Приховано надлишкові експертні поля (`textarea`, вибір бекапів, прямі кнопки).
+  - Збільшено шрифти (`125%`) та інтерактивні елементи для зручності оператора збірки.
+  - Додано банер готовності (`#progBanner`) та FAQ інструкцію з підключення.
+- **Статистика прошитих дронів (`js/utils/stats.js`)**:
+  - Фіксація унікальних дронів за апаратним UID (`mcu_id` FC).
+  - Підрахунок статистики за поточний день (Daily) та за весь час (All-Time).
+
+### 2.4. Персистентна 4-Way ESC сесія та інтерактивні прогрес-пайплайни
+- **`js/blheli/session.js`**: створення постійної 4-Way сесії (`connectEscSession`, `disconnectEscSession`, `isEscSessionActive`), що усунуло постійні циклічні закриття та відкриття Web Serial порту між операціями читання/запису ESC.
+- **Протокольний вихід 4-Way**: реалізовано 8-байтний фрейм `CMD_INTERFACE_EXIT` (0x34, `ParamLen = 1`, payload `[0]`), що гарантує штатне повернення польотного контролера в звичайний режим.
+- **5-етапний індикатор ESC пайплайну (`#escFlowPipeline`)**:
+  `[🔗 1. Підключення] ➔ [⚡ 2. Заливка] ➔ [🔍 3. Перевірка] ➔ [🎯 4. Статус OK] ➔ [🔒 5. Закриття]`
+- **3-етапний індикатор FC (`#fcFlashProgress`)**:
+  `[⏳ 1. Прошивка команд] ➔ [⏳ 2. Фінальне читання] ➔ [⏳ 3. Перевірка пресету]`
+
+### 2.5. Фінальні UX-покращення головної кнопки
+- Кнопку **«🚀 ПРОШИТИ ДРОН (FC + ESC)»** (`#simplifiedMasterBox`) винесено на самий верх правої колонки (`<main class="main-col">`) за межі картки Крок 1.
+- Видалено допоміжний текстовий підпис під кнопкою, зробивши головний елемент запуску лаконічним, чистим та домінуючим на екрані.
 
 ---
 
-## 3. Verification
-* Verified textarea syntax and boundary tags (`<textarea id="presetInput">...</textarea>`).
-* Verified CRC-16 computation (`0x8976`) using native project `js/utils/crc.js`.
-* Git diff inspected for clean indentation, encoding, and zero regressions to existing UI components.
+## 3. Змінені файли за день
+
+| Файл / Модуль | Опис внесених змін |
+|---|---|
+| `index5.html` | Перенесення кнопки запуску наверх, видалення підпису, інтеграція індикаторів стадій, примусовий `direction = normal`, оновлений дефолтний пресет. |
+| `css/components.css` | Стилі кнопки `.btn-master-run`, спрощеного режиму, 5-етапного трекера ESC, бейджів та прогрес-банерів. |
+| `css/main.css` | Базові змінні, стилі статусів, перемикача режимів. |
+| `js/blheli/session.js` | Менеджер тривалої 4-Way сесії ESC. |
+| `js/blheli/protocol.js` | Команди MSP/4-Way, безпечний вихід `0x34`. |
+| `js/blheli/eeprom.js` | Надійне зчитування/запис блоків ESC без передчасного закриття порту. |
+| `js/blheli/preset.js` | Заливка та верифікація пресету ESC з оновленням стадій. |
+| `js/betaflight/preset.js` | CLI прошивка, авто-закриття сесії ESC перед CLI, покрокові бейджі. |
+| `js/core/pipeline.js` | Сквозний двокроковий конвеєр авто-прошивки з LiPo pre-check. |
+| `js/ui/status.js` | Відстеження та рендер статусів кроків та ESC flow tracker. |
+| `js/ui/progression.js` | Головний таймлайн 4 етапів. |
+| `js/utils/stats.js` | Локальне сховище та аналітика прошитих пристроїв за UID. |
+| `docs/JOB_SUMMARY_2026_11_09.md` | Підсумкова документація робіт за день. |
+| `PROJECT_MAP.md` & `NEXT_STEPS.md` | Актуалізовано карту архітектури та план подальших завдань. |
+
+---
+
+## 4. Стан робочої копії та перевірка
+- Робоче дерево Git: `clean` (усі зміни перевірено та закомічено).
+- Всі тестові валідації та протоколи зв'язку відповідають стандартам проекту.
