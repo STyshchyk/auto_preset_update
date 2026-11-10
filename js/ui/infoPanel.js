@@ -53,20 +53,37 @@ export function updateInfoPanel(fcDetails = {}, mismatchResult = null, options =
         setCheckStatus('checkBoard', 'fail', 'Плату не визначено (UNKNOWN)');
     }
 
+    const expectedFw = options.expectedFw || null;
+    let fwCheckPass = false;
+    let fwCheckFailMsg = '';
+
     if (fcDetails.firmware) {
-        setCheckStatus('checkFw', 'pass', 'Версія прошивки: ' + fcDetails.firmware);
+        if (!expectedFw || fcDetails.firmware === expectedFw) {
+            fwCheckPass = true;
+            setCheckStatus('checkFw', 'pass', 'Версія BTFL підтверджена: ' + fcDetails.firmware);
+        } else {
+            fwCheckFailMsg = 'Невідповідність BTFL: очікувалась ' + expectedFw + ', в польотнику ' + fcDetails.firmware;
+            setCheckStatus('checkFw', 'fail', fwCheckFailMsg);
+        }
     } else {
-        setCheckStatus('checkFw', 'fail', 'Не вдалося зчитати версію Betaflight');
+        fwCheckFailMsg = 'Не вдалося зчитати версію Betaflight';
+        setCheckStatus('checkFw', 'fail', fwCheckFailMsg);
     }
 
-    if (fcDetails.buildDate) {
-        setCheckStatus('checkDate', 'pass', 'Дата збірки: ' + fcDetails.buildDate);
+    // Статус дати збірки прив'язаний до статусу версії прошивки
+    if (fwCheckPass) {
+        setCheckStatus('checkDate', 'pass', 'Дата збірки підтверджена (збіг версії): ' + (fcDetails.buildDate || 'OK'));
     } else {
-        setCheckStatus('checkDate', 'warn', 'Дату збірки не розпізнано');
+        setCheckStatus('checkDate', 'fail', 'Дата збірки не валідна (' + (fwCheckFailMsg || 'не збігається версія прошивки') + ')');
     }
 
+    const expectedMcu = options.expectedMcu || null;
     if (fcDetails.mcu) {
-        setCheckStatus('checkMcu', 'pass', 'MCU підтверджено: ' + fcDetails.mcu);
+        if (!expectedMcu || fcDetails.mcu.includes(expectedMcu) || expectedMcu.includes(fcDetails.mcu)) {
+            setCheckStatus('checkMcu', 'pass', 'MCU підтверджено: ' + fcDetails.mcu);
+        } else {
+            setCheckStatus('checkMcu', 'fail', 'Невідповідність MCU: очікувався ' + expectedMcu + ', виявлено ' + fcDetails.mcu);
+        }
     } else {
         setCheckStatus('checkMcu', 'fail', 'MCU не визначено');
     }
