@@ -3,7 +3,7 @@
  */
 
 import { delay, bytesEqual } from '../utils/bytes.js';
-import { log } from '../ui/log.js';
+import { log, startOperationStep, endOperationStep } from '../ui/log.js';
 import { setStepStatus, setEscBadge, setEscFlowStep } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
@@ -72,6 +72,7 @@ export async function applyEscPreset() {
 
     setStepStatus(2, 'working');
     for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
+    startOperationStep('ESC_CONFIG_PRESET', 'Крок 2: Налаштування 4 ESC BLHeli_32');
 
     let cachedEscInfo = [];
 
@@ -111,10 +112,23 @@ export async function applyEscPreset() {
                         break;
                     }
                 }
+                const headerHex = Array.from(block.data.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                const settingsHex = Array.from(block.data.slice(0x10, 0x20)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                log(`[ESC #${esc + 1} Dump]: MCU=${block.mcu}(${block.signatureHex}) Model="${asciiName || 'NOT_FOUND'}"`);
+                log(`  Header (0x00..0x07): ${headerHex}`);
+                log(`  Settings (0x10..0x1F): ${settingsHex}`);
+
                 const dir = detectMotorDirection(block.data.slice(0, 8), esc);
                 const hasSettings = block.data.length >= 32 && bytesEqual(block.data.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
                 const expHdr = (dir === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
                 const matched = hasSettings && bytesEqual(block.data.slice(0, 8), expHdr);
+                log(`  Match status: dir=${dir}, hasSettings=${hasSettings}, matched=${matched}`);
+
+                const isBluejay = (block.signatureHex === '0xE8B2' || block.signatureHex === '0xB2E8' || 
+                                   block.signatureHex === '0xE8B1' || block.signatureHex === '0xB1E8' ||
+                                   (asciiName && asciiName.toLowerCase().includes('bluejay')));
+
+                const detectedModelName = isBluejay ? 'Bluejay 8-bit' : (asciiName || 'BLHeli_32');
 
                 escInfoList.push({
                     esc,
@@ -124,11 +138,26 @@ export async function applyEscPreset() {
                     mcu: block.mcu || 'ARM 32-bit',
                     signature: block.signatureHex || block.signature || '0x????',
                     ack: 'OK (LiPo є)',
-                    modelName: asciiName || 'BLHeli_32'
+                    modelName: detectedModelName
                 });
             }
             cachedEscInfo = escInfoList;
             updateEscInfoPanel(escInfoList);
+
+            // Сувора перевірка: Модель має бути BLHeli_32, а MCU строго 0x4706
+            const invalidModelEsc = escInfoList.find(e => !e.modelName || (!e.modelName.includes('BLHeli_32') && !e.modelName.includes('32.')));
+            if (invalidModelEsc) {
+                return { aborted: `Запис заблоковано! Модель ESC #${invalidModelEsc.esc + 1} [${invalidModelEsc.modelName}] не є BLHeli_32.` };
+            }
+
+            const invalidMcuEsc = escInfoList.find(e => {
+                const sig = (e.signature || '').toUpperCase();
+                const mcu = (e.mcu || '').toUpperCase();
+                return !sig.includes('4706') && !mcu.includes('4706');
+            });
+            if (invalidMcuEsc) {
+                return { aborted: `Запис заблоковано! MCU ESC #${invalidMcuEsc.esc + 1} має сигнатуру [${invalidMcuEsc.signature || invalidMcuEsc.mcu}], очікується строго 0x4706.` };
+            }
 
             // Підготовка патчів для кожного ESC
             const targets = [];
@@ -221,6 +250,7 @@ export async function applyEscPreset() {
         if (outcome.aborted) {
             setStepStatus(2, 'fail');
             log(`[Пресет ESC] ЗУПИНЕНО: ${outcome.aborted}`);
+            await endOperationStep('FAILED', outcome.aborted);
             showPopup('error', 'Застосування пресету зупинено', outcome.aborted);
             return;
         }
@@ -248,11 +278,13 @@ export async function applyEscPreset() {
         }
 
         log(`\n[Пресет ESC] Успішно завершено: оновлено ${written}, вже були актуальні ${same}.`);
+        await endOperationStep('SUCCESS', `Оновлено ESC: ${written}, без змін: ${same} (4/4 OK)`);
         showPopup('success', 'Пресет застосовано', `Оновлено ESC: ${written}, без змін: ${same}.\nУсі регулятори отримали пресет!`, 3500);
 
     } catch (err) {
         console.error(err);
         setStepStatus(2, 'fail');
+        await endOperationStep('FAILED', `Збій ESC: ${err.message}`);
         log(`[Пресет ESC помилка]: ${err.message}`);
         showPopup('error', 'Збій застосування пресету', err.message);
     }

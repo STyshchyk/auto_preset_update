@@ -1,7 +1,7 @@
 import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
-import { log } from '../ui/log.js';
+import { log, startOperationStep, endOperationStep, setLogDeviceId } from '../ui/log.js';
 import { setStepStatus, setFcSubStep, resetFcSubSteps } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
@@ -45,6 +45,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
     btnFlashFC.disabled = true;
     setStepStatus(1, 'working');
     resetFcSubSteps();
+    startOperationStep('FC_FLASH_PRESET', 'Крок 1: Прошивка FC Betaflight');
     let reader = null, writer = null, textEncoder = null;
     let isRebooting = false;
 
@@ -92,7 +93,15 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
         const expectedBoardMatch = script.match(/(?:board_name|#\s*target:?)\s+([A-Za-z0-9_-]+)/i);
         const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].toUpperCase() : null;
 
-        log(`Виявлено плату: [${actualBoard || 'UNKNOWN'}]`);
+        const expectedMcuMatch = script.match(/Betaflight\s*\/\s*([A-Za-z0-9_]+)/i) ||
+                                 script.match(/(?:#\s*MCU:?)\s+([A-Za-z0-9_-]+)/i);
+        const expectedMcu = expectedMcuMatch ? expectedMcuMatch[1].toUpperCase() : null;
+
+        const expectedFwMatch = script.match(/Betaflight\s*\/\s*.*?\b([0-9]+\.[0-9]+\.[0-9]+)\b/i) ||
+                                script.match(/(?:#\s*firmware:?)\s+([0-9]+\.[0-9]+\.[0-9]+)/i);
+        const expectedFw = expectedFwMatch ? expectedFwMatch[1] : null;
+
+        log(`Виявлено плату: [${actualBoard || 'UNKNOWN'}], Очікуваний MCU: [${expectedMcu || 'ANY'}], Очікуваний BTFL: [${expectedFw || 'ANY'}]`);
 
         // Аналіз польотника та розрахунок % неспівпадіння через diff all (до прошивки)
         log('Аналіз поточної конфігурації польотника (diff all)...');
@@ -101,8 +110,11 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         const fcDetails = parseFcDetails(verText, statusText + '\n' + mcuIdText);
         state.lastFcDetails = fcDetails;
+        if (fcDetails.deviceId) {
+            setLogDeviceId(fcDetails.deviceId);
+        }
         const mismatchStats = calculateMismatch(script, diffContent);
-        updateInfoPanel(fcDetails, mismatchStats);
+        updateInfoPanel(fcDetails, mismatchStats, { expectedBoard, expectedMcu, expectedFw });
         log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
         log(`[Аналіз пресету (до запису)] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
 
@@ -118,6 +130,16 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
         if (expectedBoard && !actualBoard.includes(expectedBoard) && !expectedBoard.includes(actualBoard)) {
             try { await writer.write('exit\r\n'); } catch (_) {}
             throw new Error(`Невідповідність плати! Очікувалось [${expectedBoard}], підключено [${actualBoard}].`);
+        }
+
+        if (expectedMcu && fcDetails.mcu && !fcDetails.mcu.includes(expectedMcu) && !expectedMcu.includes(fcDetails.mcu)) {
+            try { await writer.write('exit\r\n'); } catch (_) {}
+            throw new Error(`Невідповідність MCU процесора! У пресеті вказано [${expectedMcu}], але польотник має [${fcDetails.mcu}]. Запис скасовано для безпеки.`);
+        }
+
+        if (expectedFw && fcDetails.firmware && fcDetails.firmware !== expectedFw) {
+            try { await writer.write('exit\r\n'); } catch (_) {}
+            throw new Error(`Невідповідність версії Betaflight! У пресеті вказано версію [${expectedFw}], але на польотнику встановлено [${fcDetails.firmware}]. Запис скасовано для уникнення збою конфігурації.`);
         }
 
         // Швидке очищення залишкового ехо перед відправкою команд
@@ -196,7 +218,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         // Повна відповідність пресету!
         setFcSubStep('verify', 'ok');
-        updateInfoPanel(fcDetails, postMismatchStats);
+        updateInfoPanel(fcDetails, postMismatchStats, { expectedBoard, expectedMcu, expectedFw });
         log('✅ [ВЕРИФІКАЦІЯ УСПІШНА]: Конфігурація 100% відповідає зразку пресету (0 розбіжностей). Збереження...');
 
         isRebooting = true;
@@ -210,6 +232,10 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         setStepStatus(1, 'success');
         log('Пресет успішно залито. Контролер перезавантажився.');
+        await endOperationStep('SUCCESS', `Пресет успішно записано (0% розбіжностей, ${fcDetails.board})`, {
+            board: fcDetails.board,
+            firmware: fcDetails.firmware
+        });
         showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
             log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
         });
@@ -220,12 +246,14 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
             setStepStatus(1, 'success');
             log('Контролер перезавантажився штатно.');
             state.port = null;
+            await endOperationStep('SUCCESS', 'Контролер перезавантажився штатно після запису пресету');
             showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
         } else {
             console.error(err);
             state.ignoreRebootEventsUntil = Date.now() + 6000;
             setStepStatus(1, 'fail');
             log(`Помилка кроку 1: ${err.message}`);
+            await endOperationStep('FAILED', `Збій: ${err.message}`);
             await closeSerialSession(state.port, reader, writer, textEncoder);
             state.port = null;
             showPopup('error', 'Збій заливання пресету', err.message);

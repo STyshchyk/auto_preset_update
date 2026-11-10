@@ -4,7 +4,7 @@
  */
 
 import { initSerialEvents } from './core/serial.js';
-import { log } from './ui/log.js';
+import { log, exportLogsToJson, clearTerminalAndDbLogs } from './ui/log.js';
 import { resetAllStepStatuses } from './ui/status.js';
 import { resetInfoPanel } from './ui/infoPanel.js';
 import { closeModal } from './ui/modal.js';
@@ -35,6 +35,8 @@ const modalCloseBtn       = document.getElementById('modalCloseBtn');
 const btnToggleMode       = document.getElementById('btnToggleMode');
 const btnRunSimplified    = document.getElementById('btnRunSimplified');
 const btnResetDailyStats  = document.getElementById('btnResetDailyStats');
+const btnExportLogsJson   = document.getElementById('btnExportLogsJson');
+const btnClearLogs        = document.getElementById('btnClearLogs');
 
 // --- SIMPLIFIED MODE TOGGLE ---
 const MODE_STORAGE_KEY = 'drone_station_mode';
@@ -105,3 +107,15 @@ if (btnConfigureESC) btnConfigureESC.addEventListener('click', applyEscPreset);
 
 // --- MODAL CONTROLS ---
 if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+
+// --- EXPERT LOGGING CONTROLS ---
+if (btnExportLogsJson) {
+    btnExportLogsJson.addEventListener('click', exportLogsToJson);
+}
+if (btnClearLogs) {
+    btnClearLogs.addEventListener('click', () => {
+        if (window.confirm('Очистити термінал та видалити всі збережені логи операцій?')) {
+            clearTerminalAndDbLogs();
+        }
+    });
+}
