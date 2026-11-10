@@ -52,6 +52,9 @@ export function ensureInstructionsAcknowledged(onConfirmed) {
     const modal = document.getElementById('instructionsModal');
     const chk = document.getElementById('chkAgreeInstructions');
     const btnConfirm = document.getElementById('btnConfirmInstructions');
+    const btnCancel = document.getElementById('btnCancelInstructions');
+    const btnCancelX = document.getElementById('btnCancelInstructionsX');
+
     if (!modal || !btnConfirm) {
         if (typeof onConfirmed === 'function') onConfirmed();
         return;
@@ -63,6 +66,14 @@ export function ensureInstructionsAcknowledged(onConfirmed) {
     chk.onchange = () => {
         btnConfirm.disabled = !chk.checked;
     };
+
+    const handleCancel = () => {
+        modal.classList.remove('active');
+        // Потрапляє сюди без виклику onConfirmed, отже прошивка НЕ розпочинається
+    };
+
+    if (btnCancel) btnCancel.onclick = handleCancel;
+    if (btnCancelX) btnCancelX.onclick = handleCancel;
 
     btnConfirm.onclick = () => {
         if (chk.checked) {

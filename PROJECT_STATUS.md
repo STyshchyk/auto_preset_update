@@ -45,31 +45,21 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-10)
 
-* **Left Panel Verification Status Check Icons (`.check-icon`)**:
-  - Added real-time check badges for all parameters across Step 1 and Step 2:
-    - Step 1: `#checkBoard`, `#checkFw`, `#checkDate`, `#checkMcu`, `#checkDeviceId`.
-    - Step 2: `#checkEscModel`, `#checkEscMcu`, `#checkEscPower`, `#checkEscDirs`, `#checkEscPreset`.
-  - Visual color states: `✓` green (`state-pass`), `✕` red (`state-fail`), `!` orange (`state-warn`), `—` idle.
+* **Operator Instructions & FAQ Redesign (`index5.html`, `css/components.css`)**:
+  - Structured into chronological stages:
+    1. **🔌 До підключення**: Сувора заборона підключення декількох девайсів (`‼️`), закриття сторонніх конфігураторів (Betaflight/ESC Configurator/BLHeliSuite32), рекомендація USB Type-A через хаб з живленням, порядок живлення (LiPo ➔ очікування мелодії ➔ 2 сек ➔ USB), техніка безпеки (зняті пропелери `⚠️`).
+    2. **⚡ Під час прошивки**: Штатний старт в 1 клік, діалог дозволу для нових пристроїв, сувора заборона вимикання під час запису (`‼️`).
+    3. **✅ Після прошивки**: Порядок безпечного відключення `[1] USB ➔ [2] LiPo` зі стилізованим бейджем `<span class="faq-status-pill-success">✓ УСПІШНО</span>`.
+    4. **❓ Загальні питання та помилки**: Орієнтування за галочками `<span class="faq-badge-pass">✓</span>` та хрестиками `<span class="faq-badge-fail">✕</span>` на лівій панелі, алгоритм дій при збої ESC, призначення режиму експерта.
+  - Додано візуальний інтерактивний елемент-кнопку `<span class="faq-btn-pill-master">🚀 ПРОШИТИ ДРОН (FC + ESC)</span>` всередині тексту FAQ для 100% візуальної асоціації оператора.
 
-* **Strict Preset Matching Engine (FC Step 1)**:
-  - Added automatic extraction of `expectedMcu` (`STM32F7X2`) and `expectedFw` (`4.5.1`) directly from the preset `<textarea>`.
-  - Enforced strict abort logic: if connected flight controller target, MCU, or firmware version does not match the preset, the session immediately issues `exit\r\n` and aborts without touching the flight controller.
-  - Linked the verification status of Build Date (`#checkDate`) directly to the firmware version check (`#checkFw`).
+* **One-time Operator Safety Agreement Dialog (`#instructionsModal`, `js/ui/modal.js`)**:
+  - Модальне вікно інструктажу перед першим запуском прошивки (перевіряється в спрощеному та експертному режимах).
+  - Чекбокс згоди із правилами роботи активує кнопку підтвердження.
+  - Стан підтвердження зберігається в `localStorage` (`drone_station_instructions_ack_v1`).
+  - Передбачено кнопки скасування/закриття (хрестик `✕` та «Скасувати»), що закривають вікно без запуску процесу прошивки.
 
-* **Bluejay 8-Bit Platform Identification & Safety Guard**:
-  - Tested against an 8-bit drone and identified the signature `0xE8B2` as Silicon Labs EFM8BB21 (48MHz).
-  - Explicitly mapped `0xE8B2` and `0xE8B1` in `js/blheli/protocol.js` and `js/blheli/preset.js`.
-  - Displays **`Bluejay 8-bit`** under Model and **`0xE8B2`** under MCU.
-  - Prohibits flashing 32-bit presets onto Bluejay 8-bit ESCs.
-
-* **Expert Mode Button Safety Lock**:
-  - The «⚡ Застосувати пресет до 4 ESC» button is automatically disabled (`disabled = true`) with descriptive tooltips if:
-    - LiPo battery is missing or any ESC returns ACK `0xf`;
-    - Fewer than 4 ESCs respond;
-    - Model is not `BLHeli_32`;
-    - MCU signature is not `0x4706`.
-  - Master action button in simplified mode remains accessible.
-
-* **Documentation**:
-  - Created `docs/FLASHING_VERIFICATION_PROTOCOL.md` with complete pre-flash, during-flash, and post-flash tables.
-  - Created `docs/JOB_SUMMARY_2026_11_10.md` detailing daily achievements.
+* **Pipeline Status & Left Panel Parity Fixes (`js/core/pipeline.js`, `index5.html`)**:
+  - Усунено зависання іконки Кроку 2 в статусі `working`: при успішному записі пресету FC іконка одразу переводиться в статус `success`, навіть якщо через відсутність LiPo батареї зупиняється налаштування ESC.
+  - Досягнуто паритету лівої інфо-панелі між спрощеним та експертним режимами: поля **«Дата збірки»** та **«MCU»** відображаються завжди, а блок «Порівняння з пресетом» залишено ексклюзивно для режиму експерта.
+  - Кнопку «Дозволити новий пристрій» приховано з інтерфейсу (запит дозволу відбувається безпосередньо при натисканні на прошивку або виборі порту).

@@ -152,11 +152,15 @@
                         </div>
                         <div class="faq-item">
                             <strong>USB-підключення та кабель:</strong>
-                            <p>Використовуйте якісний дата-кабель через <strong>USB-хаб (з власним живленням)</strong> або порт материнської плати. Бажано підключати через <strong>USB Type-A</strong>, оскільки пряме з'єднання <code>Type-C ➔ Type-C</code> на багатьох FC викликає збої розпізнавання COM-порту та зависання прошивки.</p>
+                            <p>Використовуйте якісний дата-кабель через <strong>USB-хаб (з власним живленням)</strong> або порт ПК. Бажано підключати через <strong>USB Type-A</strong>, оскільки пряме з'єднання <code>Type-C ➔ Type-C</code> на багатьох FC викликає збої розпізнавання COM-порту та зависання прошивки.</p>
                         </div>
                         <div class="faq-item">
                             <strong>Порядок подачі живлення:</strong>
                             <p>Під'єднайте батарею (LiPo) до дрона і <strong>зачекайте повний програш стартової мелодії</strong> (переконайтеся, що вона вірна й не переривається). Тільки через 2 сек після цього вмикайте кабель USB до ПК.</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>Техніка безпеки:</strong>
+                            <p><strong style="color: #eab308;">⚠️ Безпека:</strong> переконайтеся, що перед початком робіт на дроні <strong>зняті всі пропелери</strong>.</p>
                         </div>
                     </div>
 
@@ -164,12 +168,16 @@
                     <div class="faq-section">
                         <div class="faq-section-title">⚡ 2. Під час прошивки</div>
                         <div class="faq-item">
-                            <strong>Новий пристрій / перший запуск:</strong>
-                            <p>Якщо плата нова — браузер запитає дозвіл. Можна обрати <em>«+ Обрати новий порт...»</em> вгорі або одразу натиснути <span class="faq-btn-pill-master">🚀 ПРОШИТИ ДРОН (FC + ESC)</span> та у списку вибрати свій польотник (<code>Betaflight STM32...</code>).</p>
+                            <strong>Штатний старт конвеєра:</strong>
+                            <p>Натисніть кнопку <span class="faq-btn-pill-master">🚀 ПРОШИТИ ДРОН (FC + ESC)</span>. Якщо порт уже відомий системі, процес розпочнеться автоматично і триватиме приблизно <strong>10-20 секунд</strong>.</p>
                         </div>
                         <div class="faq-item">
-                            <strong>Старт автоматичного конвеєра:</strong>
-                            <p>Натисніть кнопку <span class="faq-btn-pill-master">🚀 ПРОШИТИ ДРОН (FC + ESC)</span>. Процес триває приблизно <strong>10-20 секунд</strong>. Категорично заборонено від'єднувати живлення або USB під час активного запису.</p>
+                            <strong>Новий пристрій / перший запуск:</strong>
+                            <p>Якщо плата підключається вперше — браузер покаже вікно дозволу. Оберіть у списку ваш польотний контролер (<code>Betaflight STM32...</code>) і натисніть «Підключити». Прошивка продовжиться самостійно.</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>Суворе правило під час запису:</strong>
+                            <p><strong style="color: #ff4444;">‼️ Не вимикати:</strong> категорично заборонено від'єднувати живлення або USB під час активного запису пресету чи EEPROM моторів!</p>
                         </div>
                     </div>
 
@@ -178,7 +186,8 @@
                         <div class="faq-section-title">✅ 3. Після прошивки</div>
                         <div class="faq-item">
                             <strong>Порядок безпечного відключення:</strong>
-                            <p>Після появи зеленого статусу <span class="faq-status-pill-success">✓ УСПІШНО</span>: <strong>спочатку від'єднайте кабель USB</strong> від комп'ютера, і лише потім відключайте силове живлення (LiPo акумулятор).</p>
+                            <p>Після появи зеленого статусу <span class="faq-status-pill-success">✓ УСПІШНО</span> відключати строго в порядку:<br>
+                            <strong>[1] Спочатку кабель USB ➔ [2] Потім акумулятор LiPo</strong>.</p>
                         </div>
                     </div>
 
@@ -186,16 +195,16 @@
                     <div class="faq-section">
                         <div class="faq-section-title">❓ 4. Загальні питання та помилки</div>
                         <div class="faq-item">
-                            <strong>Режим експерта (⚙️):</strong>
-                            <p>Перемикатися в режим експерта дозволено лише за наявності навичок дебагу та ручної прошивки. Для штатної роботи використовуйте спрощений режим в один клік.</p>
-                        </div>
-                        <div class="faq-item">
                             <strong>Помилка прошивки FC (Крок 1):</strong>
-                            <p>Перевірте ліву панель: <strong>Target</strong>, <strong>Версія BTFL</strong>, <strong>Дата збірки</strong> та <strong>MCU</strong> мають мати зелені галочки <span class="faq-badge-pass">✓</span>. Якщо Target відрізняється, прошивка та подальші маніпуляції блокуються автоматично.</p>
+                            <p>Перевірте ліву панель: <strong>Target</strong>, <strong>Версія BTFL</strong>, <strong>Дата збірки</strong> та <strong>MCU</strong> повинні мати зелені галочки <span class="faq-badge-pass">✓</span>. Якщо біля Target червоний хрестик <span class="faq-badge-fail">✕</span> — прошивку та будь-які подальші маніпуляції заблоковано через невідповідність плати.</p>
                         </div>
                         <div class="faq-item">
                             <strong>Помилка налаштування ESC (Крок 2):</strong>
-                            <p>Якщо LiPo підключено, але ESC видає помилку — перевірте контакт батареї, індикатори на ESC, а також переконайтеся, що поля <strong>Модель ESC</strong> та <strong>MCU ESC</strong> зліва визначилися валідно.</p>
+                            <p>Якщо LiPo підключено, але виник збій — перевірте балансир/силовий роз'єм XT60, свічення LED на 4-х ESC та переконайтеся у валідності полів <strong>Модель ESC</strong> та <strong>MCU ESC</strong> зліва. Після усунення причини повторно натисніть <span class="faq-btn-pill-master">🚀 ПРОШИТИ ДРОН (FC + ESC)</span>.</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>Режим експерта (⚙️):</strong>
+                            <p>Перемикатися в режим експерта дозволено виключно за наявності навичок дебагу та ручної прошивки. Для штатної роботи використовуйте спрощений режим в один клік.</p>
                         </div>
                     </div>
                 </div>
@@ -674,14 +683,18 @@ rateprofile 0
 <!-- Operator Instructions Agreement Modal (One-time) -->
 <div id="instructionsModal" class="modal">
     <div class="modal-box modal-operator-agreement">
-        <h3>📋 Інструктаж оператора станції</h3>
+        <div class="modal-header-row">
+            <h3>📋 Інструктаж оператора станції</h3>
+            <button id="btnCancelInstructionsX" class="modal-btn-close-icon" title="Закрити (без запуску прошивки)">✕</button>
+        </div>
         <p>Перед першим запуском прошивки обов'язково ознайомтеся з ключовими правилами роботи:</p>
         <div class="modal-operator-list">
             • <strong style="color: #ff4444;">‼️ Один пристрій:</strong> заборонено одночасно підключати декілька дронів/FC по USB.<br>
             • <strong>Сторонні програми:</strong> закрийте Betaflight Configurator, ESC Configurator, BLHeliSuite32 тощо.<br>
             • <strong>Підключення кабелю:</strong> якісний дата-кабель через USB-хаб (Type-A) або порт ПК.<br>
             • <strong>Порядок живлення:</strong> спочатку LiPo ➔ дочекатися мелодії без збоїв ➔ через 2 сек кабель USB.<br>
-            • <strong>Під час прошивки:</strong> не вимикати живлення і кабель (тривалість 10-20 сек).<br>
+            • <strong style="color: #eab308;">⚠️ Безпека:</strong> переконайтеся, що на дроні знято всі пропелери.<br>
+            • <strong style="color: #ff4444;">‼️ Не вимикати:</strong> не вимикати живлення і кабель під час запису (10-20 сек).<br>
             • <strong>Після успіху (<span class="faq-status-pill-success" style="font-size:10px;">✓ УСПІШНО</span>):</strong> спочатку USB, потім LiPo.<br>
             • <strong>Режим експерта:</strong> виключно за наявності досвіду налагодження.
         </div>
@@ -690,6 +703,9 @@ rateprofile 0
             <span>Я уважно прочитав(ла) інструкцію та зобов'язуюсь дотримуватися порядку підключення</span>
         </label>
         <div class="modal-actions">
+            <button id="btnCancelInstructions" class="btn-cancel-instructions">
+                Скасувати
+            </button>
             <button id="btnConfirmInstructions" class="btn-confirm-instructions" disabled>
                 Підтвердити та перейти до роботи
             </button>
