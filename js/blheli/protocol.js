@@ -254,8 +254,11 @@ export async function connectEscDevice(writer, reader, escIndex) {
     // Step C: cmd_DeviceInitFlash(escIndex) -> returns chip signature & bootloader
     const initRes = await send4WayCmd(writer, reader, CMD_DEVICE_INIT_FLASH, 0, [escIndex], 1200);
     if (!initRes.ok) {
+        log(`[ESC #${escIndex + 1} InitFlash RAW FAIL]: ${initRes.msg}`);
         return { ok: false, msg: initRes.msg };
     }
+    const rawInitHex = Array.from(initRes.data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    log(`[ESC #${escIndex + 1} InitFlash RAW]: bytes[${initRes.data.length}] = ${rawInitHex}`);
 
     const KNOWN_MCUS = {
         '0460': 'STM32G071',
@@ -268,7 +271,11 @@ export async function connectEscDevice(writer, reader, escIndex) {
         '0421': 'STM32F446',
         '0452': 'STM32F722',
         '0450': 'STM32F745',
-        '0484': 'STM32G474'
+        '0484': 'STM32G474',
+        'E8B2': '0xE8B2',
+        'B2E8': '0xE8B2',
+        'E8B1': '0xE8B1',
+        'B1E8': '0xE8B1'
     };
 
     let chipInfo = 'ARM 32-bit';

@@ -1,3 +1,4 @@
+import { state } from '../core/state.js';
 /**
  * Updates a telemetry verification check icon.
  * @param {string} elementId ID of the check element
@@ -153,13 +154,18 @@ export function updateEscInfoPanel(escList = []) {
 
     // 1. Модель ESC та прошивка
     const elModel = document.getElementById('infoEscModel');
+    const isBluejaySignature = (detectedSig === '0xE8B2' || detectedSig === '0xB2E8' || 
+                                detectedSig === '0xE8B1' || detectedSig === '0xB1E8');
+    const finalModel = isBluejaySignature ? 'Bluejay 8-bit' : (detectedModel || (foundCount > 0 ? 'BLHeli_32' : '—'));
+
     if (elModel) {
-        elModel.textContent = detectedModel || (foundCount > 0 ? 'BLHeli_32' : '—');
+        elModel.textContent = finalModel;
     }
-    if (foundCount > 0 && (detectedModel || foundCount === 4)) {
-        setCheckStatus('checkEscModel', 'pass', 'Модель ESC підтверджено: ' + (detectedModel || 'BLHeli_32'));
+    const isModelValid = (finalModel === 'BLHeli_32' || finalModel.includes('BLHeli_32') || finalModel.includes('32.'));
+    if (foundCount > 0 && isModelValid) {
+        setCheckStatus('checkEscModel', 'pass', 'Модель ESC підтверджено: BLHeli_32');
     } else if (foundCount > 0) {
-        setCheckStatus('checkEscModel', 'warn', 'Частково розпізнано модель');
+        setCheckStatus('checkEscModel', 'fail', 'Невідповідність моделі ESC! Очікувалось BLHeli_32, виявлено: ' + finalModel);
     } else {
         setCheckStatus('checkEscModel', 'fail', 'ESC не виявлено');
     }
@@ -167,18 +173,41 @@ export function updateEscInfoPanel(escList = []) {
     // 2. Модель процесора (MCU Signature)
     const elMcu = document.getElementById('infoEscMcu');
     if (elMcu) {
-        if (detectedMcu && detectedSig) {
+        if (detectedMcu && (detectedMcu === detectedSig || detectedMcu.startsWith('0x'))) {
+            elMcu.innerHTML = `<span style="color:#fff">${detectedMcu}</span>`;
+        } else if (detectedMcu && detectedSig) {
             elMcu.innerHTML = `<span style="color:#fff">${detectedMcu}</span> <span style="font-size:10px; color:#888;">(${detectedSig})</span>`;
         } else {
             elMcu.textContent = detectedMcu || '—';
         }
     }
-    if (detectedMcu && detectedSig) {
-        setCheckStatus('checkEscMcu', 'pass', 'MCU ESC: ' + detectedMcu + ' (' + detectedSig + ')');
-    } else if (detectedMcu) {
-        setCheckStatus('checkEscMcu', 'warn', 'MCU ESC: ' + detectedMcu);
+    const normSig = (detectedSig || '').toUpperCase();
+    const isMcuValid = (normSig.includes('4706') || (detectedMcu && detectedMcu.includes('4706')));
+    if (detectedMcu && isMcuValid) {
+        setCheckStatus('checkEscMcu', 'pass', 'MCU ESC підтверджено: 0x4706');
+    } else if (detectedMcu || detectedSig) {
+        setCheckStatus('checkEscMcu', 'fail', 'Невідповідність MCU ESC! Очікувалось 0x4706, виявлено: ' + (detectedSig || detectedMcu));
     } else {
         setCheckStatus('checkEscMcu', 'fail', 'MCU ESC не визначено');
+    }
+
+    // Блокування кнопки прошивки ESC при будь-яких помилках (немає батареї, збій ACK, не 4/4 або невідповідність моделі/MCU)
+    const canFlashEsc = (foundCount === 4 && isModelValid && isMcuValid);
+    state.escChecksPassed = canFlashEsc;
+
+    const btnConfigureESC = document.getElementById('btnConfigureESC');
+    if (btnConfigureESC) {
+        if (!canFlashEsc) {
+            btnConfigureESC.disabled = true;
+            if (foundCount < 4) {
+                btnConfigureESC.title = 'Прошивка заблокована: Немає живлення LiPo або не всі ESC відповідають (знайдено ' + foundCount + '/4)!';
+            } else {
+                btnConfigureESC.title = 'Прошивка заблокована: Модель має бути BLHeli_32, а MCU 0x4706!';
+            }
+        } else {
+            btnConfigureESC.disabled = false;
+            btnConfigureESC.title = '';
+        }
     }
 
     // 3. Живлення та ACK
