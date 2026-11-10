@@ -106,7 +106,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
             setLogDeviceId(fcDetails.deviceId);
         }
         const mismatchStats = calculateMismatch(script, diffContent);
-        updateInfoPanel(fcDetails, mismatchStats);
+        updateInfoPanel(fcDetails, mismatchStats, { expectedBoard });
         log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
         log(`[Аналіз пресету (до запису)] Неспівпадіння: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
 
@@ -200,7 +200,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         // Повна відповідність пресету!
         setFcSubStep('verify', 'ok');
-        updateInfoPanel(fcDetails, postMismatchStats);
+        updateInfoPanel(fcDetails, postMismatchStats, { expectedBoard });
         log('✅ [ВЕРИФІКАЦІЯ УСПІШНА]: Конфігурація 100% відповідає зразку пресету (0 розбіжностей). Збереження...');
 
         isRebooting = true;

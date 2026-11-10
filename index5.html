@@ -42,23 +42,38 @@
                     <div class="info-group-title">Параметри плати</div>
                     <div class="info-row">
                         <span class="info-label">Плата / Target:</span>
-                        <span class="info-val" id="infoBoardName">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoBoardName">—</span>
+                            <span class="check-icon state-idle" id="checkBoard" title="Статус перевірки плати">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Версія BTFL:</span>
-                        <span class="info-val" id="infoFirmwareVer">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoFirmwareVer">—</span>
+                            <span class="check-icon state-idle" id="checkFw" title="Статус перевірки прошивки">—</span>
+                        </div>
                     </div>
                     <div class="info-row expert-only">
                         <span class="info-label">Дата збірки:</span>
-                        <span class="info-val" id="infoBuildDate">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoBuildDate">—</span>
+                            <span class="check-icon state-idle" id="checkDate" title="Статус перевірки дати збірки">—</span>
+                        </div>
                     </div>
                     <div class="info-row expert-only">
                         <span class="info-label">MCU:</span>
-                        <span class="info-val" id="infoMcuType">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoMcuType">—</span>
+                            <span class="check-icon state-idle" id="checkMcu" title="Статус перевірки MCU">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">ID пристрою:</span>
-                        <span class="info-val" id="infoDeviceId" style="font-family:monospace; font-size:11px; word-break:break-all;">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoDeviceId" style="font-family:monospace; font-size:11px; word-break:break-all;">—</span>
+                            <span class="check-icon state-idle" id="checkDeviceId" title="Статус перевірки апаратного UID">—</span>
+                        </div>
                     </div>
                 </div>
 
@@ -83,23 +98,38 @@
                     <div class="info-group-title">Стан моторів (BLHeli_32)</div>
                     <div class="info-row">
                         <span class="info-label">Модель ESC:</span>
-                        <span class="info-val" id="infoEscModel" style="max-width:180px;">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscModel" style="max-width:150px;">—</span>
+                            <span class="check-icon state-idle" id="checkEscModel" title="Статус моделі ESC">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">MCU ESC:</span>
-                        <span class="info-val" id="infoEscMcu">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscMcu">—</span>
+                            <span class="check-icon state-idle" id="checkEscMcu" title="Статус процесора ESC">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Живлення / ACK:</span>
-                        <span class="info-val" id="infoEscPowerAck">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscPowerAck">—</span>
+                            <span class="check-icon state-idle" id="checkEscPower" title="Статус LiPo живлення та ACK">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">ESC #1..#4:</span>
-                        <span class="info-val" id="infoEscDirs" style="font-size:11px;">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscDirs" style="font-size:11px;">—</span>
+                            <span class="check-icon state-idle" id="checkEscDirs" title="Статус моторів ESC #1..#4">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Пресет 100%:</span>
-                        <span class="info-val" id="infoEscPresetStatus">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscPresetStatus">—</span>
+                            <span class="check-icon state-idle" id="checkEscPreset" title="Відповідність пресету 100%">—</span>
+                        </div>
                     </div>
                 </div>
             </div>
