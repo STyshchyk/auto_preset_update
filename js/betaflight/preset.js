@@ -154,6 +154,9 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
             setStepStatus(1, 'success');
 
+            // Захист від скидання лівої панелі через короткочасний USB disconnect при виході
+            state.ignoreRebootEventsUntil = Date.now() + 5000;
+
             // Чистий вихід із CLI без зайвого збереження та перезавантаження
             try {
                 await writer.write('exit\r\n');
@@ -398,6 +401,9 @@ export async function comparePresetWithFc() {
             setAlreadyFlashedBadge(true, '⚡ Вже прошитий');
             log('✅ [100% ЗБІГ] Польотник уже повністю налаштований за цим пресетом (0 розбіжностей)!');
         }
+
+        // Захист від скидання лівої панелі через короткочасний USB disconnect при виході з CLI
+        state.ignoreRebootEventsUntil = Date.now() + 5000;
 
         // Clean exit without reboot
         try {
