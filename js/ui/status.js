@@ -1,4 +1,4 @@
-export function setStepStatus(stepNumber, state) {
+export function setStepStatus(stepNumber, state, customText = null) {
     const el = document.getElementById(`stepStatus${stepNumber}`);
     if (!el) return;
 
@@ -10,7 +10,7 @@ export function setStepStatus(stepNumber, state) {
     };
 
     el.className = `step-status ${state}`;
-    el.textContent = labels[state] || labels.awaiting;
+    el.textContent = customText || labels[state] || labels.awaiting;
 }
 
 export function setEscBadge(escIndex, state, text) {

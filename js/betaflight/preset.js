@@ -142,6 +142,39 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
             throw new Error(`Невідповідність версії Betaflight! У пресеті вказано версію [${expectedFw}], але на польотнику встановлено [${fcDetails.firmware}]. Запис скасовано для уникнення збою конфігурації.`);
         }
 
+        // --- ПЕРЕВІРКА НА ВЖЕ ПРОШИТИЙ ПРИСТРІЙ (0% НЕВПІВПАДІННЯ) ---
+        if (mismatchStats.mismatchCount === 0 && mismatchStats.totalPresetVars > 0) {
+            log('🎯 [ВЖЕ ПРОШИТО] 0% розбіжностей із пресетом! Конфігурація польотника повністю відповідає зразку.');
+            log('Пропуск повторного запису команд у пам\'ять контролера.');
+
+            setFcSubStep('flash', 'ok', '1. Пропущено (0% diff)');
+            setFcSubStep('readDiff', 'ok', '2. Звірено (100% збіг)');
+            setFcSubStep('verify', 'ok', '3. Перевірено (Вже прошитий)');
+
+            setStepStatus(1, 'success', '✅ Вже прошитий пристрій');
+
+            // Чистий вихід із CLI без зайвого збереження та перезавантаження
+            try {
+                await writer.write('exit\r\n');
+                await delay(150);
+            } catch (_) {}
+
+            await closeSerialSession(state.port, reader, writer, textEncoder);
+            state.port = null;
+
+            await endOperationStep('SUCCESS', `Пристрій вже був прошитий раніше (0% розбіжностей, ${fcDetails.board})`, {
+                board: fcDetails.board,
+                firmware: fcDetails.firmware,
+                alreadyFlashed: true
+            });
+
+            showPopup('success', 'Вже прошитий пристрій', 'Конфігурація польотника вже на 100% відповідає пресету (0% розбіжностей). Прошивку пропущено!', 2000, () => {
+                log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
+            });
+
+            return { skipped: true, fcDetails, mismatchStats };
+        }
+
         // Швидке очищення залишкового ехо перед відправкою команд
         await readCliResponse(reader, 150, false).catch(() => {});
 

@@ -45,6 +45,13 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-10)
 
+* **Zero-Mismatch Skip Flashing Engine (`js/betaflight/preset.js`, `js/ui/status.js`, `js/core/pipeline.js`)**:
+  - Якщо початковий аналіз `diff all` виявляє **0% розбіжностей** із пресетом (`mismatchStats.mismatchCount === 0`), система розпізнає пристрій як вже прошитий.
+  - Повторний запис команд у флеш-пам'ять FC та зайва команда `save` скасовуються.
+  - Статус Кроку 1 переводиться в `success` із явним текстом біля іконки успіху: `<span class="step-status success">✅ Вже прошитий пристрій</span>`.
+  - Підпункти Кроку 1 інформують: `1. Пропущено (0% diff)`, `2. Звірено (100% збіг)`, `3. Перевірено (Вже прошитий)`.
+  - Конвеєр спрощеного режиму відображає `Вже прошитий (0% розбіжностей, пропущено)` та без затримки на перезавантаження продовжує перехід до Кроку 2 (ESC).
+
 * **Operator Instructions & FAQ Redesign (`index5.html`, `css/components.css`)**:
   - Structured into chronological stages:
     1. **🔌 До підключення**: Сувора заборона підключення декількох девайсів (`‼️`), закриття сторонніх конфігураторів (Betaflight/ESC Configurator/BLHeliSuite32), рекомендація USB Type-A через хаб з живленням, порядок живлення (LiPo ➔ очікування мелодії ➔ 2 сек ➔ USB), техніка безпеки (зняті пропелери `⚠️`).
