@@ -785,15 +785,184 @@ button:disabled {
 .faq-content {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     font-size: 12px;
     line-height: 1.4;
     color: #cbd5e1;
 }
 
+.faq-section {
+    border-bottom: 1px solid #2a2e38;
+    padding-bottom: 8px;
+}
+
+.faq-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.faq-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #38bdf8;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.faq-item {
+    margin-bottom: 6px;
+}
+
+.faq-item:last-child {
+    margin-bottom: 0;
+}
+
 .faq-item p {
-    margin: 4px 0 0 0;
+    margin: 3px 0 0 0;
     color: #94a3b8;
+}
+
+.faq-badge-pass {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    color: #00ff88;
+    background: rgba(0, 255, 136, 0.15);
+    border: 1px solid rgba(0, 255, 136, 0.45);
+    margin: 0 2px;
+    vertical-align: middle;
+}
+
+.faq-status-pill-success {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--success);
+    color: var(--success);
+    background: rgba(0, 255, 102, 0.12);
+    vertical-align: middle;
+}
+
+.faq-btn-pill-master {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border: 1px solid #34d399;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+    user-select: none;
+    vertical-align: middle;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Modal Operator Agreement */
+.modal-operator-agreement {
+    max-width: 520px;
+    text-align: left;
+    border-left: 8px solid #38bdf8;
+}
+
+.modal-operator-agreement h3 {
+    margin-top: 0;
+    font-size: 17px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-operator-agreement p {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+}
+
+.modal-operator-list {
+    background: #12141a;
+    border: 1px solid #2a2e38;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+.modal-operator-list strong {
+    color: #e2e8f0;
+}
+
+.modal-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #e2e8f0;
+    font-weight: 600;
+    user-select: none;
+    margin-bottom: 16px;
+}
+
+.modal-checkbox-row input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #0284c7;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-confirm-instructions {
+    background: #0284c7;
+    color: #fff;
+    border: 1px solid #38bdf8;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.btn-confirm-instructions:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #2a2e38;
+    border-color: #444;
+}
+
+.btn-confirm-instructions:not(:disabled):hover {
+    background: #0369a1;
 }
 
 /* --------------------------------------------------------------------------

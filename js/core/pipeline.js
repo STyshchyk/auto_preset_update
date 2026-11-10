@@ -59,6 +59,9 @@ export async function runFullDroneSequence() {
             throw new Error('Помилка під час прошивки Betaflight (Крок 1 не пройдено).');
         }
 
+        // Пресет FC успішно записано та перевірено (Крок 1 пройшов)
+        setProgressionStep(2, 'success', 'Пресет FC успішно записано', durFlash);
+
         // --- BATTERY CHECK IN SIMPLIFIED MODE ---
         // Betaflight 'status' detects battery presence. In simplified mode, ESC cannot be flashed without LiPo!
         if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
@@ -66,7 +69,6 @@ export async function runFullDroneSequence() {
             throw new Error(`Силову батарею (LiPo) не підключено: ${state.lastFcDetails.batteryInfo}! Підключіть LiPo акумулятор перед прошивкою регуляторів ESC.`);
         }
 
-        setProgressionStep(2, 'success', 'Пресет FC успішно записано', durFlash);
         setProgressionBanner('working', 'Крок 1 успішно!', 'Очікування перезавантаження FC перед налаштуванням ESC...');
 
         // --- STEP 2: REBOOT & 4-WAY HANDSHAKE WAIT ---

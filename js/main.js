@@ -7,7 +7,7 @@ import { initSerialEvents } from './core/serial.js';
 import { log, exportLogsToJson, clearTerminalAndDbLogs } from './ui/log.js';
 import { resetAllStepStatuses } from './ui/status.js';
 import { resetInfoPanel } from './ui/infoPanel.js';
-import { closeModal } from './ui/modal.js';
+import { closeModal, ensureInstructionsAcknowledged } from './ui/modal.js';
 import { flashBetaflightPreset, skipToEsc } from './betaflight/preset.js';
 import { backupBetaflightConfig } from './betaflight/backup.js';
 import { readAllEscSettings } from './blheli/eeprom.js';
@@ -82,7 +82,9 @@ if (btnResetDailyStats) {
 
 // --- MASTER ACTION BUTTON FOR SIMPLIFIED MODE ---
 if (btnRunSimplified) {
-    btnRunSimplified.addEventListener('click', runFullDroneSequence);
+    btnRunSimplified.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(runFullDroneSequence);
+    });
 }
 
 // --- PORT MANAGEMENT ---
@@ -92,7 +94,11 @@ initSerialEvents(log, () => {
 });
 
 // --- STEP 1: BETAFLIGHT CLI PRESET FLASHER ---
-if (btnFlashFC) btnFlashFC.addEventListener('click', flashBetaflightPreset);
+if (btnFlashFC) {
+    btnFlashFC.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(flashBetaflightPreset);
+    });
+}
 if (btnSkipToEsc) btnSkipToEsc.addEventListener('click', skipToEsc);
 if (btnBackup) btnBackup.addEventListener('click', backupBetaflightConfig);
 
