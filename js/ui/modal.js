@@ -14,7 +14,7 @@ export function showPopup(type, title, message, autoCloseMs = 0, callback = null
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalMsg').textContent = message;
 
-    if (type === 'success' && autoCloseMs > 0) {
+    if (autoCloseMs > 0) {
         closeBtn.style.display = 'none';
         modal.classList.add('active');
         state.popupTimer = setTimeout(() => {

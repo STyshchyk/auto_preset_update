@@ -18,6 +18,9 @@
             <select id="portSelect">
                 <option value="new">+ Обрати / Додати новий порт...</option>
             </select>
+            <button id="btnGrantPort" class="btn-grant-port" style="display:none;" title="Надати доступ браузера до щойно підключеного польотника">
+                🔌 Дозволити новий пристрій
+            </button>
         </div>
         <div class="top-bar-right" style="display:flex; align-items:center; gap:12px;">
             <button id="btnToggleMode" class="btn-mode-toggle" title="Перемкнути між спрощеним та експертним режимами">
@@ -130,6 +133,27 @@
                             <span class="info-val" id="infoEscPresetStatus">—</span>
                             <span class="check-icon state-idle" id="checkEscPreset" title="Відповідність пресету 100%">—</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions & FAQ -->
+            <div class="info-card faq-card">
+                <div class="info-card-header">
+                    <span class="info-card-title">ℹ️ Інструкція оператора / FAQ</span>
+                </div>
+                <div class="faq-content">
+                    <div class="faq-item">
+                        <strong>1. Порядок підключення:</strong>
+                        <p>Підключіть силову батарею до дрона, потім увімкніть USB до ПК.</p>
+                    </div>
+                    <div class="faq-item">
+                        <strong>2. Старт прошивки:</strong>
+                        <p>Натисніть велику кнопку «ПРОШИТИ ДРОН». Процес триває приблизно 8-10 секунд.</p>
+                    </div>
+                    <div class="faq-item">
+                        <strong>3. Що робити при помилці ESC?</strong>
+                        <p>Якщо ESC показує «Немає відповіді» або «Fail» — перевірте, чи підключено LiPo акумулятор і чи горить світлодіод на регуляторах.</p>
                     </div>
                 </div>
             </div>
@@ -588,27 +612,6 @@ rateprofile 0
                             <div class="stat-val" id="statAllTotal">0</div>
                             <div class="stat-lbl">Всього</div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Instructions & FAQ -->
-            <div class="info-card faq-card" style="margin-top: 14px;">
-                <div class="info-card-header">
-                    <span class="info-card-title">ℹ️ Інструкція оператора / FAQ</span>
-                </div>
-                <div class="faq-content">
-                    <div class="faq-item">
-                        <strong>1. Порядок підключення:</strong>
-                        <p>Підключіть силову батарею LiPo (4S-6S) до дрона, потім увімкніть USB до ПК.</p>
-                    </div>
-                    <div class="faq-item">
-                        <strong>2. Старт прошивки:</strong>
-                        <p>Натисніть велику кнопку «ПРОШИТИ ДРОН». Процес триває приблизно 8-10 секунд.</p>
-                    </div>
-                    <div class="faq-item">
-                        <strong>3. Що робити при помилці ESC?</strong>
-                        <p>Якщо ESC показує «Немає відповіді» або «Fail» — перевірте, чи підключено LiPo акумулятор і чи горить світлодіод на регуляторах.</p>
                     </div>
                 </div>
             </div>
