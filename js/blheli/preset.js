@@ -4,7 +4,7 @@
 
 import { delay, bytesEqual } from '../utils/bytes.js';
 import { log, startOperationStep, endOperationStep } from '../ui/log.js';
-import { setStepStatus, setEscBadge, setEscFlowStep } from '../ui/status.js';
+import { setStepStatus, setEscBadge, setEscFlowStep, setEscAlreadyFlashedBadge } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
 import {
@@ -71,6 +71,7 @@ export async function applyEscPreset() {
     }
 
     setStepStatus(2, 'working');
+    setEscAlreadyFlashedBadge(false);
     for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
     startOperationStep('ESC_CONFIG_PRESET', 'Крок 2: Налаштування 4 ESC BLHeli_32');
 
@@ -181,6 +182,7 @@ export async function applyEscPreset() {
 
             if (writeCount === 0) {
                 log('\n[Пресет ESC] Усі 4 ESC вже мають цей пресет, запис не потрібен.');
+                setEscAlreadyFlashedBadge(true, '⚡ Вже прошитий');
                 for (let esc = 0; esc < ESC_COUNT; esc++) {
                     setEscBadge(esc, 'ok', 'Вже застосовано');
                 }

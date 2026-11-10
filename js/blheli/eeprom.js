@@ -6,7 +6,7 @@ import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log } from '../ui/log.js';
-import { setStepStatus, setEscBadge, setAllEscButtons, setEscFlowStep } from '../ui/status.js';
+import { setStepStatus, setEscBadge, setAllEscButtons, setEscFlowStep, setEscAlreadyFlashedBadge } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
 import {
@@ -135,6 +135,7 @@ export async function readAllEscSettings() {
     const hasActiveSession = isEscSessionActive();
 
     setStepStatus(2, 'working');
+    setEscAlreadyFlashedBadge(false);
     setAllEscButtons(true);
     for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
 
@@ -239,6 +240,12 @@ export async function readAllEscSettings() {
         const { foundEscCount, escDetails } = result;
 
         if (foundEscCount === 4) {
+            const allMatched = escDetails.length === 4 && escDetails.every(e => e.presetMatched);
+            if (allMatched) {
+                setEscAlreadyFlashedBadge(true, '⚡ Вже прошитий');
+            } else {
+                setEscAlreadyFlashedBadge(false);
+            }
             setStepStatus(2, 'success');
             showPopup('success', 'Дані успішно зчитано', `Зчитано всі 4 ESC!\n\n` + escDetails.map(e => `ESC #${e.esc + 1}: ${e.direction.toUpperCase()} (${e.presetMatched ? '100%' : 'Stock'}) - ${e.mcu}`).join('\n'), 3500);
         } else if (foundEscCount > 0) {

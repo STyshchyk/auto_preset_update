@@ -29,6 +29,22 @@ export function setAlreadyFlashedBadge(visible, customLabel = '⚡ Вже про
     }
 }
 
+/**
+ * Shows or hides the "⚡ Вже прошитий" badge next to Step 2 status (ESC).
+ * @param {boolean} visible
+ * @param {string} [customLabel]
+ */
+export function setEscAlreadyFlashedBadge(visible, customLabel = '⚡ Вже прошитий') {
+    const badge = document.getElementById('badgeEscAlreadyFlashed');
+    if (!badge) return;
+    if (visible) {
+        badge.textContent = customLabel;
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
 export function setEscBadge(escIndex, state, text) {
     const badge = document.getElementById(`badgeEsc${escIndex}`);
     if (badge) {
@@ -146,6 +162,7 @@ export function resetAllStepStatuses() {
     setStepStatus(1, 'awaiting');
     setStepStatus(2, 'awaiting');
     setAlreadyFlashedBadge(false);
+    setEscAlreadyFlashedBadge(false);
     resetFcSubSteps();
     for (let i = 0; i < 4; i++) {
         setEscBadge(i, 'pending', 'Очікування');
