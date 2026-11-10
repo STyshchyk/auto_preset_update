@@ -3,8 +3,8 @@
  * Orchestrates event bindings and subsystem initialization.
  */
 
-import { initSerialEvents, promptGrantNewPort, updateGrantButtonVisibility } from './core/serial.js';
-import { log } from './ui/log.js';
+import { initSerialEvents } from './core/serial.js';
+import { log, exportLogsToJson, clearTerminalAndDbLogs } from './ui/log.js';
 import { resetAllStepStatuses } from './ui/status.js';
 import { resetInfoPanel } from './ui/infoPanel.js';
 import { closeModal } from './ui/modal.js';
@@ -35,8 +35,8 @@ const modalCloseBtn       = document.getElementById('modalCloseBtn');
 const btnToggleMode       = document.getElementById('btnToggleMode');
 const btnRunSimplified    = document.getElementById('btnRunSimplified');
 const btnResetDailyStats  = document.getElementById('btnResetDailyStats');
-const btnGrantPort        = document.getElementById('btnGrantPort');
-const portSelect          = document.getElementById('portSelect');
+const btnExportLogsJson   = document.getElementById('btnExportLogsJson');
+const btnClearLogs        = document.getElementById('btnClearLogs');
 
 // --- SIMPLIFIED MODE TOGGLE ---
 const MODE_STORAGE_KEY = 'drone_station_mode';
@@ -91,22 +91,6 @@ initSerialEvents(log, () => {
     resetInfoPanel();
 });
 
-if (btnGrantPort) {
-    btnGrantPort.addEventListener('click', async () => {
-        await promptGrantNewPort(log);
-    });
-}
-
-if (portSelect) {
-    portSelect.addEventListener('change', () => {
-        if (portSelect.value === 'new') {
-            promptGrantNewPort(log);
-        } else {
-            updateGrantButtonVisibility();
-        }
-    });
-}
-
 // --- STEP 1: BETAFLIGHT CLI PRESET FLASHER ---
 if (btnFlashFC) btnFlashFC.addEventListener('click', flashBetaflightPreset);
 if (btnSkipToEsc) btnSkipToEsc.addEventListener('click', skipToEsc);
@@ -123,3 +107,15 @@ if (btnConfigureESC) btnConfigureESC.addEventListener('click', applyEscPreset);
 
 // --- MODAL CONTROLS ---
 if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+
+// --- EXPERT LOGGING CONTROLS ---
+if (btnExportLogsJson) {
+    btnExportLogsJson.addEventListener('click', exportLogsToJson);
+}
+if (btnClearLogs) {
+    btnClearLogs.addEventListener('click', () => {
+        if (window.confirm('Очистити термінал та видалити всі збережені логи операцій?')) {
+            clearTerminalAndDbLogs();
+        }
+    });
+}

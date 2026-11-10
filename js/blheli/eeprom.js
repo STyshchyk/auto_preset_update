@@ -109,7 +109,9 @@ export async function readEscBlock(writer, reader, esc) {
     for (let attempt = 1; attempt <= 3; attempt++) {
         const res = await send4WayCmd(writer, reader, CMD_DEVICE_READ, BL32_EEPROM_ADDR, [0x00]);
         if (res.ok && res.data.length === ESC_BLOCK_LEN && res.crcOk) {
-            return { ok: true, data: new Uint8Array(res.data), signature, mcu: conn.mcu, signatureHex: conn.signatureHex };
+            const hexHeader = Array.from(res.data.slice(0, 32)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            log(`[ESC #${esc + 1} Read RAW (0x00..0x1F)]: ${hexHeader}`);
+            return { ok: true, data: new Uint8Array(res.data), signature, mcu: conn.mcu, signatureHex: conn.signatureHex, rawData: res.data };
         }
         lastMsg = !res.ok ? res.msg
             : (res.data.length !== ESC_BLOCK_LEN ? `довжина ${res.data.length} замість ${ESC_BLOCK_LEN}` : 'CRC відповіді не збігся');
@@ -187,6 +189,11 @@ export async function readAllEscSettings() {
                 }
             }
 
+            const isBluejay = (connRes.signatureHex === '0xE8B2' || connRes.signatureHex === '0xB2E8' || 
+                               connRes.signatureHex === '0xE8B1' || connRes.signatureHex === '0xB1E8' ||
+                               (asciiName && asciiName.toLowerCase().includes('bluejay')));
+            const detectedModelName = isBluejay ? 'Bluejay 8-bit' : (asciiName || 'BLHeli_32');
+
             escDetails.push({
                 esc,
                 direction,
@@ -195,7 +202,7 @@ export async function readAllEscSettings() {
                 mcu: connRes.mcu || 'ARM 32-bit',
                 signature: connRes.signatureHex || '0x????',
                 ack: 'OK (LiPo є)',
-                modelName: asciiName || 'BLHeli_32'
+                modelName: detectedModelName
             });
 
             // Повний hex-дамп 256 байтів

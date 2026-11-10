@@ -41,6 +41,9 @@ export function resetProgression() {
             const icon = el.querySelector('.step-icon');
             if (icon) icon.textContent = '⏳';
         }
+        const stepNum = id.replace('progStep', '');
+        const timeEl = document.getElementById(`progTimeStep${stepNum}`);
+        if (timeEl) timeEl.textContent = '';
     });
 
     const banner = document.getElementById('progBanner');
@@ -56,7 +59,7 @@ export function resetProgression() {
  * @param {'working'|'success'|'fail'|'awaiting'} status
  * @param {string} [msg] Optional custom detail message
  */
-export function setProgressionStep(stepNumber, status, msg = '') {
+export function setProgressionStep(stepNumber, status, msg = '', durationSeconds = null) {
     const id = `progStep${stepNumber}`;
     const el = document.getElementById(id);
     if (!el) return;
@@ -73,6 +76,13 @@ export function setProgressionStep(stepNumber, status, msg = '') {
     if (msg) {
         const sub = el.querySelector('.step-subtitle');
         if (sub) sub.textContent = msg;
+    }
+
+    if (durationSeconds !== null && durationSeconds !== undefined) {
+        const timeEl = document.getElementById(`progTimeStep${stepNumber}`);
+        if (timeEl) {
+            timeEl.textContent = `⏱️ ${durationSeconds}s`;
+        }
     }
 }
 

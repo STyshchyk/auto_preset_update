@@ -1,3 +1,25 @@
+import { state } from '../core/state.js';
+/**
+ * Updates a telemetry verification check icon.
+ * @param {string} elementId ID of the check element
+ * @param {'idle' | 'pass' | 'fail' | 'warn'} status
+ * @param {string} title Tooltip text
+ */
+export function setCheckStatus(elementId, status, title = '') {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.className = 'check-icon state-' + status;
+    if (status === 'pass') {
+        el.textContent = '✓';
+    } else if (status === 'fail') {
+        el.textContent = '✕';
+    } else if (status === 'warn') {
+        el.textContent = '!';
+    } else {
+        el.textContent = '—';
+    }
+    if (title) el.title = title;
+}
 /**
  * UI Renderer for Left Info Panel
  */
@@ -7,7 +29,7 @@
  * @param {object} fcDetails Parsed FC telemetry { board, firmware, buildDate, mcu }
  * @param {object} mismatchResult Result from calculateMismatch
  */
-export function updateInfoPanel(fcDetails = {}, mismatchResult = null) {
+export function updateInfoPanel(fcDetails = {}, mismatchResult = null, options = {}) {
     const elBoard = document.getElementById('infoBoardName');
     const elFw = document.getElementById('infoFirmwareVer');
     const elDate = document.getElementById('infoBuildDate');
@@ -19,6 +41,59 @@ export function updateInfoPanel(fcDetails = {}, mismatchResult = null) {
     if (elDate) elDate.textContent = fcDetails.buildDate || '—';
     if (elMcu) elMcu.textContent = fcDetails.mcu || '—';
     if (elDeviceId) elDeviceId.textContent = fcDetails.deviceId || '—';
+
+    // Оновлення статус-іконок верифікації параметрів плати
+    const expectedBoard = options.expectedBoard || null;
+    if (fcDetails.board) {
+        if (!expectedBoard || fcDetails.board.includes(expectedBoard) || expectedBoard.includes(fcDetails.board)) {
+            setCheckStatus('checkBoard', 'pass', 'Плата підтверджена: ' + fcDetails.board);
+        } else {
+            setCheckStatus('checkBoard', 'fail', 'Невідповідність плати: очікувалась ' + expectedBoard + ', виявлено ' + fcDetails.board);
+        }
+    } else {
+        setCheckStatus('checkBoard', 'fail', 'Плату не визначено (UNKNOWN)');
+    }
+
+    const expectedFw = options.expectedFw || null;
+    let fwCheckPass = false;
+    let fwCheckFailMsg = '';
+
+    if (fcDetails.firmware) {
+        if (!expectedFw || fcDetails.firmware === expectedFw) {
+            fwCheckPass = true;
+            setCheckStatus('checkFw', 'pass', 'Версія BTFL підтверджена: ' + fcDetails.firmware);
+        } else {
+            fwCheckFailMsg = 'Невідповідність BTFL: очікувалась ' + expectedFw + ', в польотнику ' + fcDetails.firmware;
+            setCheckStatus('checkFw', 'fail', fwCheckFailMsg);
+        }
+    } else {
+        fwCheckFailMsg = 'Не вдалося зчитати версію Betaflight';
+        setCheckStatus('checkFw', 'fail', fwCheckFailMsg);
+    }
+
+    // Статус дати збірки прив'язаний до статусу версії прошивки
+    if (fwCheckPass) {
+        setCheckStatus('checkDate', 'pass', 'Дата збірки підтверджена (збіг версії): ' + (fcDetails.buildDate || 'OK'));
+    } else {
+        setCheckStatus('checkDate', 'fail', 'Дата збірки не валідна (' + (fwCheckFailMsg || 'не збігається версія прошивки') + ')');
+    }
+
+    const expectedMcu = options.expectedMcu || null;
+    if (fcDetails.mcu) {
+        if (!expectedMcu || fcDetails.mcu.includes(expectedMcu) || expectedMcu.includes(fcDetails.mcu)) {
+            setCheckStatus('checkMcu', 'pass', 'MCU підтверджено: ' + fcDetails.mcu);
+        } else {
+            setCheckStatus('checkMcu', 'fail', 'Невідповідність MCU: очікувався ' + expectedMcu + ', виявлено ' + fcDetails.mcu);
+        }
+    } else {
+        setCheckStatus('checkMcu', 'fail', 'MCU не визначено');
+    }
+
+    if (fcDetails.deviceId) {
+        setCheckStatus('checkDeviceId', 'pass', 'Апаратний UID верифіковано');
+    } else {
+        setCheckStatus('checkDeviceId', 'warn', 'UID відсутній або не зчитаний');
+    }
 
     const elBadge = document.getElementById('infoMismatchBadge');
     const elNote = document.getElementById('infoMismatchNote');
@@ -79,17 +154,59 @@ export function updateEscInfoPanel(escList = []) {
 
     // 1. Модель ESC та прошивка
     const elModel = document.getElementById('infoEscModel');
+    const isBluejaySignature = (detectedSig === '0xE8B2' || detectedSig === '0xB2E8' || 
+                                detectedSig === '0xE8B1' || detectedSig === '0xB1E8');
+    const finalModel = isBluejaySignature ? 'Bluejay 8-bit' : (detectedModel || (foundCount > 0 ? 'BLHeli_32' : '—'));
+
     if (elModel) {
-        elModel.textContent = detectedModel || (foundCount > 0 ? 'BLHeli_32' : '—');
+        elModel.textContent = finalModel;
+    }
+    const isModelValid = (finalModel === 'BLHeli_32' || finalModel.includes('BLHeli_32') || finalModel.includes('32.'));
+    if (foundCount > 0 && isModelValid) {
+        setCheckStatus('checkEscModel', 'pass', 'Модель ESC підтверджено: BLHeli_32');
+    } else if (foundCount > 0) {
+        setCheckStatus('checkEscModel', 'fail', 'Невідповідність моделі ESC! Очікувалось BLHeli_32, виявлено: ' + finalModel);
+    } else {
+        setCheckStatus('checkEscModel', 'fail', 'ESC не виявлено');
     }
 
     // 2. Модель процесора (MCU Signature)
     const elMcu = document.getElementById('infoEscMcu');
     if (elMcu) {
-        if (detectedMcu && detectedSig) {
+        if (detectedMcu && (detectedMcu === detectedSig || detectedMcu.startsWith('0x'))) {
+            elMcu.innerHTML = `<span style="color:#fff">${detectedMcu}</span>`;
+        } else if (detectedMcu && detectedSig) {
             elMcu.innerHTML = `<span style="color:#fff">${detectedMcu}</span> <span style="font-size:10px; color:#888;">(${detectedSig})</span>`;
         } else {
             elMcu.textContent = detectedMcu || '—';
+        }
+    }
+    const normSig = (detectedSig || '').toUpperCase();
+    const isMcuValid = (normSig.includes('4706') || (detectedMcu && detectedMcu.includes('4706')));
+    if (detectedMcu && isMcuValid) {
+        setCheckStatus('checkEscMcu', 'pass', 'MCU ESC підтверджено: 0x4706');
+    } else if (detectedMcu || detectedSig) {
+        setCheckStatus('checkEscMcu', 'fail', 'Невідповідність MCU ESC! Очікувалось 0x4706, виявлено: ' + (detectedSig || detectedMcu));
+    } else {
+        setCheckStatus('checkEscMcu', 'fail', 'MCU ESC не визначено');
+    }
+
+    // Блокування кнопки прошивки ESC при будь-яких помилках (немає батареї, збій ACK, не 4/4 або невідповідність моделі/MCU)
+    const canFlashEsc = (foundCount === 4 && isModelValid && isMcuValid);
+    state.escChecksPassed = canFlashEsc;
+
+    const btnConfigureESC = document.getElementById('btnConfigureESC');
+    if (btnConfigureESC) {
+        if (!canFlashEsc) {
+            btnConfigureESC.disabled = true;
+            if (foundCount < 4) {
+                btnConfigureESC.title = 'Прошивка заблокована: Немає живлення LiPo або не всі ESC відповідають (знайдено ' + foundCount + '/4)!';
+            } else {
+                btnConfigureESC.title = 'Прошивка заблокована: Модель має бути BLHeli_32, а MCU 0x4706!';
+            }
+        } else {
+            btnConfigureESC.disabled = false;
+            btnConfigureESC.title = '';
         }
     }
 
@@ -98,10 +215,13 @@ export function updateEscInfoPanel(escList = []) {
     if (elPower) {
         if (foundCount === 4) {
             elPower.innerHTML = '<span style="color:#00ff88;">OK (4/4 LiPo є)</span>';
+            setCheckStatus("checkEscPower", "pass", "LiPo живлення та зв'язок 4/4 ACK OK");
         } else if (foundCount > 0) {
             elPower.innerHTML = `<span style="color:#ffaa00;">Частково (${foundCount}/4)</span>`;
+            setCheckStatus("checkEscPower", "warn", "Частковий зв'язок: лише " + foundCount + "/4 ESC");
         } else {
             elPower.innerHTML = '<span style="color:#ff4444;">Немає живлення / Fail</span>';
+            setCheckStatus('checkEscPower', 'fail', 'Немає живлення LiPo або збій ACK');
         }
     }
 
@@ -110,6 +230,13 @@ export function updateEscInfoPanel(escList = []) {
     if (elDirs) {
         elDirs.innerHTML = dirParts.join(' ');
     }
+    if (foundCount === 4) {
+        setCheckStatus('checkEscDirs', 'pass', 'Усі 4 мотори опитано успішно');
+    } else if (foundCount > 0) {
+        setCheckStatus('checkEscDirs', 'warn', 'Зчитано лише ' + foundCount + '/4 моторів');
+    } else {
+        setCheckStatus('checkEscDirs', 'fail', 'Мотори не відповідають');
+    }
 
     // 5. Загальний стан пресету
     const elPresetStatus = document.getElementById('infoEscPresetStatus');
@@ -117,12 +244,16 @@ export function updateEscInfoPanel(escList = []) {
         if (foundCount === 0) {
             elPresetStatus.textContent = '—';
             elPresetStatus.style.color = '#fff';
+            setCheckStatus('checkEscPreset', 'idle', 'Очікує перевірки');
         } else if (foundCount === 4 && allPreset) {
             elPresetStatus.textContent = 'Застосовано (4/4)';
             elPresetStatus.style.color = '#00ff88';
+            setCheckStatus('checkEscPreset', 'pass', '100% пресет записано та підтверджено на 4/4 ESC');
         } else {
-            elPresetStatus.textContent = `Потрібен запис (${4 - (allPreset ? 4 : escList.filter(e => e.presetMatched).length)}/4)`;
+            const needWriteCount = 4 - (allPreset ? 4 : escList.filter(e => e.presetMatched).length);
+            elPresetStatus.textContent = `Потрібен запис (${needWriteCount}/4)`;
             elPresetStatus.style.color = '#ffaa00';
+            setCheckStatus('checkEscPreset', 'warn', 'Потрібен запис пресету на ' + needWriteCount + ' ESC');
         }
     }
 }
@@ -144,6 +275,12 @@ export function resetInfoPanel() {
     if (elDate) elDate.textContent = '—';
     if (elMcu) elMcu.textContent = '—';
     if (elDeviceId) elDeviceId.textContent = '—';
+
+    setCheckStatus('checkBoard', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkFw', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkDate', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkMcu', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkDeviceId', 'idle', 'Очікує перевірки');
 
     if (elBadge) {
         elBadge.textContent = '—';
@@ -170,4 +307,10 @@ export function resetInfoPanel() {
         elPresetStatus.textContent = '—';
         elPresetStatus.style.color = '#fff';
     }
+
+    setCheckStatus('checkEscModel', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkEscMcu', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkEscPower', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkEscDirs', 'idle', 'Очікує перевірки');
+    setCheckStatus('checkEscPreset', 'idle', 'Очікує перевірки');
 }

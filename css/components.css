@@ -435,14 +435,60 @@ button:disabled {
     color: var(--text-muted);
 }
 
+.info-val-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+    max-width: 190px;
+}
+
 .info-val {
     font-weight: 600;
     color: #fff;
     text-align: right;
-    max-width: 170px;
+    max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.check-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    cursor: default;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.check-icon.state-idle {
+    color: #555c6d;
+    background: transparent;
+}
+
+.check-icon.state-pass {
+    color: #00ff88;
+    background: rgba(0, 255, 136, 0.12);
+    border: 1px solid rgba(0, 255, 136, 0.35);
+}
+
+.check-icon.state-fail {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.15);
+    border: 1px solid rgba(255, 68, 68, 0.4);
+}
+
+.check-icon.state-warn {
+    color: #ffaa00;
+    background: rgba(255, 170, 0, 0.15);
+    border: 1px solid rgba(255, 170, 0, 0.4);
 }
 
 .mismatch-box {
@@ -514,9 +560,21 @@ button:disabled {
 
 /* Master Action Button */
 .simplified-master-box {
-    display: none;
-    margin: 10px 0 16px 0;
+    display: block;
+    margin: 0 0 16px 0;
     text-align: center;
+}
+
+.prog-step-time {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: monospace;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
 }
 
 .btn-master-run {

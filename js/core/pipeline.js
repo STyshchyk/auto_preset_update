@@ -7,13 +7,11 @@
 
 import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
-import { log } from '../ui/log.js';
+import { log, setLogDeviceId } from '../ui/log.js';
 import { flashBetaflightPreset } from '../betaflight/preset.js';
 import { applyEscPreset } from '../blheli/preset.js';
 import { setProgressionStep, setProgressionBanner, resetProgression } from '../ui/progression.js';
 import { recordDeviceResult } from '../utils/stats.js';
-import { showPopup } from '../ui/modal.js';
-import { closeSerialSession } from './serial.js';
 
 export async function runFullDroneSequence() {
     const btnRun = document.getElementById('btnRunSimplified');
@@ -23,24 +21,32 @@ export async function runFullDroneSequence() {
     setProgressionBanner('working', 'Запуск автоматичної прошивки...', 'Ініціалізація зв\'язку з польотним контролером.');
 
     let capturedDeviceId = null;
-    let fcPresetSuccess = false;
 
     try {
         // --- STEP 1: BETAFLIGHT FC PRESET FLASHING ---
+        const t0 = performance.now();
         setProgressionStep(1, 'working', 'Підключення та зчитування UID...');
         log('\n=== [АВТО-КОНВЕЄР] ЕТАП 1: ПРОШИВКА ПОЛЬОТНОГО КОНТРОЛЕРА ===');
 
+        let tFlashStart = performance.now();
+
         // Execute Step 1 with onTelemetryReady callback
         await flashBetaflightPreset((fcDetails) => {
+            const t1 = performance.now();
+            const durValidation = ((t1 - t0) / 1000).toFixed(1);
             // As soon as board target, BTFL version, and device UID are identified:
             if (fcDetails && fcDetails.deviceId) {
                 capturedDeviceId = fcDetails.deviceId;
+                setLogDeviceId(capturedDeviceId);
             }
             // Transition Step 1 to success and immediately activate Step 2 as working!
-            setProgressionStep(1, 'success', `Target: ${fcDetails.board} | UID: ${capturedDeviceId || 'OK'}`);
+            setProgressionStep(1, 'success', `Target: ${fcDetails.board} | UID: ${capturedDeviceId || 'OK'}`, durValidation);
+            tFlashStart = performance.now();
             setProgressionStep(2, 'working', 'Заливання CLI команд пресету...');
             setProgressionBanner('working', 'Заливання пресету FC...', 'Передача команд конфігурації у польотний контролер.');
         });
+
+        const durFlash = ((performance.now() - tFlashStart) / 1000).toFixed(1);
 
         const elDeviceId = document.getElementById('infoDeviceId');
         if (elDeviceId && elDeviceId.textContent && elDeviceId.textContent !== '—') {
@@ -53,53 +59,37 @@ export async function runFullDroneSequence() {
             throw new Error('Помилка під час прошивки Betaflight (Крок 1 не пройдено).');
         }
 
-        // FC preset successfully written and verified
-        fcPresetSuccess = true;
-        setProgressionStep(1, 'success', `UID: ${capturedDeviceId || 'OK'}`);
-        setProgressionStep(2, 'success', 'Пресет FC успішно записано');
-
         // --- BATTERY CHECK IN SIMPLIFIED MODE ---
-        // If battery is missing, skip ESC flashing (Step 4) immediately
+        // Betaflight 'status' detects battery presence. In simplified mode, ESC cannot be flashed without LiPo!
         if (state.lastFcDetails && state.lastFcDetails.batteryPresent === false) {
-            log(`[УВАГА] Силову батарею не виявлено (${state.lastFcDetails.batteryInfo}). Крок 4 (прошивка ESC) пропущено.`);
-            
-            // Gracefully ensure any active serial port session with FC is closed
-            if (state.port) {
-                try {
-                    await closeSerialSession(state.port, null, null, null);
-                } catch (e) {
-                    console.warn('Graceful close error:', e);
-                } finally {
-                    state.port = null;
-                }
-            }
-
-            setProgressionStep(3, 'awaiting', 'Пропущено (немає батареї)');
-            setProgressionStep(4, 'fail', 'Пропущено: немає батареї');
-            setProgressionBanner('fail', 'ПРОШИВКУ ESC ПРОПУЩЕНО', 'Польотник прошито успішно, але через відсутність LiPo батареї налаштування ESC не виконувалось.');
-            recordDeviceResult(capturedDeviceId, false);
-            return;
+            log(`[УВАГА] Батарею не виявлено: ${state.lastFcDetails.batteryInfo}`);
+            throw new Error(`Силову батарею (LiPo) не підключено: ${state.lastFcDetails.batteryInfo}! Підключіть LiPo акумулятор перед прошивкою регуляторів ESC.`);
         }
 
+        setProgressionStep(2, 'success', 'Пресет FC успішно записано', durFlash);
         setProgressionBanner('working', 'Крок 1 успішно!', 'Очікування перезавантаження FC перед налаштуванням ESC...');
 
         // --- STEP 2: REBOOT & 4-WAY HANDSHAKE WAIT ---
+        const tRebootStart = performance.now();
         setProgressionStep(3, 'working', 'Перезавантаження FC (3.5 сек)...');
         await delay(3500);
-        setProgressionStep(3, 'success', 'FC готовий до 4-Way');
+        const durReboot = ((performance.now() - tRebootStart) / 1000).toFixed(1);
+        setProgressionStep(3, 'success', 'FC готовий до 4-Way', durReboot);
 
         // --- STEP 3: BLHELI_32 ESC FLASHING ---
-        setProgressionStep(4, 'working', 'Запис пресету 4-х ESC (батарея)...');
+        const tEscStart = performance.now();
+        setProgressionStep(4, 'working', 'Запис пресету 4-х ESC (LiPo 4S-6S)...');
         log('\n=== [АВТО-КОНВЕЄР] ЕТАП 2: КОНФІГУРАЦІЯ 4-Х ESC ===');
 
         await applyEscPreset();
+        const durEsc = ((performance.now() - tEscStart) / 1000).toFixed(1);
 
         const stepStatus2 = document.getElementById('stepStatus2');
         if (stepStatus2 && stepStatus2.classList.contains('fail')) {
             throw new Error('Помилка під час налаштування ESC (Крок 2 не пройдено). Перевірте живлення LiPo!');
         }
 
-        setProgressionStep(4, 'success', '4 ESC: Заливка ➔ Перевірка ➔ Статус OK');
+        setProgressionStep(4, 'success', '4 ESC: Заливка ➔ Перевірка ➔ Статус OK', durEsc);
         setProgressionBanner('success', 'ДРОН ПРОШИТО УСПІШНО! 🎉', `UID: ${capturedDeviceId || 'Успішно'}. Всі 4 мотори готові до польоту.`);
 
         // Record successful run by UID
@@ -111,17 +101,11 @@ export async function runFullDroneSequence() {
         const errMsg = err.message || 'Невідома помилка під час прошивки.';
         setProgressionBanner('fail', 'ЗБІЙ ПРОШИВКИ ДРОНА', errMsg);
 
-        // Mark corresponding progression steps as failed / preserved
+        // Mark corresponding progression steps as failed
         const stepStatus1 = document.getElementById('stepStatus1');
-        if ((stepStatus1 && stepStatus1.classList.contains('fail')) || !fcPresetSuccess) {
+        if (stepStatus1 && stepStatus1.classList.contains('fail')) {
             setProgressionStep(1, 'fail', 'Збій FC');
             setProgressionStep(2, 'fail', 'Не записано');
-        } else if (err.isBatteryMissing) {
-            // FC preset succeeded, keep step 1 and step 2 green!
-            setProgressionStep(1, 'success', `UID: ${capturedDeviceId || 'OK'}`);
-            setProgressionStep(2, 'success', 'Пресет FC успішно записано');
-            setProgressionStep(3, 'awaiting', 'Пропущено (немає батареї)');
-            setProgressionStep(4, 'fail', 'Збій ESC: немає батареї');
         } else {
             setProgressionStep(4, 'fail', 'Збій ESC (LiPo?)');
         }

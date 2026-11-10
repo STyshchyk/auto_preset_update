@@ -137,11 +137,25 @@ export function resetAllStepStatuses() {
     setEscSessionConnected(false);
 }
 
+import { state } from '../core/state.js';
+
 export function setAllEscButtons(disabled) {
-    const ids = ['btnReadESC', 'btnBackupESC', 'btnRestoreESC', 'btnConfigureESC'];
+    const ids = ['btnReadESC', 'btnBackupESC', 'btnRestoreESC'];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.disabled = disabled;
+    }
+    const btnConfigure = document.getElementById('btnConfigureESC');
+    if (btnConfigure) {
+        if (disabled) {
+            btnConfigure.disabled = true;
+        } else if (state.escChecksPassed === false) {
+            btnConfigure.disabled = true;
+            btnConfigure.title = 'Прошивка заблокована: невідповідність моделі або MCU ESC!';
+        } else {
+            btnConfigure.disabled = false;
+            btnConfigure.title = '';
+        }
     }
 }
 

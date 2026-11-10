@@ -35,7 +35,7 @@
         <!-- LEFT SIDEBAR: Flight Controller Info & Preset Match -->
         <aside class="sidebar-col">
             <!-- Крок 1: Інфо польотника (FC) -->
-            <div class="info-card">
+            <div class="info-card" id="infoCardFc">
                 <div class="info-card-header">
                     <span class="info-card-title">ℹ️ Крок 1: Польотник (FC)</span>
                     <span class="badge">Крок 1</span>
@@ -45,23 +45,38 @@
                     <div class="info-group-title">Параметри плати</div>
                     <div class="info-row">
                         <span class="info-label">Плата / Target:</span>
-                        <span class="info-val" id="infoBoardName">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoBoardName">—</span>
+                            <span class="check-icon state-idle" id="checkBoard" title="Статус перевірки плати">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Версія BTFL:</span>
-                        <span class="info-val" id="infoFirmwareVer">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoFirmwareVer">—</span>
+                            <span class="check-icon state-idle" id="checkFw" title="Статус перевірки прошивки">—</span>
+                        </div>
                     </div>
                     <div class="info-row expert-only">
                         <span class="info-label">Дата збірки:</span>
-                        <span class="info-val" id="infoBuildDate">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoBuildDate">—</span>
+                            <span class="check-icon state-idle" id="checkDate" title="Статус перевірки дати збірки">—</span>
+                        </div>
                     </div>
                     <div class="info-row expert-only">
                         <span class="info-label">MCU:</span>
-                        <span class="info-val" id="infoMcuType">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoMcuType">—</span>
+                            <span class="check-icon state-idle" id="checkMcu" title="Статус перевірки MCU">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">ID пристрою:</span>
-                        <span class="info-val" id="infoDeviceId" style="font-family:monospace; font-size:11px; word-break:break-all;">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoDeviceId" style="font-family:monospace; font-size:11px; word-break:break-all;">—</span>
+                            <span class="check-icon state-idle" id="checkDeviceId" title="Статус перевірки апаратного UID">—</span>
+                        </div>
                     </div>
                 </div>
 
@@ -76,7 +91,7 @@
             </div>
 
             <!-- Крок 2: Стан регуляторів (ESC) -->
-            <div class="info-card" id="infoCardEsc" style="margin-top: 14px;">
+            <div class="info-card" id="infoCardEsc">
                 <div class="info-card-header">
                     <span class="info-card-title">⚡ Крок 2: Регулятори (ESC)</span>
                     <span class="badge">Крок 2</span>
@@ -86,23 +101,38 @@
                     <div class="info-group-title">Стан моторів (BLHeli_32)</div>
                     <div class="info-row">
                         <span class="info-label">Модель ESC:</span>
-                        <span class="info-val" id="infoEscModel" style="max-width:180px;">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscModel" style="max-width:150px;">—</span>
+                            <span class="check-icon state-idle" id="checkEscModel" title="Статус моделі ESC">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">MCU ESC:</span>
-                        <span class="info-val" id="infoEscMcu">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscMcu">—</span>
+                            <span class="check-icon state-idle" id="checkEscMcu" title="Статус процесора ESC">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Живлення / ACK:</span>
-                        <span class="info-val" id="infoEscPowerAck">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscPowerAck">—</span>
+                            <span class="check-icon state-idle" id="checkEscPower" title="Статус LiPo живлення та ACK">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">ESC #1..#4:</span>
-                        <span class="info-val" id="infoEscDirs" style="font-size:11px;">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscDirs" style="font-size:11px;">—</span>
+                            <span class="check-icon state-idle" id="checkEscDirs" title="Статус моторів ESC #1..#4">—</span>
+                        </div>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Пресет 100%:</span>
-                        <span class="info-val" id="infoEscPresetStatus">—</span>
+                        <div class="info-val-wrap">
+                            <span class="info-val" id="infoEscPresetStatus">—</span>
+                            <span class="check-icon state-idle" id="checkEscPreset" title="Відповідність пресету 100%">—</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -470,7 +500,11 @@ rateprofile 0
             <div class="log-title">
                 <span>📋 Панель логування (Logging Panel)</span>
             </div>
-            <span class="badge">Serial Console</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="btnExportLogsJson" class="btn-read" style="padding: 4px 10px; font-size: 0.8rem; height: auto;" title="Експорт усіх згрупованих операцій у JSON">📥 Експорт JSON</button>
+                <button id="btnClearLogs" class="btn-restore" style="padding: 4px 10px; font-size: 0.8rem; height: auto;" title="Очистити термінал та історію">🗑️ Очистити</button>
+                <span class="badge">Serial Console</span>
+            </div>
         </div>
         <div id="log">Очікування підключення пристрою...</div>
     </div>
@@ -496,28 +530,40 @@ rateprofile 0
                     <div class="prog-step awaiting" id="progStep1">
                         <div class="step-icon">⏳</div>
                         <div class="step-content">
-                            <div class="step-title-text">1. Підключення & Валідація FC</div>
+                            <div class="step-title-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div class="step-title-text">1. Підключення & Валідація FC</div>
+                                <span class="prog-step-time expert-only" id="progTimeStep1"></span>
+                            </div>
                             <div class="step-subtitle">Зчитування Target та Unique ID</div>
                         </div>
                     </div>
                     <div class="prog-step awaiting" id="progStep2">
                         <div class="step-icon">⏳</div>
                         <div class="step-content">
-                            <div class="step-title-text">2. Заливання пресету FC</div>
+                            <div class="step-title-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div class="step-title-text">2. Заливання пресету FC</div>
+                                <span class="prog-step-time expert-only" id="progTimeStep2"></span>
+                            </div>
                             <div class="step-subtitle">CLI запис та перевірка помилок</div>
                         </div>
                     </div>
                     <div class="prog-step awaiting" id="progStep3">
                         <div class="step-icon">⏳</div>
                         <div class="step-content">
-                            <div class="step-title-text">3. Перезавантаження FC</div>
+                            <div class="step-title-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div class="step-title-text">3. Перезавантаження FC</div>
+                                <span class="prog-step-time expert-only" id="progTimeStep3"></span>
+                            </div>
                             <div class="step-subtitle">Ініціалізація MSP 4-Way режиму</div>
                         </div>
                     </div>
                     <div class="prog-step awaiting" id="progStep4">
                         <div class="step-icon">⏳</div>
                         <div class="step-content">
-                            <div class="step-title-text">4. Налаштування 4-х ESC</div>
+                            <div class="step-title-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div class="step-title-text">4. Налаштування 4-х ESC</div>
+                                <span class="prog-step-time expert-only" id="progTimeStep4"></span>
+                            </div>
                             <div class="step-subtitle">BLHeli_32 запис пресету 100%</div>
                         </div>
                     </div>
