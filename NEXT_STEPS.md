@@ -1,48 +1,33 @@
 # NEXT STEPS — Drone Setup Station Refactoring
 
-## Status: Unified CSS Grid Alignment & Structured JSON Logging Completed! 🎉
+## Status: Full Verification Suite, Status Icons & Hardware Safety Guards Completed! 🎉
 
-The Drone Setup Station features a unified one-click simplified assembly pipeline, hardware UID extraction (`mcu_id`), live progression timeline with step duration profiling, localStorage-backed device statistics, IndexedDB-backed operation logs with structured JSON export in Expert Mode, and an explicit persistent 4-Way ESC session lifecycle with a 5-stage progress indicator:
-
-`[🔗 1. Підключення] ➔ [⚡ 2. Заливка] ➔ [🔍 3. Перевірка] ➔ [🎯 4. Статус OK] ➔ [🔒 5. Закриття]`
+The Drone Setup Station features a unified one-click simplified assembly pipeline, hardware UID extraction (`mcu_id`), live progression timeline, localStorage-backed device statistics, IndexedDB-backed operation logs, real-time verification status check icons (`.check-icon`), strict target/firmware/MCU validation against presets, Bluejay 8-bit detection, and automatic ESC flashing button locking.
 
 ---
 
 ## Completed Architecture Summary
 
-1. **`js/main.js`**:
-   - Single point of entry for the application.
-   - Mode switcher (`drone_station_mode`), statistics widget initialization, master execution trigger, and connection bindings.
-2. **`js/core/pipeline.js`**:
-   - Automated sequential runner: Step 1 (Betaflight CLI) ➔ 3.5s reboot wait ➔ Step 2 (BLHeli_32 4-ESC).
-   - LiPo pre-check (aborts before ESC step if battery is missing in simplified mode).
-   - Automatic registration of Unique Device ID (`mcu_id`) into daily and all-time counters.
-2.5. **Layout & Grid Alignment (`css/main.css`, `css/components.css`)**:
-   - 3-column unified CSS grid alignment across Left Info Sidebar, Center Action Steps, and Right Progression Sidebar.
-   - Synchronized horizontal top-alignment for Step 1 (`#infoCardFc` ⇄ `#cardStep1`) and Step 2 (`#infoCardEsc` ⇄ `#cardStep2`).
-   - Removed `.simplified-master-box` margin offset to ensure flush top alignment.
-3. **`js/betaflight/`**:
-   - `cli.js`: Serial stream reader and board parser.
-   - `info.js`: Telemetry parser, diff/mismatch engine, UID parser (`mcu_id`), and battery detector.
-   - `preset.js`: Flash preset flasher with target verification, `mcu_id` query, and live telemetry callback. Closes open ESC 4-Way sessions automatically prior to CLI entry.
-   - `backup.js`: Config backup generator.
-4. **`js/blheli/`**:
-   - `session.js`: Persistent session manager (`connectEscSession`, `disconnectEscSession`, `isEscSessionActive`).
-   - `protocol.js`: MSPv1 and low-level 4-Way commands with protocol-compliant 8-byte `CMD_INTERFACE_EXIT` (0x34) framing.
-   - `eeprom.js`: 4-Way block reader/writer with adaptive port opening retry loop and stage 5 (`close`) visual feedback.
-   - `preset.js`: Preset constants, motor direction detection, flash updater with verification loop, and real-time flow step updates.
-   - `backup.js`: ESC backup generator and restore handlers.
-5. **`js/ui/` & `js/utils/`**:
-   - `status.js`: Step and ESC status badges, plus 5-stage ESC pipeline tracker (`setEscFlowStep`, `resetEscFlowPipeline`).
-   - `progression.js`: 4-Step timeline and top overall status badge (`pending`, `progressing` with rotating icon, `success`, `failed`).
-   - `stats.js`: Daily & all-time device tracking deduplicated by UID.
-   - State, serial lifecycle, UI badges, info panel, and byte/crc utilities.
+1. **`docs/FLASHING_VERIFICATION_PROTOCOL.md`**:
+   - Comprehensive technical protocol detailing all pre-flash, during-flash, and post-flash checks for Step 1 (FC) and Step 2 (ESC).
+2. **`docs/JOB_SUMMARY_2026_11_10.md`**:
+   - Full summary of telemetry status icons, Bluejay 8-bit discovery, and button locking mechanics.
+3. **`js/ui/infoPanel.js` & `css/components.css`**:
+   - Status check indicators (`#checkBoard`, `#checkFw`, `#checkDate`, `#checkMcu`, `#checkDeviceId`, `#checkEscModel`, `#checkEscMcu`, `#checkEscPower`, `#checkEscDirs`, `#checkEscPreset`).
+   - Dynamic button lock on `#btnConfigureESC` if any verification rule fails (e.g. no LiPo, ACK 0xf, not BLHeli_32, or not 0x4706).
+4. **`js/betaflight/preset.js`**:
+   - Automatic extraction and strict checking of `expectedBoard`, `expectedMcu` (`STM32F7X2`), and `expectedFw` (`4.5.1`). Immediate abort before writing on mismatch.
+5. **`js/blheli/preset.js` & `protocol.js`**:
+   - Bluejay 8-bit platform detection (`0xE8B2` / `0xE8B1` / Silicon Labs EFM8BB21).
+   - Strict abort if target is not `BLHeli_32` or MCU signature is not `0x4706`.
 
 ---
 
-## Potential Future Tasks
+## Potential Next Steps
 
-1. **Station Export / Reporting**:
-   - Option to export daily/all-time device flash logs into CSV/JSON for station quality assurance logs.
-2. **Multi-Baud Rate Probing**:
+1. **Bluejay Dedicated Profile Mode (Optional Future Extension)**:
+   - If 8-bit drones are formally supported in the future, add dedicated Bluejay flashing/configuration profiles rather than just aborting.
+2. **Station Export / Reporting**:
+   - Option to export daily/all-time device flash logs into CSV/JSON for station quality assurance archives.
+3. **Multi-Baud Rate Probing**:
    - Fallback baud rate probe (e.g. 57600 or 230400) if a non-standard Betaflight build is connected.
