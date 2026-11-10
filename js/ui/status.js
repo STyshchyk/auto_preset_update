@@ -13,6 +13,22 @@ export function setStepStatus(stepNumber, state, customText = null) {
     el.textContent = customText || labels[state] || labels.awaiting;
 }
 
+/**
+ * Shows or hides the "⚡ Вже прошитий" badge next to Step 1 status.
+ * @param {boolean} visible
+ * @param {string} [customLabel]
+ */
+export function setAlreadyFlashedBadge(visible, customLabel = '⚡ Вже прошитий') {
+    const badge = document.getElementById('badgeAlreadyFlashed');
+    if (!badge) return;
+    if (visible) {
+        badge.textContent = customLabel;
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
 export function setEscBadge(escIndex, state, text) {
     const badge = document.getElementById(`badgeEsc${escIndex}`);
     if (badge) {
@@ -129,6 +145,7 @@ export function resetFcSubSteps() {
 export function resetAllStepStatuses() {
     setStepStatus(1, 'awaiting');
     setStepStatus(2, 'awaiting');
+    setAlreadyFlashedBadge(false);
     resetFcSubSteps();
     for (let i = 0; i < 4; i++) {
         setEscBadge(i, 'pending', 'Очікування');

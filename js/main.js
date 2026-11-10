@@ -8,7 +8,7 @@ import { log, exportLogsToJson, clearTerminalAndDbLogs } from './ui/log.js';
 import { resetAllStepStatuses } from './ui/status.js';
 import { resetInfoPanel } from './ui/infoPanel.js';
 import { closeModal, ensureInstructionsAcknowledged } from './ui/modal.js';
-import { flashBetaflightPreset, skipToEsc } from './betaflight/preset.js';
+import { flashBetaflightPreset, skipToEsc, comparePresetWithFc } from './betaflight/preset.js';
 import { backupBetaflightConfig } from './betaflight/backup.js';
 import { readAllEscSettings } from './blheli/eeprom.js';
 import { backupAllEscs, triggerRestoreFileSelect, handleRestoreFileChange } from './blheli/backup.js';
@@ -22,6 +22,7 @@ window.closeModal = closeModal;
 
 // DOM Elements
 const btnFlashFC          = document.getElementById('btnFlashFC');
+const btnComparePreset    = document.getElementById('btnComparePreset');
 const btnBackup           = document.getElementById('btnBackup');
 const btnSkipToEsc        = document.getElementById('btnSkipToEsc');
 const btnConnectESC       = document.getElementById('btnConnectESC');
@@ -97,6 +98,11 @@ initSerialEvents(log, () => {
 if (btnFlashFC) {
     btnFlashFC.addEventListener('click', () => {
         ensureInstructionsAcknowledged(flashBetaflightPreset);
+    });
+}
+if (btnComparePreset) {
+    btnComparePreset.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(comparePresetWithFc);
     });
 }
 if (btnSkipToEsc) btnSkipToEsc.addEventListener('click', skipToEsc);

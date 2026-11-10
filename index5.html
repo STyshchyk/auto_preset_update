@@ -228,6 +228,7 @@
             </div>
             <div class="step-header-right">
                 <span class="badge">CLI Engine</span>
+                <span class="already-flashed-pill" id="badgeAlreadyFlashed" style="display:none;" title="Цей польотний контролер уже на 100% відповідає зразку пресету">⚡ Вже прошитий</span>
                 <span class="step-status awaiting" id="stepStatus1">⏳ Очікування</span>
             </div>
         </div>
@@ -478,6 +479,7 @@ rateprofile 0
 
         <div class="controls expert-only">
             <button id="btnFlashFC" class="btn-primary">Залити пресет у FC</button>
+            <button id="btnComparePreset" class="btn-read" title="Зчитати актуальну конфігурацію FC та порівняти з пресетом без прошивки">🔍 Порівняти з пресетом</button>
             <select id="backupType" style="flex-grow:0; width:auto;">
                 <option value="diff all">diff all</option>
                 <option value="dump all">dump all</option>

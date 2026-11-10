@@ -2,7 +2,7 @@ import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log, startOperationStep, endOperationStep, setLogDeviceId } from '../ui/log.js';
-import { setStepStatus, setFcSubStep, resetFcSubSteps } from '../ui/status.js';
+import { setStepStatus, setFcSubStep, resetFcSubSteps, setAlreadyFlashedBadge } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
 import { parseFcDetails, calculateMismatch } from './info.js';
@@ -147,11 +147,12 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
             log('🎯 [ВЖЕ ПРОШИТО] 0% розбіжностей із пресетом! Конфігурація польотника повністю відповідає зразку.');
             log('Пропуск повторного запису команд у пам\'ять контролера.');
 
+            setAlreadyFlashedBadge(true, '⚡ Вже прошитий');
             setFcSubStep('flash', 'ok', '1. Пропущено (0% diff)');
             setFcSubStep('readDiff', 'ok', '2. Звірено (100% збіг)');
             setFcSubStep('verify', 'ok', '3. Перевірено (Вже прошитий)');
 
-            setStepStatus(1, 'success', '✅ Вже прошитий пристрій');
+            setStepStatus(1, 'success');
 
             // Чистий вихід із CLI без зайвого збереження та перезавантаження
             try {
@@ -298,4 +299,134 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
 export function skipToEsc() {
     log('Пропущено крок 1. Перехід до конфігурації ESC.');
+}
+
+/**
+ * Expert Mode helper: Reads current FC status, telemetry, and diff all to compare with preset
+ * without modifying or flashing anything. Updates left info panel telemetry and mismatch stats.
+ */
+export async function comparePresetWithFc() {
+    if (!('serial' in navigator)) {
+        showPopup('error', 'Помилка', 'Web Serial API не підтримується цим браузером.');
+        return;
+    }
+
+    const btnCompare = document.getElementById('btnComparePreset');
+    const script = document.getElementById('presetInput').value.trim();
+    if (btnCompare) btnCompare.disabled = true;
+
+    log('\n🔍 [ЕКСПЕРТ] Порівняння поточної конфігурації FC з пресетом (тільки читання)...');
+    startOperationStep('FC_COMPARE_PRESET', 'Аналіз конфігурації та порівняння з пресетом');
+    let reader = null, writer = null, textEncoder = null;
+
+    try {
+        if (isEscSessionActive()) {
+            log('[Betaflight] Закриття активної 4-Way сесії ESC перед входом у CLI...');
+            await disconnectEscSession();
+        }
+        state.port = await resolveSelectedPort(log);
+        await state.port.open({ baudRate: 115200 });
+        log('Порт відкрито на 115200.');
+
+        textEncoder = new TextEncoderStream();
+        textEncoder.readable.pipeTo(state.port.writable);
+        writer = textEncoder.writable.getWriter();
+
+        const textDecoder = new TextDecoderStream();
+        state.port.readable.pipeTo(textDecoder.writable);
+        reader = textDecoder.readable.getReader();
+
+        // Enter CLI mode
+        await writer.write('#\r\n');
+        await delay(350);
+        let initEcho = await readCliResponse(reader, 800);
+        if (!initEcho.includes('#')) {
+            await writer.write('\r\n#\r\n');
+            await delay(350);
+            initEcho += await readCliResponse(reader, 800);
+        }
+
+        // Read status & board telemetry
+        await writer.write('version\r\n');
+        await delay(150);
+        const verText = await readCliResponse(reader, 1000);
+        await writer.write('status\r\n');
+        await delay(150);
+        const statusText = await readCliResponse(reader, 1200);
+        await writer.write('mcu_id\r\n');
+        await delay(150);
+        const mcuIdText = await readCliResponse(reader, 800);
+
+        const actualBoard = parseBoardName(statusText);
+        const expectedBoardMatch = script.match(/board_name\s+([A-Za-z0-9_\-]+)/i) || 
+                                   script.match(/#\s*(?:board|target):?\s*([A-Za-z0-9_\-]+)/i);
+        const expectedBoard = expectedBoardMatch ? expectedBoardMatch[1].trim() : null;
+
+        const expectedMcuMatch = script.match(/#\s*Betaflight\s*\/\s*([A-Za-z0-9_]+)\s/i) ||
+                                 script.match(/(?:#\s*mcu:?)\s+([A-Za-z0-9_]+)/i);
+        const expectedMcu = expectedMcuMatch ? expectedMcuMatch[1].trim() : null;
+
+        const expectedFwMatch = script.match(/Betaflight\s*\/\s*.*?\b([0-9]+\.[0-9]+\.[0-9]+)\b/i) ||
+                                script.match(/(?:#\s*firmware:?)\s+([0-9]+\.[0-9]+\.[0-9]+)/i);
+        const expectedFw = expectedFwMatch ? expectedFwMatch[1] : null;
+
+        // Fetch diff all
+        log('Зчитування поточної конфігурації (diff all)...');
+        const diffContent = await fetchCliDiff(reader, writer, 4000);
+        log(`[Зчитування] Отримано ${diffContent.length} байт конфігурації FC.`);
+
+        const fcDetails = parseFcDetails(verText, statusText + '\n' + mcuIdText);
+        state.lastFcDetails = fcDetails;
+        if (fcDetails.deviceId) {
+            setLogDeviceId(fcDetails.deviceId);
+        }
+
+        const mismatchStats = calculateMismatch(script, diffContent);
+        updateInfoPanel(fcDetails, mismatchStats, { expectedBoard, expectedMcu, expectedFw });
+
+        log(`[Результат порівняння] Плата: ${fcDetails.board}, FW: ${fcDetails.firmware}, MCU: ${fcDetails.mcu}`);
+        log(`[Неспівпадіння з пресетом]: ${mismatchStats.mismatchPercent}% (${mismatchStats.mismatchCount}/${mismatchStats.totalPresetVars} змінних)`);
+
+        if (mismatchStats.mismatchCount > 0) {
+            setAlreadyFlashedBadge(false);
+            const diffSummary = mismatchStats.mismatchedKeys
+                .slice(0, 10)
+                .map(m => `  • ${m.key}: очікувалось "${m.expected}", в FC "${m.actual || 'відсутній'}"`)
+                .join('\n');
+            log(`[Розбіжності]:\n${diffSummary}${mismatchStats.mismatchCount > 10 ? '\n  ...та інші' : ''}`);
+        } else {
+            setAlreadyFlashedBadge(true, '⚡ Вже прошитий');
+            log('✅ [100% ЗБІГ] Польотник уже повністю налаштований за цим пресетом (0 розбіжностей)!');
+        }
+
+        // Clean exit without reboot
+        try {
+            await writer.write('exit\r\n');
+            await delay(150);
+        } catch (_) {}
+
+        await closeSerialSession(state.port, reader, writer, textEncoder);
+        state.port = null;
+
+        await endOperationStep('SUCCESS', `Порівняння завершено: ${mismatchStats.mismatchPercent}% diff`, {
+            mismatchPercent: mismatchStats.mismatchPercent,
+            mismatchCount: mismatchStats.mismatchCount
+        });
+
+        const statusTitle = mismatchStats.mismatchCount === 0 ? 'Пресет 100% співпадає!' : `Неспівпадіння: ${mismatchStats.mismatchPercent}%`;
+        const statusMsg = mismatchStats.mismatchCount === 0
+            ? 'Польотник уже має 100% параметрів цього пресету (0 розбіжностей).'
+            : `${mismatchStats.mismatchCount} із ${mismatchStats.totalPresetVars} змінних відрізняються від пресету. Перегляньте деталі в лівій панелі та терміналі.`;
+        showPopup(mismatchStats.mismatchCount === 0 ? 'success' : 'info', statusTitle, statusMsg, 3000);
+
+    } catch (err) {
+        console.error(err);
+        log(`Помилка порівняння: ${err.message}`);
+        await endOperationStep('FAILED', `Збій: ${err.message}`);
+        await closeSerialSession(state.port, reader, writer, textEncoder);
+        state.port = null;
+        showPopup('error', 'Збій порівняння', err.message);
+    } finally {
+        if (btnCompare) btnCompare.disabled = false;
+    }
 }
