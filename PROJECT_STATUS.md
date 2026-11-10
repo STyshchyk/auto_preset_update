@@ -1,8 +1,8 @@
 # PROJECT STATUS — Drone Setup Station Refactoring
 
-**Last Updated:** 2026-11-09  
+**Last Updated:** 2026-11-10  
 **Active Entry Point:** `index5.html`  
-**Refactoring Progress:** Phases 1–10 Completed (100% Modular ES Architecture, Zero Inline JavaScript)  
+**Refactoring Progress:** Phases 1–11 Completed (Modular ES Architecture, IndexedDB Structured Logger, JSON Exporter)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Unique Device ID & Diff) and Step 2 (`#infoCardEsc`, BLHeli_32 Live Status) cards  
 **Simplified Mode & Progression Engine:** Unified one-click master action button, 125% font scaling, timeline progression report, FAQ, and daily/all-time device statistics by unique hardware UID.
 
@@ -118,3 +118,39 @@ The application operates as a clean, fully modular single-page application (`ind
   - Fixed `CMD_INTERFACE_EXIT` (`0x34`) payload to send 1 parameter byte `[0]` (`ParamLen = 1`, 8-byte frame `[0x2F, 0x34, 0x00, 0x00, 0x01, 0x00, CRC_H, CRC_L]`) instead of `[]` (`ParamLen = 0`, which Betaflight's `serial_4way.c` parser interprets as a 256-byte payload).
   - Pre-checks `CMD_PROTOCOL_GET_VERSION` in `init4WayInterface` before sending `MSP 245` (`MSP_SET_4WAY_IF`).
   - Automatically closes any open 4-Way session if user initiates Betaflight CLI flashing/backup or Simplified Mode pipeline.
+
+---
+
+## 6. Structured Logging, JSON Export & Step Duration Tracking (2026-11-10)
+* **IndexedDB Operations Engine (`js/core/db.js`):**
+  - Database: `DroneSetupStationDB`, ObjectStore: `operation_logs` (keyPath `id`, autoIncrement: true).
+  - Secondary indexes: `by_deviceId`, `by_timestamp`, `by_step`.
+  - Non-blocking asynchronous transactions saving full operation records without freezing UI or UART throughput.
+* **Step-Scoped Logger (`js/ui/log.js`):**
+  - Groups high-volume CLI commands into clean step batches (`startOperationStep`, `endOperationStep`).
+  - Terminal output features clean framing and duration markers without repetitively polluting each line with redundant metadata.
+  - `details` field is preserved as a structured `string[]` (array of log lines) with artificial frame markers filtered out.
+  - Automatic device correlation: Once the FC MCU UID is read via `mcu_id` / `status`, Step 1 retroactively updates its `deviceId` from `UNKNOWN` to the detected UID.
+* **JSON Exporter (Expert Mode Only):**
+  - Added **«📥 Експорт JSON»** (`#btnExportLogsJson`) and **«🗑️ Очистити»** (`#btnClearLogs`) to the logging panel header.
+  - Generates formatted JSON dumps (`drone_station_logs_YYYYMMDD_HHmmss.json`) containing all historical operations.
+* **Master Flashing Button in Expert Mode:**
+  - Updated `.simplified-master-box` CSS to be available in both Simplified and Expert modes, allowing single-click full-drone deployment from any mode.
+* **Right Panel Step Duration Profiling (`js/ui/progression.js`, `js/core/pipeline.js`):**
+  - Progression timeline steps 1 to 4 now record and display individual step durations (e.g. `⏱️ 2.4s`) via `.prog-step-time.expert-only`.
+  - Automatically hidden in Simplified Mode and visible in Expert Mode.
+
+---
+
+## 7. Unified CSS Grid Layout & Left Info Panel Alignment (2026-11-10)
+* **Master Run Button Top Offset Fix (`css/components.css`):**
+  - Updated `.simplified-master-box` margin from `10px 0 16px 0;` to `0 0 16px 0;`, eliminating the 10px vertical offset between the top of the left info panel and the center action area.
+* **Unified CSS Grid Architecture (`css/main.css`, `index5.html`):**
+  - Replaced the independent `.sidebar-col` and `.main-col` vertical flex containers with a 3-column CSS Grid (`grid-template-columns: 300px 1fr 340px; gap: 20px; align-items: start;`).
+  - Applied `display: contents;` to `.sidebar-col` and `.main-col` to allow their direct children to align across row tracks:
+    - **Row 1:** Center `.simplified-master-box` (master run button).
+    - **Row 2:** Left `#infoCardFc` (`grid-row: 1 / span 2;`) perfectly flush with top and aligned with Center `#cardStep1` (Betaflight CLI Flasher).
+    - **Row 3:** Left `#infoCardEsc` aligned top-to-top with Center `#cardStep2` (BLHeli_32 Configurator), eliminating the height drift caused by textarea/controls in Step 1.
+    - **Row 4:** Center `.log-panel` (Realtime Terminal Console).
+    - **Column 3:** `.right-col` (`grid-column: 3; grid-row: 1 / span 4;`).
+  - Added clean responsive media queries for `< 1200px` (2 columns) and `< 960px` (single column flex stack).

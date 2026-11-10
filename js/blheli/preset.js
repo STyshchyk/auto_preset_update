@@ -3,7 +3,7 @@
  */
 
 import { delay, bytesEqual } from '../utils/bytes.js';
-import { log } from '../ui/log.js';
+import { log, startOperationStep, endOperationStep } from '../ui/log.js';
 import { setStepStatus, setEscBadge, setEscFlowStep } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
@@ -72,6 +72,7 @@ export async function applyEscPreset() {
 
     setStepStatus(2, 'working');
     for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
+    startOperationStep('ESC_CONFIG_PRESET', 'Крок 2: Налаштування 4 ESC BLHeli_32');
 
     let cachedEscInfo = [];
 
@@ -221,6 +222,7 @@ export async function applyEscPreset() {
         if (outcome.aborted) {
             setStepStatus(2, 'fail');
             log(`[Пресет ESC] ЗУПИНЕНО: ${outcome.aborted}`);
+            await endOperationStep('FAILED', outcome.aborted);
             showPopup('error', 'Застосування пресету зупинено', outcome.aborted);
             return;
         }
@@ -248,11 +250,13 @@ export async function applyEscPreset() {
         }
 
         log(`\n[Пресет ESC] Успішно завершено: оновлено ${written}, вже були актуальні ${same}.`);
+        await endOperationStep('SUCCESS', `Оновлено ESC: ${written}, без змін: ${same} (4/4 OK)`);
         showPopup('success', 'Пресет застосовано', `Оновлено ESC: ${written}, без змін: ${same}.\nУсі регулятори отримали пресет!`, 3500);
 
     } catch (err) {
         console.error(err);
         setStepStatus(2, 'fail');
+        await endOperationStep('FAILED', `Збій ESC: ${err.message}`);
         log(`[Пресет ESC помилка]: ${err.message}`);
         showPopup('error', 'Збій застосування пресету', err.message);
     }

@@ -10,7 +10,7 @@
 | Розділ | Елементи / Селектори | Опис |
 | :--- | :--- | :--- |
 | **Панель вибору COM-порту** | `.top-bar`, `#portSelect`, `#btnToggleMode`, `#boardTargetBadge` | Верхній бар вибору Web Serial пристрою, перемикач режимів (Спрощений ⇄ Експертний) та індикатор цільової плати. |
-| **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card`, `#infoCardEsc` | Розділена на два блоки: **Крок 1** (параметри FC: `#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`, `#infoDeviceId`, бейдж неспівпадіння `#infoMismatchBadge`, `#infoMismatchNote`) та **Крок 2** (телеметрія ESC/моторів: `#infoEscModel`, `#infoEscMcu`, `#infoEscPowerAck`, `#infoEscDirs`, `#infoEscPresetStatus`). |
+| **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card`, `#infoCardFc`, `#infoCardEsc` | Розділена на два блоки: **Крок 1** (параметри FC: `#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`, `#infoDeviceId`, бейдж неспівпадіння `#infoMismatchBadge`, `#infoMismatchNote`) та **Крок 2** (телеметрія ESC/моторів: `#infoEscModel`, `#infoEscMcu`, `#infoEscPowerAck`, `#infoEscDirs`, `#infoEscPresetStatus`). |
 | **Крок 1: Заливання пресету FC** | `#cardStep1`, `#fcFlashProgress`, `#subStepFlash`, `#subStepReadDiff`, `#subStepVerify`, `#btnRunSimplified`, `#presetInput`, `#btnFlashFC`, `#btnBackup`, `#btnSkipToEsc` | Мастер-кнопка для спрощеного режиму, робочі кнопки, textarea пресету та 3-етапний індикатор виконання (прошивка, читання, перевірка). |
 | **Крок 2: Настройка BLHeli_32** | `#cardStep2`, `#escFlowPipeline`, `#escFlowConnect`..`#escFlowClose`, `#badgeEsc0`..`#badgeEsc3`, `#btnConnectESC`, `#btnDisconnectESC`, `#btnReadESC`, `#btnConfigureESC`, `#btnBackupESC`, `#btnRestoreESC`, `#fileRestoreESC` | 5-етапний конвеєр налаштування ESC (Підключення ➔ Заливка ➔ Перевірка ➔ Статус OK ➔ Закриття), кнопки сесії, статуси 4-х ESC, читання, бекап, відновлення та застосування пресету. |
 | **Панель логування (Console)** | `.log-panel`, `#log` | Консоль реального часу (прихована у спрощеному режимі). |
@@ -37,6 +37,8 @@
 * `#statusModal`, `#modalBox`, `#modalTitle`, `#modalMsg`, `#modalCloseBtn` — елементи модального вікна.
 
 ### Ліва інфо-панель польотника та ESC (FC & ESC Info Panel)
+* `#infoCardFc` — контейнер картки інформації польотника (Крок 1), синхронізований за верхнім краєм із Кроком 1 через CSS Grid.
+* `#infoCardEsc` — контейнер картки інформації ESC (Крок 2), синхронізований за верхнім краєм із Кроком 2 через CSS Grid.
 * `#infoBoardName` — назва плати / target польотного контролера.
 * `#infoFirmwareVer` — версія прошивки Betaflight (наприклад, `4.5.1`).
 * `#infoBuildDate` — дата та час збірки прошивки.
@@ -73,12 +75,13 @@
 
 ### 3.2. Ядро та утиліти
 * **`js/core/state.js`**: єдине джерело стану (`port`, `availablePorts`, `popupTimer`, `ignoreRebootEventsUntil`, `lastFcDetails`, `escSession`).
+* **`js/core/db.js`**: IndexedDB сховище операцій (`DroneSetupStationDB`, сховище `operation_logs`) з індексацією за `deviceId`, `timestamp` та `step`.
 * **`js/core/serial.js`**: життєвий цикл Web Serial, безпечне відкриття/закриття дескрипторів потоків `closeSerialSession`, динамічне оновлення портів `resolveSelectedPort`, обробники `connect`/`disconnect` зі скиданням сесії.
-* **`js/core/pipeline.js`**: оркестратор автоматичного конвеєра (`runFullDroneSequence`) — Крок 1 FC ➔ очікування ребуту ➔ Крок 2 ESC з перевіркою LiPo та записом статистики за UID.
-* **`js/ui/log.js`**: вивід у консоль DOM з автоскролом.
+* **`js/core/pipeline.js`**: оркестратор автоматичного конвеєра (`runFullDroneSequence`) — Крок 1 FC ➔ очікування ребуту ➔ Крок 2 ESC з перевіркою LiPo, профілюванням тривалості та записом статистики за UID.
+* **`js/ui/log.js`**: структурований логер операцій, згрупований вивід у консоль DOM, фоновий запис в IndexedDB та експорт історії в JSON (`exportLogsToJson`).
 * **`js/ui/status.js`**: оновлення статусних бейджів кроків та ESC, контролер 5-етапного ланцюжка налаштування регуляторів (`setEscFlowStep`, `resetEscFlowPipeline`, `setEscSessionConnected`).
 * **`js/ui/infoPanel.js`**: рендеринг телеметрії FC, апаратного UID (`#infoDeviceId`), стану неспівпадіння пресету та телеметрії моторів BLHeli_32 (`updateInfoPanel`, `updateEscInfoPanel`, `resetInfoPanel`).
-* **`js/ui/progression.js`**: керування правою панеллю прогресу (`setProgressionStep`, `setProgressionBanner`, `setOverallProgressionBadge`, `resetProgression`).
+* **`js/ui/progression.js`**: керування правою панеллю прогресу (`setProgressionStep`, `setProgressionBanner`, `setOverallProgressionBadge`, `resetProgression`, оновлення часу виконання кроків `progTimeStep1`..`progTimeStep4`).
 * **`js/ui/modal.js`**: модальні повідомлення успіху/помилки (`showPopup`, `closeModal`).
 * **`js/utils/bytes.js`**: утиліти роботи з масивами байтів, hex-конвертери, завантаження файлів.
 * **`js/utils/crc.js`**: апаратні контрольні суми `CRC-16/CCITT (XMODEM)`.

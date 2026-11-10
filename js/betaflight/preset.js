@@ -1,7 +1,7 @@
 import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
-import { log } from '../ui/log.js';
+import { log, startOperationStep, endOperationStep, setLogDeviceId } from '../ui/log.js';
 import { setStepStatus, setFcSubStep, resetFcSubSteps } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
 import { readCliResponse, parseBoardName } from './cli.js';
@@ -45,6 +45,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
     btnFlashFC.disabled = true;
     setStepStatus(1, 'working');
     resetFcSubSteps();
+    startOperationStep('FC_FLASH_PRESET', 'Крок 1: Прошивка FC Betaflight');
     let reader = null, writer = null, textEncoder = null;
     let isRebooting = false;
 
@@ -101,6 +102,9 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         const fcDetails = parseFcDetails(verText, statusText + '\n' + mcuIdText);
         state.lastFcDetails = fcDetails;
+        if (fcDetails.deviceId) {
+            setLogDeviceId(fcDetails.deviceId);
+        }
         const mismatchStats = calculateMismatch(script, diffContent);
         updateInfoPanel(fcDetails, mismatchStats);
         log(`[Інфо] Плата: ${fcDetails.board}, Прошивка: ${fcDetails.firmware}, Дата: ${fcDetails.buildDate}`);
@@ -210,6 +214,10 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
 
         setStepStatus(1, 'success');
         log('Пресет успішно залито. Контролер перезавантажився.');
+        await endOperationStep('SUCCESS', `Пресет успішно записано (0% розбіжностей, ${fcDetails.board})`, {
+            board: fcDetails.board,
+            firmware: fcDetails.firmware
+        });
         showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000, () => {
             log('Готовий до налаштування регуляторів (ESC). Перевірте підключення батареї LiPo!');
         });
@@ -220,12 +228,14 @@ export async function flashBetaflightPreset(onTelemetryReady = null) {
             setStepStatus(1, 'success');
             log('Контролер перезавантажився штатно.');
             state.port = null;
+            await endOperationStep('SUCCESS', 'Контролер перезавантажився штатно після запису пресету');
             showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
         } else {
             console.error(err);
             state.ignoreRebootEventsUntil = Date.now() + 6000;
             setStepStatus(1, 'fail');
             log(`Помилка кроку 1: ${err.message}`);
+            await endOperationStep('FAILED', `Збій: ${err.message}`);
             await closeSerialSession(state.port, reader, writer, textEncoder);
             state.port = null;
             showPopup('error', 'Збій заливання пресету', err.message);

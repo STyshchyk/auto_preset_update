@@ -1,8 +1,8 @@
 # NEXT STEPS — Drone Setup Station Refactoring
 
-## Status: Persistent ESC 4-Way Lifecycle & 5-Stage Pipeline Completed! 🎉
+## Status: Unified CSS Grid Alignment & Structured JSON Logging Completed! 🎉
 
-The Drone Setup Station features a unified one-click simplified assembly pipeline, hardware UID extraction (`mcu_id`), live progression timeline, localStorage-backed device statistics, and an explicit persistent 4-Way ESC session lifecycle with a 5-stage progress indicator:
+The Drone Setup Station features a unified one-click simplified assembly pipeline, hardware UID extraction (`mcu_id`), live progression timeline with step duration profiling, localStorage-backed device statistics, IndexedDB-backed operation logs with structured JSON export in Expert Mode, and an explicit persistent 4-Way ESC session lifecycle with a 5-stage progress indicator:
 
 `[🔗 1. Підключення] ➔ [⚡ 2. Заливка] ➔ [🔍 3. Перевірка] ➔ [🎯 4. Статус OK] ➔ [🔒 5. Закриття]`
 
@@ -17,6 +17,10 @@ The Drone Setup Station features a unified one-click simplified assembly pipelin
    - Automated sequential runner: Step 1 (Betaflight CLI) ➔ 3.5s reboot wait ➔ Step 2 (BLHeli_32 4-ESC).
    - LiPo pre-check (aborts before ESC step if battery is missing in simplified mode).
    - Automatic registration of Unique Device ID (`mcu_id`) into daily and all-time counters.
+2.5. **Layout & Grid Alignment (`css/main.css`, `css/components.css`)**:
+   - 3-column unified CSS grid alignment across Left Info Sidebar, Center Action Steps, and Right Progression Sidebar.
+   - Synchronized horizontal top-alignment for Step 1 (`#infoCardFc` ⇄ `#cardStep1`) and Step 2 (`#infoCardEsc` ⇄ `#cardStep2`).
+   - Removed `.simplified-master-box` margin offset to ensure flush top alignment.
 3. **`js/betaflight/`**:
    - `cli.js`: Serial stream reader and board parser.
    - `info.js`: Telemetry parser, diff/mismatch engine, UID parser (`mcu_id`), and battery detector.
