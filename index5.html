@@ -57,14 +57,14 @@
                             <span class="check-icon state-idle" id="checkFw" title="Статус перевірки прошивки">—</span>
                         </div>
                     </div>
-                    <div class="info-row expert-only">
+                    <div class="info-row">
                         <span class="info-label">Дата збірки:</span>
                         <div class="info-val-wrap">
                             <span class="info-val" id="infoBuildDate">—</span>
                             <span class="check-icon state-idle" id="checkDate" title="Статус перевірки дати збірки">—</span>
                         </div>
                     </div>
-                    <div class="info-row expert-only">
+                    <div class="info-row">
                         <span class="info-label">MCU:</span>
                         <div class="info-val-wrap">
                             <span class="info-val" id="infoMcuType">—</span>
@@ -143,17 +143,60 @@
                     <span class="info-card-title">ℹ️ Інструкція оператора / FAQ</span>
                 </div>
                 <div class="faq-content">
-                    <div class="faq-item">
-                        <strong>1. Порядок підключення:</strong>
-                        <p>Підключіть силову батарею до дрона, потім увімкніть USB до ПК.</p>
+                    <!-- 1. ДО ПІДКЛЮЧЕННЯ -->
+                    <div class="faq-section">
+                        <div class="faq-section-title">🔌 1. До підключення</div>
+                        <div class="faq-item">
+                            <strong>Один пристрій та закриття сторонніх програм:</strong>
+                            <p><strong style="color: #ff4444;">‼️ Суворо заборонено підключати одночасно декілька девайсів через USB!</strong> Працюйте виключно з одним дроном. Також обов'язково <strong>закрийте всі сторонні програми</strong>, які можуть захоплювати COM-порт (Betaflight Configurator, ESC Configurator, BLHeliSuite32, SpeedyBee тощо).</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>USB-підключення та кабель:</strong>
+                            <p>Використовуйте якісний дата-кабель через <strong>USB-хаб (з власним живленням)</strong> або порт материнської плати. Бажано підключати через <strong>USB Type-A</strong>, оскільки пряме з'єднання <code>Type-C ➔ Type-C</code> на багатьох FC викликає збої розпізнавання COM-порту та зависання прошивки.</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>Порядок подачі живлення:</strong>
+                            <p>Під'єднайте батарею (LiPo) до дрона і <strong>зачекайте повний програш стартової мелодії</strong> (переконайтеся, що вона вірна й не переривається). Тільки через 2 сек після цього вмикайте кабель USB до ПК.</p>
+                        </div>
                     </div>
-                    <div class="faq-item">
-                        <strong>2. Старт прошивки:</strong>
-                        <p>Натисніть велику кнопку «ПРОШИТИ ДРОН». Процес триває приблизно 8-10 секунд.</p>
+
+                    <!-- 2. ПІД ЧАС ПРОШИВКИ -->
+                    <div class="faq-section">
+                        <div class="faq-section-title">⚡ 2. Під час прошивки</div>
+                        <div class="faq-item">
+                            <strong>Новий пристрій / перший запуск:</strong>
+                            <p>Якщо плата нова — браузер запитає дозвіл. Можна обрати <em>«+ Обрати новий порт...»</em> вгорі або одразу натиснути <span class="faq-btn-pill-master">🚀 ПРОШИТИ ДРОН (FC + ESC)</span> та у списку вибрати свій польотник (<code>Betaflight STM32...</code>).</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>Старт автоматичного конвеєра:</strong>
+                            <p>Натисніть кнопку <span class="faq-btn-pill-master">🚀 ПРОШИТИ ДРОН (FC + ESC)</span>. Процес триває приблизно <strong>10-20 секунд</strong>. Категорично заборонено від'єднувати живлення або USB під час активного запису.</p>
+                        </div>
                     </div>
-                    <div class="faq-item">
-                        <strong>3. Що робити при помилці ESC?</strong>
-                        <p>Якщо ESC показує «Немає відповіді» або «Fail» — перевірте, чи підключено LiPo акумулятор і чи горить світлодіод на регуляторах.</p>
+
+                    <!-- 3. ПІСЛЯ ПРОШИВКИ -->
+                    <div class="faq-section">
+                        <div class="faq-section-title">✅ 3. Після прошивки</div>
+                        <div class="faq-item">
+                            <strong>Порядок безпечного відключення:</strong>
+                            <p>Після появи зеленого статусу <span class="faq-status-pill-success">✓ УСПІШНО</span>: <strong>спочатку від'єднайте кабель USB</strong> від комп'ютера, і лише потім відключайте силове живлення (LiPo акумулятор).</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. ЗАГАЛЬНІ ПИТАННЯ ТА ВИРІШЕННЯ ПОМИЛОК -->
+                    <div class="faq-section">
+                        <div class="faq-section-title">❓ 4. Загальні питання та помилки</div>
+                        <div class="faq-item">
+                            <strong>Режим експерта (⚙️):</strong>
+                            <p>Перемикатися в режим експерта дозволено лише за наявності навичок дебагу та ручної прошивки. Для штатної роботи використовуйте спрощений режим в один клік.</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>Помилка прошивки FC (Крок 1):</strong>
+                            <p>Перевірте ліву панель: <strong>Target</strong>, <strong>Версія BTFL</strong>, <strong>Дата збірки</strong> та <strong>MCU</strong> мають мати зелені галочки <span class="faq-badge-pass">✓</span>. Якщо Target відрізняється, прошивка та подальші маніпуляції блокуються автоматично.</p>
+                        </div>
+                        <div class="faq-item">
+                            <strong>Помилка налаштування ESC (Крок 2):</strong>
+                            <p>Якщо LiPo підключено, але ESC видає помилку — перевірте контакт батареї, індикатори на ESC, а також переконайтеся, що поля <strong>Модель ESC</strong> та <strong>MCU ESC</strong> зліва визначилися валідно.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -625,6 +668,32 @@ rateprofile 0
         <h3 id="modalTitle">Статус</h3>
         <p id="modalMsg"></p>
         <button id="modalCloseBtn" class="btn-close" onclick="closeModal()">Закрити</button>
+    </div>
+</div>
+
+<!-- Operator Instructions Agreement Modal (One-time) -->
+<div id="instructionsModal" class="modal">
+    <div class="modal-box modal-operator-agreement">
+        <h3>📋 Інструктаж оператора станції</h3>
+        <p>Перед першим запуском прошивки обов'язково ознайомтеся з ключовими правилами роботи:</p>
+        <div class="modal-operator-list">
+            • <strong style="color: #ff4444;">‼️ Один пристрій:</strong> заборонено одночасно підключати декілька дронів/FC по USB.<br>
+            • <strong>Сторонні програми:</strong> закрийте Betaflight Configurator, ESC Configurator, BLHeliSuite32 тощо.<br>
+            • <strong>Підключення кабелю:</strong> якісний дата-кабель через USB-хаб (Type-A) або порт ПК.<br>
+            • <strong>Порядок живлення:</strong> спочатку LiPo ➔ дочекатися мелодії без збоїв ➔ через 2 сек кабель USB.<br>
+            • <strong>Під час прошивки:</strong> не вимикати живлення і кабель (тривалість 10-20 сек).<br>
+            • <strong>Після успіху (<span class="faq-status-pill-success" style="font-size:10px;">✓ УСПІШНО</span>):</strong> спочатку USB, потім LiPo.<br>
+            • <strong>Режим експерта:</strong> виключно за наявності досвіду налагодження.
+        </div>
+        <label class="modal-checkbox-row" for="chkAgreeInstructions">
+            <input type="checkbox" id="chkAgreeInstructions">
+            <span>Я уважно прочитав(ла) інструкцію та зобов'язуюсь дотримуватися порядку підключення</span>
+        </label>
+        <div class="modal-actions">
+            <button id="btnConfirmInstructions" class="btn-confirm-instructions" disabled>
+                Підтвердити та перейти до роботи
+            </button>
+        </div>
     </div>
 </div>
 

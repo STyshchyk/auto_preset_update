@@ -14,13 +14,8 @@ export const FLIGHT_CONTROLLER_USB_FILTERS = [
 export function updateGrantButtonVisibility() {
     const btnGrantPort = document.getElementById('btnGrantPort');
     if (!btnGrantPort) return;
-    const portSelect = document.getElementById('portSelect');
-    // If no ports available or selection is 'new', show prompt button if supported
-    if (!state.availablePorts || state.availablePorts.length === 0 || (portSelect && portSelect.value === 'new')) {
-        btnGrantPort.style.display = 'inline-flex';
-    } else {
-        btnGrantPort.style.display = 'none';
-    }
+    // Кнопка тимчасово прихована за запитом користувача
+    btnGrantPort.style.display = 'none';
 }
 
 export async function promptGrantNewPort(log) {
@@ -102,11 +97,8 @@ export function initSerialEvents(log, resetAllStepStatuses) {
             
             // If new hardware was plugged in but browser has no saved permission for it
             if (newCount === 0 || newCount === prevCount) {
-                log('⚡ Підключено нову плату. Натисніть "🔌 Дозволити новий пристрій" або почніть прошивку.');
-                const btnGrantPort = document.getElementById('btnGrantPort');
-                if (btnGrantPort) {
-                    btnGrantPort.style.display = 'inline-flex';
-                }
+                log('⚡ Підключено новий пристрій. Натисніть «ПРОШИТИ ДРОН» або виберіть порт у списку для надання доступу.');
+                updateGrantButtonVisibility();
             }
 
             if (Date.now() > state.ignoreRebootEventsUntil) {
