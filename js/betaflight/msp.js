@@ -184,14 +184,12 @@ export async function executeCliCommand(port, cmdLine) {
 }
 
 /**
- * Sends one or more DShot commands to an individual ESC channel (0..3) or broadcast (255).
+ * Sends one or more DShot commands to an individual ESC channel (0..3) or broadcast (255)
+ * purely over MSPv2 (`MSP2_SEND_DSHOT_COMMAND` = 0x3003) without entering CLI mode (`#`),
+ * avoiding Flight Controller reboot / USB disconnect.
  *
- * 1. First dispatches `MSP2_SEND_DSHOT_COMMAND` (0x3003) via MSPv2 (both BLOCKING and INLINE)
- *    while the flight controller is in MSP mode and all motors are at 1000µs.
- * 2. Next, enters Betaflight CLI mode (`#`), runs `dshotprog <index> <cmds...>` (which queues
- *    the 10x required DShot command repeats + save), waits for transmission to finish, and
- *    exits back to MSP mode via `exit noreboot` so the FC does not reboot and can immediately
- *    resume `MSP_SET_MOTOR`.
+ * Note: Betaflight requires ALL motors to be at 1000µs (`!motorIsEnabled()`) to accept
+ * `DSHOT_CMD_TYPE_BLOCKING` commands.
  *
  * @param {SerialPort} port
  * @param {number} escIndex 0-indexed (0=ESC1, 1=ESC2, 2=ESC3, 3=ESC4, 255=All)
@@ -203,58 +201,24 @@ export async function sendDshotProgCommand(port, escIndex, dshotCmds) {
     }
 
     const cmdArray = Array.isArray(dshotCmds) ? dshotCmds : [dshotCmds];
-    const cmdListStr = cmdArray.join(' ');
 
-    // 1. Send via MSPv2 (MSP2_SEND_DSHOT_COMMAND = 0x3003) while in MSP mode
     const writer = port.writable.getWriter();
     try {
+        // Send each command (e.g. direction 7/8, then save 12) with proper timing for 10x DShot repeats + EEPROM write
         await sendMsp2DshotCommand(writer, escIndex, cmdArray, DSHOT_CMD_TYPE_BLOCKING);
-        await delay(120);
-        await sendMsp2DshotCommand(writer, escIndex, cmdArray, DSHOT_CMD_TYPE_INLINE);
-        await delay(120);
+        await delay(350);
     } finally {
         writer.releaseLock();
     }
 
-    // 2. Also execute via Betaflight CLI `dshotprog` and return via `exit noreboot`
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    const writeRaw = async (str) => {
-        const w = port.writable.getWriter();
-        try {
-            await w.write(encoder.encode(str));
-        } finally {
-            w.releaseLock();
-        }
-    };
-
-    // Enter CLI mode
-    await writeRaw('#\r\n');
-    await delay(300);
-
-    // Send dshotprog command (e.g. `dshotprog 0 8 12\r\n`)
-    await writeRaw(`dshotprog ${escIndex} ${cmdListStr}\r\n`);
-    await delay(400); // Wait for 10x command repeats + EEPROM save delay
-
-    // Exit CLI mode back to MSP without rebooting the FC
-    await writeRaw('exit noreboot\r\n');
-    await delay(250);
-
-    // Drain any buffered CLI response so the stream stays clean
-    let output = '';
+    // Drain any MSPv2 ACK response bytes so port.readable buffer does not fill up
     if (port.readable && !port.readable.locked) {
         const reader = port.readable.getReader();
         try {
-            const start = Date.now();
-            while (Date.now() - start < 200) {
-                const { value, done } = await Promise.race([
-                    reader.read(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 60))
-                ]).catch(() => ({ value: null, done: false }));
-                if (done || !value) break;
-                output += decoder.decode(value, { stream: true });
-            }
+            await Promise.race([
+                reader.read(),
+                new Promise((resolve) => setTimeout(resolve, 40))
+            ]).catch(() => {});
         } finally {
             try {
                 await reader.cancel();
@@ -262,6 +226,4 @@ export async function sendDshotProgCommand(port, escIndex, dshotCmds) {
             reader.releaseLock();
         }
     }
-
-    return output;
 }
