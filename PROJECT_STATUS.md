@@ -45,6 +45,19 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-11)
 
+* **Phase 16: Automated ESC IndexedDB Backup & Instant Restore Engine (`js/core/db.js`, `js/blheli/preset.js`, `js/blheli/backup.js`, `index5.html`, `js/main.js`, `js/ui/status.js`)**:
+  - Upgraded IndexedDB schema to version 4 with dedicated object store `esc_preset_dumps` keyed by FC `mcuId`.
+  - Added automatic backup creation during `applyEscPreset()`: captures original 256-byte blocks of all 4 ESCs with CRC verification and writes to `esc_preset_dumps` under the FC's `mcuId` before applying any flash changes.
+  - Implemented «📥 Експорт з БД» (`exportEscBackupFromDb()`): exports stored ESC backup directly from IndexedDB into a valid JSON file.
+  - Implemented «🔄 Відновити з БД» (`restoreEscFromDb()`): flashes original ESC settings back from IndexedDB, preceded by a safety confirmation dialog displaying MCU ID, byte size, date, LiPo requirement, and propeller removal warnings.
+  - Integrated button state management in `comparePresetWithFc()` and `setAllEscButtons()`.
+
+* **Phase 15: Pipeline COM Port Stabilization & ESC Bootloader Retry Engine (`js/core/pipeline.js`, `js/core/serial.js`, `js/blheli/protocol.js`)**:
+  - Increased automated conveyor reboot wait time: 5.0 seconds after FC `save` and 2.5 seconds after `exit` (skip mode) ensuring complete USB/UART re-enumeration.
+  - Implemented automatic retry polling (5 attempts x 400ms) in `resolveSelectedPort()` before prompting the user with `requestPort()`, preventing unwanted device selection dialogs when COM port temporarily drops during reboot.
+  - Added robust 3-attempt handshake loop with 250ms spacing and `CMD_DEVICE_RESET` re-trigger in `connectEscDevice()` to eliminate transient `0x0F` (`ACK_D_GENERAL_ERROR`) failures on ESC #1.
+  - Increased post-MSP 245 UART muxing delay to 400ms and post-`CMD_INTERFACE_SET_MODE` pause to 500ms before querying ESC channels.
+
 * **Phase 14: BLHeli_32 Full 256-Byte Golden EEPROM Container & Strict Post-Flash Verification (`js/blheli/preset.js`, `js/blheli/eeprom.js`, `js/blheli/session.js`, `docs/FLASHING_VERIFICATION_PROTOCOL.md`)**:
   - Integrated `BL32_GOLDEN_PRESET_256` (512 hex characters / 256 bytes, CRC16 `0xbc05`, target MCU `0x4706`) from `BLHeli32_ESC_backup_20261111_135350_2.json`.
   - Exported `BL32_GOLDEN_CRC16 = 'bc05'` and helper function `isGoldenPresetMatched(data)` evaluating full 256-byte array equality. Preserved backward compatibility exports (`BL32_PRESET_SETTINGS`, `BL32_HEADER_NORMAL_100`).

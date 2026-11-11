@@ -21,7 +21,7 @@ import {
 } from './betaflight/preset.js';
 import { backupBetaflightConfig } from './betaflight/backup.js';
 import { readAllEscSettings } from './blheli/eeprom.js';
-import { backupAllEscs, triggerRestoreFileSelect, handleRestoreFileChange } from './blheli/backup.js';
+import { backupAllEscs, triggerRestoreFileSelect, handleRestoreFileChange, exportEscBackupFromDb, restoreEscFromDb } from './blheli/backup.js';
 import { applyEscPreset } from './blheli/preset.js';
 import { connectEscSession, disconnectEscSession } from './blheli/session.js';
 import { runFullDroneSequence } from './core/pipeline.js';
@@ -45,6 +45,8 @@ const btnDisconnectESC    = document.getElementById('btnDisconnectESC');
 const btnReadESC          = document.getElementById('btnReadESC');
 const btnBackupESC        = document.getElementById('btnBackupESC');
 const btnRestoreESC       = document.getElementById('btnRestoreESC');
+const btnExportEscDb      = document.getElementById('btnExportEscDb');
+const btnRestoreEscDb     = document.getElementById('btnRestoreEscDb');
 const fileRestoreESC      = document.getElementById('fileRestoreESC');
 const btnConfigureESC     = document.getElementById('btnConfigureESC');
 const modalCloseBtn       = document.getElementById('modalCloseBtn');
@@ -166,6 +168,16 @@ if (btnConnectESC) btnConnectESC.addEventListener('click', connectEscSession);
 if (btnDisconnectESC) btnDisconnectESC.addEventListener('click', disconnectEscSession);
 if (btnReadESC) btnReadESC.addEventListener('click', readAllEscSettings);
 if (btnBackupESC) btnBackupESC.addEventListener('click', backupAllEscs);
+if (btnExportEscDb) {
+    btnExportEscDb.addEventListener('click', () => {
+        exportEscBackupFromDb();
+    });
+}
+if (btnRestoreEscDb) {
+    btnRestoreEscDb.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(restoreEscFromDb);
+    });
+}
 if (btnRestoreESC) btnRestoreESC.addEventListener('click', triggerRestoreFileSelect);
 if (fileRestoreESC) fileRestoreESC.addEventListener('change', handleRestoreFileChange);
 if (btnConfigureESC) btnConfigureESC.addEventListener('click', applyEscPreset);

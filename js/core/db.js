@@ -4,9 +4,10 @@
  */
 
 const DB_NAME = 'DroneSetupStationDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORE_NAME = 'operation_logs';
 const DUMP_STORE_NAME = 'fc_preset_dumps';
+const ESC_DUMP_STORE_NAME = 'esc_preset_dumps';
 
 let dbInstance = null;
 
@@ -38,6 +39,11 @@ export function getDb() {
                 dumpStore.createIndex('by_savedAt', 'savedAt', { unique: false });
                 dumpStore.createIndex('by_board', 'board', { unique: false });
                 dumpStore.createIndex('by_type', 'dumpType', { unique: false });
+            }
+            // Dedicated store for BLHeli_32 4-ESC EEPROM backups keyed by FC mcuId
+            if (!db.objectStoreNames.contains(ESC_DUMP_STORE_NAME)) {
+                const escDumpStore = db.createObjectStore(ESC_DUMP_STORE_NAME, { keyPath: 'mcuId' });
+                escDumpStore.createIndex('by_savedAt', 'savedAt', { unique: false });
             }
         };
 
@@ -189,5 +195,75 @@ export async function hasFcDump(mcuId) {
     const dump = await getFcDump(mcuId);
     return Boolean(dump && (dump.dumpAll || dump.diffAll));
 }
+
+/**
+ * Saves BLHeli_32 4-ESC EEPROM backup into IndexedDB keyed by FC mcuId.
+ * @param {string} mcuId
+ * @param {object} backupObject - complete parsed/serialized backup object
+ * @param {object} [metadata]
+ * @returns {Promise<string>} cleanId
+ */
+export async function saveEscBackupToDb(mcuId, backupObject, metadata = {}) {
+    if (!mcuId || mcuId === '—') return null;
+    const cleanId = String(mcuId).trim().toLowerCase();
+    try {
+        const db = await getDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction([ESC_DUMP_STORE_NAME], 'readwrite');
+            const store = tx.objectStore(ESC_DUMP_STORE_NAME);
+
+            const record = {
+                mcuId: cleanId,
+                backup: backupObject,
+                savedAt: new Date().toISOString(),
+                metadata: {
+                    ...metadata,
+                    board: metadata.board || 'SPEDIXF722'
+                }
+            };
+
+            const req = store.put(record);
+            req.onsuccess = () => resolve(cleanId);
+            req.onerror = (err) => reject(err.target.error);
+        });
+    } catch (e) {
+        console.warn('Не вдалося зберегти бекап ESC в IndexedDB:', e);
+        return null;
+    }
+}
+
+/**
+ * Retrieves stored BLHeli_32 ESC backup from IndexedDB by FC mcuId.
+ * @param {string} mcuId
+ * @returns {Promise<object|null>}
+ */
+export async function getEscBackupFromDb(mcuId) {
+    if (!mcuId || mcuId === '—') return null;
+    const cleanId = String(mcuId).trim().toLowerCase();
+    try {
+        const db = await getDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction([ESC_DUMP_STORE_NAME], 'readonly');
+            const store = tx.objectStore(ESC_DUMP_STORE_NAME);
+            const req = store.get(cleanId);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = (err) => reject(err.target.error);
+        });
+    } catch (e) {
+        console.warn('Не вдалося зчитати бекап ESC з IndexedDB:', e);
+        return null;
+    }
+}
+
+/**
+ * Checks whether an ESC backup exists in IndexedDB for a given FC mcuId.
+ * @param {string} mcuId
+ * @returns {Promise<boolean>}
+ */
+export async function hasEscBackupInDb(mcuId) {
+    const rec = await getEscBackupFromDb(mcuId);
+    return Boolean(rec && rec.backup);
+}
+
 
 

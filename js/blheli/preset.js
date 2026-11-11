@@ -2,11 +2,15 @@
  * BLHeli_32 Preset constants and flash configuration operations.
  */
 
-import { delay, bytesEqual } from '../utils/bytes.js';
+import { delay, bytesEqual, bytesToHex } from '../utils/bytes.js';
+import { crcHex } from '../utils/crc.js';
 import { log, startOperationStep, endOperationStep } from '../ui/log.js';
 import { setStepStatus, setEscBadge, setEscFlowStep, setEscAlreadyFlashedBadge } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
+import { state } from '../core/state.js';
+import { saveEscBackupToDb, hasEscBackupInDb } from '../core/db.js';
+import { buildBackupObject } from './backup.js';
 import {
     CMD_INTERFACE_TEST_ALIVE,
     CMD_DEVICE_WRITE,
@@ -170,6 +174,33 @@ export async function applyEscPreset() {
             });
             if (invalidMcuEsc) {
                 return { aborted: `Запис заблоковано! MCU ESC #${invalidMcuEsc.esc + 1} має сигнатуру [${invalidMcuEsc.signature || invalidMcuEsc.mcu}], очікується строго 0x4706.` };
+            }
+
+            // Автоматичне збереження повної резервної копії 4-х ESC в IndexedDB перед записом
+            const currentMcuId = state.lastFcDetails?.deviceId || document.getElementById('infoDeviceId')?.textContent?.trim()?.toLowerCase();
+            if (currentMcuId && currentMcuId !== '—' && currentMcuId !== '-') {
+                try {
+                    const backupEscs = currentBlocks.map((b, idx) => ({
+                        index: idx,
+                        signature: b.signature,
+                        crc16: crcHex(b.data),
+                        dataHex: bytesToHex(b.data)
+                    }));
+                    const escBackupObj = buildBackupObject(backupEscs, true);
+                    await saveEscBackupToDb(currentMcuId, escBackupObj, {
+                        board: state.lastFcDetails?.board || 'SPEDIXF722',
+                        firmware: state.lastFcDetails?.firmware || '—',
+                        reason: 'AUTO_BACKUP_BEFORE_ESC_FLASH'
+                    });
+                    log(`[IndexedDB] Повний бекап 4-х ESC автоматично збережено в базу для MCU: ${currentMcuId}`);
+                    
+                    const btnExportEscDb = document.getElementById('btnExportEscDb');
+                    const btnRestoreEscDb = document.getElementById('btnRestoreEscDb');
+                    if (btnExportEscDb) btnExportEscDb.disabled = false;
+                    if (btnRestoreEscDb) btnRestoreEscDb.disabled = false;
+                } catch (dbErr) {
+                    console.warn('Не вдалося зберегти автоматичний бекап ESC в IndexedDB:', dbErr);
+                }
             }
 
             // Підготовка повного 256-байтного образу для кожного ESC

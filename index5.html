@@ -644,10 +644,17 @@ save
                 <button id="btnReadESC" class="btn-read" disabled title="Зчитати поточні налаштування та дампи всіх 4-х ESC">🔍 Зчитати налаштування ESC</button>
             </div>
 
-            <!-- Group 3: Бекап та Відновлення -->
+            <!-- Group 3: Робота з базою IndexedDB (дампи ESC) -->
             <div class="controls-group">
-                <span class="controls-group-label">📁 Бекап:</span>
-                <button id="btnBackupESC" class="btn-backup" disabled title="Зберегти повний бекап усіх 4 ESC у JSON-файл">💾 Копія всіх 4 ESC</button>
+                <span class="controls-group-label">💾 База дампів:</span>
+                <button id="btnExportEscDb" class="btn-dump-export" disabled title="Завантажити збережений в IndexedDB бекап 4 ESC для поточного MCU">📥 Експорт з БД</button>
+                <button id="btnRestoreEscDb" class="btn-dump-restore" disabled title="Автоматично відновити збережений бекап 4 ESC з IndexedDB у регулятори">🔄 Відновити з БД</button>
+            </div>
+
+            <!-- Group 4: Бекап та Відновлення з файлу -->
+            <div class="controls-group">
+                <span class="controls-group-label">📁 Файли:</span>
+                <button id="btnBackupESC" class="btn-backup" disabled title="Зберегти повний бекап усіх 4 ESC у JSON-файл">💾 Зберегти у файл</button>
                 <button id="btnRestoreESC" class="btn-restore" disabled title="Відновити налаштування ESC з раніше збереженого JSON-файлу">♻️ Відновити з файлу</button>
                 <input type="file" id="fileRestoreESC" accept=".json,application/json" style="display:none">
             </div>
