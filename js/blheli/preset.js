@@ -21,16 +21,30 @@ import {
     withEscSession
 } from './eeprom.js';
 
-// Еталонний блок налаштувань для Rampup=100%, LowRPM=Off, Beacon=Off (16 байт на зміщенні 0x10..0x1F)
-export const BL32_PRESET_SETTINGS = new Uint8Array([
-    0x9E, 0xDF, 0xFF, 0x55, 0x21, 0xE8, 0x2E, 0x9C,
-    0x16, 0xBA, 0xC7, 0xD7, 0x50, 0xE7, 0xFA, 0x5B
-]);
+// Еталонний 256-байтний образ EEPROM для BLHeli_32 (BLHeli32_ESC_backup_20261111_135350_2.json, MCU 0x4706)
+export const BL32_GOLDEN_CRC16 = 'bc05';
+
+export const BL32_GOLDEN_PRESET_HEX =
+    '474b9ac1b36309e49acc9250d8518905fea89e5884cf3062377108223785c1b3026327427f99c310266464ec2196bea11244cc26192dd8e02f9c00e734d5483ed1c670c32996e5c9b822b7a6ed6630ed1c45459d7766ec4eea47d898cfcb41677137f18150cdfaa65aa3f35bd784b13b819c13c4fe5a8ab37d5752cec1109a46bb71714274da44c4c6b4525368c44023828e0941aaea916cd616932ae2832b72a596c41ba174f7100611cc4fd5d486db304e49013092d1976d82f5e370f64c4d62b7d98f6230272aa42e0ad97d8e8d30fa13d10c0e5172d176704bf0203ae5acf877b9b9028afe0993955fadd4bb2141ffa10c6953153d8bf9da268818c50c05';
+
+export const BL32_GOLDEN_PRESET_256 = new Uint8Array(
+    BL32_GOLDEN_PRESET_HEX.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+);
+
+// Експорти для зворотної сумісності:
+export const BL32_PRESET_SETTINGS = BL32_GOLDEN_PRESET_256.slice(0x10, 0x20);
+export const BL32_HEADER_NORMAL_100 = BL32_GOLDEN_PRESET_256.slice(0x00, 0x08);
+
+/**
+ * Перевіряє, чи переданий 256-байтний блок точно відповідає еталонному образу.
+ * @param {Uint8Array} data
+ * @returns {boolean}
+ */
+export function isGoldenPresetMatched(data) {
+    return Boolean(data && data.length === 256 && bytesEqual(data, BL32_GOLDEN_PRESET_256));
+}
 
 // Синхронізовані заголовки напрямку обертання (хеш 0x00..0x07) для пресету 100%:
-export const BL32_HEADER_NORMAL_100 = new Uint8Array([
-    0x90, 0xBD, 0x5D, 0xF6, 0xAA, 0x06, 0x4C, 0x53
-]);
 export const BL32_HEADER_REVERSED_100 = new Uint8Array([
     0x3F, 0xB9, 0xC0, 0xBA, 0x9A, 0x73, 0x5D, 0x27
 ]);
@@ -108,7 +122,7 @@ export async function applyEscPreset() {
                         if (b >= 32 && b <= 126) str += String.fromCharCode(b);
                         else break;
                     }
-                    if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
+                    if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('Rev'))) {
                         asciiName = str;
                         break;
                     }
@@ -120,10 +134,8 @@ export async function applyEscPreset() {
                 log(`  Settings (0x10..0x1F): ${settingsHex}`);
 
                 const dir = detectMotorDirection(block.data.slice(0, 8), esc);
-                const hasSettings = block.data.length >= 32 && bytesEqual(block.data.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
-                const expHdr = (dir === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
-                const matched = hasSettings && bytesEqual(block.data.slice(0, 8), expHdr);
-                log(`  Match status: dir=${dir}, hasSettings=${hasSettings}, matched=${matched}`);
+                const matched = isGoldenPresetMatched(block.data);
+                log(`  Match status: dir=${dir}, matched=${matched}`);
 
                 const isBluejay = (block.signatureHex === '0xE8B2' || block.signatureHex === '0xB2E8' || 
                                    block.signatureHex === '0xE8B1' || block.signatureHex === '0xB1E8' ||
@@ -160,20 +172,13 @@ export async function applyEscPreset() {
                 return { aborted: `Запис заблоковано! MCU ESC #${invalidMcuEsc.esc + 1} має сигнатуру [${invalidMcuEsc.signature || invalidMcuEsc.mcu}], очікується строго 0x4706.` };
             }
 
-            // Підготовка патчів для кожного ESC
+            // Підготовка повного 256-байтного образу для кожного ESC
             const targets = [];
             let writeCount = 0;
             for (let esc = 0; esc < ESC_COUNT; esc++) {
                 const originalData = currentBlocks[esc].data;
-                const patchData = new Uint8Array(originalData);
-
-                // Примусово NORMAL для всіх ESC до окремої вказівки
+                const patchData = new Uint8Array(BL32_GOLDEN_PRESET_256);
                 const direction = 'normal';
-                const targetHeader = BL32_HEADER_NORMAL_100;
-
-                // Підставляємо зв'язані блоки (0x00..0x07 та 0x10..0x1F)
-                patchData.set(targetHeader, 0x00);
-                patchData.set(BL32_PRESET_SETTINGS, 0x10);
 
                 const needsWrite = !bytesEqual(originalData, patchData);
                 if (needsWrite) writeCount++;
@@ -241,6 +246,12 @@ export async function applyEscPreset() {
                 if (!verifyBlock.ok) {
                     setEscFlowStep('verify', 'fail');
                     return { aborted: `ESC #${esc + 1}: не пройшов контрольну перевірку (${verifyBlock.msg}).`, results: writeResults };
+                }
+
+                if (!bytesEqual(verifyBlock.data, targets[esc].patchData)) {
+                    setEscFlowStep('verify', 'fail');
+                    setEscBadge(esc, 'fail', 'Розбіжність даних');
+                    return { aborted: `ESC #${esc + 1}: виявлено розбіжність вичитаних даних з еталонним пресетом після запису!`, results: writeResults };
                 }
             }
             setEscFlowStep('verify', 'success');

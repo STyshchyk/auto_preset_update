@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-11-11  
 **Active Entry Point:** `index5.html`  
-**Refactoring Progress:** Phases 1–13 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip)  
+**Refactoring Progress:** Phases 1–14 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM & Strict Verification)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
 **Verification & Safety Protocol:** Full documentation available at `docs/FLASHING_VERIFICATION_PROTOCOL.md`.
 
@@ -34,8 +34,8 @@ The application operates as a clean, fully modular single-page application (`ind
   * `backup.js`: Flight controller configuration backup (`backupBetaflightConfig`).
 * **BLHeli_32 Feature (`js/blheli/`):**
   * `protocol.js`: MSPv1 framing (`sendMsp`), low-level 4-Way protocol (`read4WayRaw`, `send4WayCmd`), FC 4-Way mode setup (`init4WayInterface`), and device connection/disconnection (`connectEscDevice`, `disconnectEscDevice`).
-  * `eeprom.js`: Session lifecycle wrapper (`withEscSession`), 256-byte block reader with CRC retries (`readEscBlock`), and full 4-ESC settings readout handler (`readAllEscSettings`).
-  * `preset.js`: Preset constants (`BL32_PRESET_SETTINGS`, normal/reversed headers), motor rotation detection (`detectMotorDirection`), Bluejay 8-bit safety abort, target 0x4706 MCU / BLHeli_32 model validation, and 4-ESC preset flasher preserving 232 calibration bytes (`applyEscPreset`).
+  * `eeprom.js`: Session lifecycle wrapper (`withEscSession`), 256-byte block reader with CRC retries (`readEscBlock`), and full 4-ESC settings readout handler (`readAllEscSettings`) synchronized with full golden preset validation.
+  * `preset.js`: Golden 256-byte reference EEPROM container (`BL32_GOLDEN_PRESET_256`, CRC16 `0xbc05`), `isGoldenPresetMatched()` checker, motor rotation detection (`detectMotorDirection`), Bluejay 8-bit safety abort, target 0x4706 MCU / BLHeli_32 model validation, full 256-byte page overwriting, and strict post-flash byte-by-byte verification (`applyEscPreset`).
   * `backup.js`: Raw backup format serializer (`buildBackupObject`), JSON schema/checksum validator (`parseEscBackup`), backup generator (`backupAllEscs`), and two-phase restore handler (`triggerRestoreFileSelect`, `handleRestoreFileChange`).
 * **Main Bootstrap Entry (`js/main.js`):**
   * Single application bootstrap wiring serial listeners and DOM events to buttons (`btnFlashFC`, `btnComparePreset`, `btnToggleCleanPreset`, `btnBackup`, `btnSkipToEsc`, `btnReadESC`, `btnBackupESC`, `btnRestoreESC`, `fileRestoreESC`, `btnConfigureESC`, `modalCloseBtn`).
@@ -45,9 +45,15 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-11)
 
-* **3-State Flight Controller Firmware Recognition & Verification Engine (`js/betaflight/info.js`, `js/betaflight/preset.js`, `js/ui/status.js`)**:
-  - `detectFcState()` analyzes live `diff all` against both the target flashed preset (`#presetInput`) and the reference clean preset (`#cleanPresetInput`):
-    1. **`ALREADY_FLASHED`**: 0% mismatch with target preset. Displays badge `⚡ Вже прошитий`. Skips redundant flash write & save commands, marks Step 1 sub-steps as verified, and moves pipeline forward seamlessly to Step 2 (ESC).
+* **Phase 14: BLHeli_32 Full 256-Byte Golden EEPROM Container & Strict Post-Flash Verification (`js/blheli/preset.js`, `js/blheli/eeprom.js`, `js/blheli/session.js`, `docs/FLASHING_VERIFICATION_PROTOCOL.md`)**:
+  - Integrated `BL32_GOLDEN_PRESET_256` (512 hex characters / 256 bytes, CRC16 `0xbc05`, target MCU `0x4706`) from `BLHeli32_ESC_backup_20261111_135350_2.json`.
+  - Exported `BL32_GOLDEN_CRC16 = 'bc05'` and helper function `isGoldenPresetMatched(data)` evaluating full 256-byte array equality. Preserved backward compatibility exports (`BL32_PRESET_SETTINGS`, `BL32_HEADER_NORMAL_100`).
+  - Switched `applyEscPreset()` from partial 24-byte patching to writing the full monolithic 256-byte cryptographic EEPROM container (`0xF800`).
+  - Replaced partial delta check with full 256-byte equality evaluation (`isGoldenPresetMatched` and `!bytesEqual(originalData, patchData)`).
+  - Fixed ASCII model name scanning: removed `|| str.includes('_')` in `preset.js` and `eeprom.js` to eliminate false positives from encrypted byte values (`0x5F`).
+  - Phase 3 post-flash verification: added strict byte-by-byte check (`!bytesEqual(verifyBlock.data, targets[esc].patchData)`). On mismatch, immediately sets `escFlowVerify = fail`, `setEscBadge(esc, 'fail', 'Розбіжність даних')`, and safely aborts.
+  - Hardened ESC session disconnect (`disconnectEscSession()`): sets `state.escSession.isConnected = false` immediately upon entering the `try` block before dispatching `CMD_INTERFACE_EXIT`, and guarantees `#btnConnectESC` / `#btnDisconnectESC` are re-enabled upon completion or failure.
+  - Synchronized `docs/FLASHING_VERIFICATION_PROTOCOL.md` (items 2.8, 2.9, 2.14) with the 256-byte golden preset architecture.
     2. **`CLEAN`**: Matches clean baseline dump (ignoring accelerometer calibration). Proceeds directly to standard flashing without special badges.
     3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays warning badge `⚠️ Нове обладнання` with amber glowing animation and triggers a warning popup notifying the operator that non-standard configuration was detected.
 * **Flight Controller Preset Dump Store & Dual Backup/Restore Engine (`js/core/db.js`, `js/betaflight/preset.js`, `index5.html`, `css/components.css`, `js/main.js`)**:
