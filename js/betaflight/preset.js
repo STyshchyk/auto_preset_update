@@ -820,16 +820,30 @@ async function executeCliRestoreFromRecord(commandsText, restoreTypeLabel, stepN
         return;
     }
 
-    if (!window.confirm(`⚠️ Відновити оригінальний ${restoreTypeLabel} для MCU ${deviceId} з бази IndexedDB?\nЦя дія перезапише поточну конфігурацію польотного контролера.`)) {
+    const byteLength = new TextEncoder().encode(commandsText).length;
+    const formattedSize = byteLength < 1024 
+        ? `${byteLength} байт` 
+        : `${(byteLength / 1024).toFixed(1)} КБ (${byteLength.toLocaleString()} байт)`;
+
+    const linesCount = commandsText.split('\n').filter(l => l.trim() && !l.trim().startsWith('#')).length;
+
+    if (!window.confirm(`⚠️ Відновити оригінальний ${restoreTypeLabel} для MCU ${deviceId} з бази IndexedDB?\n\n📊 Розмір бекапу: ${formattedSize} (~${linesCount} команд)\n⏳ Зверніть увагу: процес передачі та запису команд у контролер може зайняти деякий час. Будь ласка, не від'єднуйте кабель живлення або USB під час операції.`)) {
         return;
     }
 
     const btnRestoreDiff = document.getElementById('btnRestoreDiffFromDb');
     const btnRestoreDump = document.getElementById('btnRestoreDumpFromDb');
     const btnFlashFC = document.getElementById('btnFlashFC');
+    const activeRestoreBtn = restoreTypeLabel.includes('diff') ? btnRestoreDiff : btnRestoreDump;
+    const originalBtnHtml = activeRestoreBtn ? activeRestoreBtn.innerHTML : '';
+
     if (btnRestoreDiff) btnRestoreDiff.disabled = true;
     if (btnRestoreDump) btnRestoreDump.disabled = true;
     if (btnFlashFC) btnFlashFC.disabled = true;
+
+    if (activeRestoreBtn) {
+        activeRestoreBtn.innerHTML = `<span class="btn-spinner"></span>Запис ${restoreTypeLabel}...`;
+    }
 
     setStepStatus(1, 'working', `🔄 Відновлення ${restoreTypeLabel} з БД...`);
     resetFcSubSteps();
@@ -929,6 +943,9 @@ async function executeCliRestoreFromRecord(commandsText, restoreTypeLabel, stepN
         state.port = null;
         showPopup('error', 'Збій відновлення', err.message);
     } finally {
+        if (activeRestoreBtn && originalBtnHtml) {
+            activeRestoreBtn.innerHTML = originalBtnHtml;
+        }
         if (btnRestoreDiff) btnRestoreDiff.disabled = false;
         if (btnRestoreDump) btnRestoreDump.disabled = false;
         if (btnFlashFC) btnFlashFC.disabled = false;
