@@ -14,7 +14,7 @@
 Single-page HTML application.
 
 ## Architecture
-- index5.html is the main entry point.
+- index.html is the main entry point.
 - CSS is stored in /css.
 - JavaScript is stored in /js.
 - Project documentation is stored in /docs.

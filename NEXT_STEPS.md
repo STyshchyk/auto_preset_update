@@ -12,7 +12,7 @@ The Drone Setup Station features a unified one-click simplified assembly pipelin
    - Comprehensive technical protocol detailing all pre-flash, during-flash, and post-flash checks for Step 1 (FC) and Step 2 (ESC).
 2. **`docs/JOB_SUMMARY_2026_11_10.md`**:
    - Full summary of telemetry status icons, Bluejay 8-bit discovery, and button locking mechanics.
-3. **`index5.html` & `css/components.css`**:
+3. **`index.html` & `css/components.css`**:
    - Structured operator instructions FAQ (`🔌 До підключення`, `⚡ Під час прошивки`, `✅ Після прошивки`, `❓ Загальні питання та помилки`) with master run pill (`.faq-btn-pill-master`) and status badges.
    - One-time operator safety agreement modal (`#instructionsModal`) with checkbox, confirmation, and safe cancellation.
    - Parity of left info panel between simplified and expert modes (`#infoBuildDate`, `#infoMcuType`).

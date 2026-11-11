@@ -241,6 +241,7 @@
             <textarea id="presetInput">
 defaults nosave
 
+
 # version
 # Betaflight / STM32F7X2 (S7X2) 4.5.1 Dec  2 2024 / 10:06:22 (77d01ba3b) MSP API: 1.46
 # config rev: cb1d3ac
@@ -253,8 +254,8 @@ defaults nosave
 
 board_name SPEDIXF722
 manufacturer_id SPDX
-mcu_id 0024002d3036510834323839
-signature 
+mcu_id 0023003e3036510834323839
+signature
 
 # name: T-System 15
 
@@ -301,14 +302,11 @@ beeper -CAM_CONNECTION_OPEN
 beeper -CAM_CONNECTION_CLOSE
 beeper -RC_SMOOTHING_INIT_FAIL
 
-# beacon
-beacon RX_LOST
-
 # aux
 aux 0 0 0 1700 2100 0 0
 aux 1 1 2 1300 1700 0 0
 aux 2 2 2 1700 2100 0 0
-aux 3 40 1 1300 2100 0 0
+aux 3 40 1 1700 2100 0 0
 aux 4 40 0 900 900 0 33
 
 # adjrange
@@ -347,8 +345,8 @@ set acc_calibration = 14,-15,22,1
 set dshot_idle_value = 250
 set failsafe_delay = 30
 set failsafe_throttle = 1280
-set vbat_min_cell_voltage = 360
-set vbat_warning_cell_voltage = 360
+set vbat_min_cell_voltage = 260
+set vbat_warning_cell_voltage = 300
 set beeper_dshot_beacon_tone = 5
 set yaw_motors_reversed = ON
 set gps_rescue_min_start_dist = 10
@@ -356,33 +354,34 @@ set gps_rescue_return_alt = 40
 set gps_rescue_throttle_max = 2000
 set gps_rescue_throttle_hover = 1350
 set simplified_gyro_filter_multiplier = 30
-set osd_vbat_pos = 14722
+set osd_vbat_pos = 6497
 set osd_rssi_pos = 87
 set osd_link_quality_pos = 55
-set osd_tim_2_pos = 14712
-set osd_flymode_pos = 14745
-set osd_throttle_pos = 14562
+set osd_tim_2_pos = 14529
+set osd_flymode_pos = 6553
+set osd_throttle_pos = 6370
 set osd_vtx_channel_pos = 33
-set osd_crosshairs_pos = 14573
+set osd_crosshairs_pos = 6381
 set osd_ah_pos = 110
-set osd_current_pos = 14657
-set osd_mah_drawn_pos = 14722
+set osd_current_pos = 6432
+set osd_mah_drawn_pos = 6529
 set osd_motor_diag_pos = 377
-set osd_craft_name_pos = 14347
-set osd_pilot_name_pos = 72
-set osd_gps_speed_pos = 14585
+set osd_craft_name_pos = 6187
+set osd_pilot_name_pos = 8353
+set osd_gps_speed_pos = 249
 set osd_gps_lon_pos = 17
 set osd_gps_lat_pos = 0
 set osd_gps_sats_pos = 58
 set osd_home_dir_pos = 72
 set osd_home_dist_pos = 121
-set osd_flight_dist_pos = 14680
-set osd_altitude_pos = 14700
-set osd_warnings_pos = 14730
-set osd_avg_cell_voltage_pos = 14690
+set osd_flight_dist_pos = 344
+set osd_compass_bar_pos = 6156
+set osd_altitude_pos = 6551
+set osd_warnings_pos = 6538
+set osd_avg_cell_voltage_pos = 6465
 set osd_pit_ang_pos = 161
 set osd_rol_ang_pos = 129
-set osd_disarmed_pos = 14731
+set osd_disarmed_pos = 6283
 set osd_esc_rpm_freq_pos = 216
 set osd_core_temp_pos = 89
 set osd_profile_name_pos = 14465
@@ -402,6 +401,7 @@ set vtx_power = 1
 set vtx_freq = 5665
 set vcd_video_system = AUTO
 set craft_name = T-System 15
+set pilot_name = IF SEEN, NO BOOM
 
 profile 0
 
