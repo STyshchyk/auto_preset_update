@@ -88,6 +88,10 @@ export async function connectEscSession() {
         state.escSession = { isConnected: false, port: null, reader: null, writer: null };
         state.port = null;
         setEscSessionConnected(false);
+        const btnConnect = document.getElementById('btnConnectESC');
+        if (btnConnect) btnConnect.disabled = false;
+        const btnDisconnect = document.getElementById('btnDisconnectESC');
+        if (btnDisconnect) btnDisconnect.disabled = false;
         setStepStatus(2, 'fail');
         setEscFlowStep('connect', 'fail');
 
@@ -103,6 +107,10 @@ export async function disconnectEscSession() {
     if (!state.escSession || !state.escSession.isConnected) {
         log('[BLHeli_32] Сесія вже закрита.');
         setEscSessionConnected(false);
+        const btnConnect = document.getElementById('btnConnectESC');
+        if (btnConnect) btnConnect.disabled = false;
+        const btnDisconnect = document.getElementById('btnDisconnectESC');
+        if (btnDisconnect) btnDisconnect.disabled = false;
         return;
     }
 
@@ -112,6 +120,7 @@ export async function disconnectEscSession() {
     setEscFlowStep('close', 'working');
 
     try {
+        state.escSession.isConnected = false;
         log('\n[BLHeli_32] Закриття 4-Way сесії (CMD_INTERFACE_EXIT 0x34)...');
         try {
             const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 600);
@@ -135,6 +144,9 @@ export async function disconnectEscSession() {
         state.escSession = { isConnected: false, port: null, reader: null, writer: null };
         state.port = null;
         setEscSessionConnected(false);
+        const btnConnect = document.getElementById('btnConnectESC');
+        if (btnConnect) btnConnect.disabled = false;
+        if (btnDisconnect) btnDisconnect.disabled = false;
         setStepStatus(2, 'awaiting');
     }
 }

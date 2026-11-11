@@ -81,8 +81,8 @@ export async function runFullDroneSequence() {
 
         // --- STEP 2: REBOOT & 4-WAY HANDSHAKE WAIT ---
         const tRebootStart = performance.now();
-        const waitTimeMs = isSkipped ? 1000 : 3500;
-        setProgressionStep(3, 'working', isSkipped ? 'Готовність FC (1 сек)...' : 'Перезавантаження FC (3.5 сек)...');
+        const waitTimeMs = isSkipped ? 2500 : 5000;
+        setProgressionStep(3, 'working', isSkipped ? 'Готовність FC (2.5 сек)...' : 'Перезавантаження FC (5 сек)...');
         await delay(waitTimeMs);
         const durReboot = ((performance.now() - tRebootStart) / 1000).toFixed(1);
         setProgressionStep(3, 'success', 'FC готовий до 4-Way', durReboot);

@@ -9,7 +9,7 @@ import { parseFcDetails, calculateMismatch, detectFcState } from './info.js';
 import { updateInfoPanel } from '../ui/infoPanel.js';
 import { isEscSessionActive, disconnectEscSession } from '../blheli/session.js';
 import { recordNewHardwareMcu, isNewHardwareMcuRecorded } from '../utils/stats.js';
-import { saveFcDualDump, saveFcDump, getFcDump, hasFcDump } from '../core/db.js';
+import { saveFcDualDump, saveFcDump, getFcDump, hasFcDump, hasEscBackupInDb } from '../core/db.js';
 import { downloadTextFile } from '../utils/bytes.js';
 
 /**
@@ -580,6 +580,23 @@ export async function comparePresetWithFc() {
             } else {
                 btnRestoreDump.title = 'Збережений dump all для поточного MCU відсутній в IndexedDB';
             }
+        }
+
+        // Check if IndexedDB has a stored ESC backup for this MCU ID
+        const btnExportEscDb = document.getElementById('btnExportEscDb');
+        const btnRestoreEscDb = document.getElementById('btnRestoreEscDb');
+        const hasEscBackup = fcDetails.deviceId ? await hasEscBackupInDb(fcDetails.deviceId) : false;
+        if (btnExportEscDb) {
+            btnExportEscDb.disabled = !hasEscBackup;
+            btnExportEscDb.title = hasEscBackup
+                ? `Завантажити збережений бекап 4 ESC для MCU: ${fcDetails.deviceId}`
+                : 'Бекап ESC для поточного MCU відсутній в IndexedDB';
+        }
+        if (btnRestoreEscDb) {
+            btnRestoreEscDb.disabled = !hasEscBackup;
+            btnRestoreEscDb.title = hasEscBackup
+                ? `Автоматично відновити збережений бекап 4 ESC для MCU: ${fcDetails.deviceId}`
+                : 'Збережений бекап ESC для поточного MCU відсутній в IndexedDB';
         }
 
         if (fcStateResult.state === 'ALREADY_FLASHED') {
