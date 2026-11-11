@@ -1,8 +1,8 @@
 # PROJECT STATUS — Drone Setup Station Refactoring
 
-**Last Updated:** 2026-11-10  
+**Last Updated:** 2026-11-11  
 **Active Entry Point:** `index5.html`  
-**Refactoring Progress:** Phases 1–12 Completed (Modular Architecture, IndexedDB Logger, Pre/Post Flash Verification Engine, Multi-Target Safety Guards)  
+**Refactoring Progress:** Phases 1–13 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
 **Verification & Safety Protocol:** Full documentation available at `docs/FLASHING_VERIFICATION_PROTOCOL.md`.
 
@@ -15,13 +15,13 @@ The application operates as a clean, fully modular single-page application (`ind
 ### Extracted & Active Modules
 * **CSS Layer:**
   * `css/main.css`: Core design tokens (`:root`), base layout, two-column flex container (`.app-layout`, `.sidebar-col`, `.main-col`), responsive breakpoints, and input styling.
-  * `css/components.css`: Step cards, badges, status indicators, buttons, console panel, modal overlays, `.info-card`, `.info-row`, `.info-val-wrap`, `.check-icon` (`.state-idle`, `.state-pass`, `.state-fail`, `.state-warn`), `.mismatch-box`, and `.mismatch-badge`.
+  * `css/components.css`: Step cards, badges, status indicators, buttons, console panel, modal overlays, `.info-card`, `.info-row`, `.info-val-wrap`, `.check-icon`, `.fc-state-pill` (`.state-already-flashed`, `.state-new-hardware`), `.btn-clean-toggle`, `.clean-preset-wrapper`, `.mismatch-box`, and `.mismatch-badge`.
 * **Core Layer (`js/core/`):**
   * `state.js`: Centralized shared application state (`port`, `availablePorts`, `popupTimer`, `ignoreRebootEventsUntil`, `escChecksPassed`).
   * `serial.js`: Web Serial lifecycle (`refreshPortList`, `initSerialEvents`, `resolveSelectedPort`, `closeSerialSession`).
 * **UI Layer (`js/ui/`):**
   * `log.js`: DOM terminal logging with automatic auto-scroll.
-  * `status.js`: Step, FC flash sub-steps, and ESC badge visual updates (`setStepStatus`, `setFcSubStep`, `resetFcSubSteps`, `setEscBadge`, `resetAllStepStatuses`, `setAllEscButtons` with verification awareness).
+  * `status.js`: Step, FC flash sub-steps, ESC badges, and FC state badge (`setStepStatus`, `setFcSubStep`, `resetFcSubSteps`, `setFcStateBadge`, `setAlreadyFlashedBadge`, `setEscBadge`, `resetAllStepStatuses`, `setAllEscButtons`).
   * `infoPanel.js`: Telemetry sidebar updater (`updateInfoPanel`, `updateEscInfoPanel`, `resetInfoPanel`, `setCheckStatus`) managing FC/ESC telemetry, verification check icons, and automatic flash button safety locking.
   * `modal.js`: Modal dialog management with auto-close and callback execution (`showPopup`, `closeModal`).
 * **Utilities (`js/utils/`):**
@@ -29,8 +29,8 @@ The application operates as a clean, fully modular single-page application (`ind
   * `crc.js`: CRC-16/CCITT (XMODEM) calculation (`0x1021`, init `0x0000`) and hex formatting.
 * **Betaflight Feature (`js/betaflight/`):**
   * `cli.js`: CLI stream reader (`readCliResponse` with prompt detection) and board target parser (`parseBoardName`).
-  * `info.js`: Telemetry parser (`parseFcDetails` for target, firmware, date, MCU) and preset diff analyzer (`extractConfigVariables`, `calculateMismatch`).
-  * `preset.js`: Flash preset execution (`flashBetaflightPreset`) with pre-flash baseline diff, target/MCU/firmware preset validation, line-by-line CLI execution, post-flash `diff all` re-read without closing connection, 100% verification comparison, and abort-without-save on discrepancy.
+  * `info.js`: Telemetry parser (`parseFcDetails` for target, firmware, date, MCU), preset diff analyzer (`extractConfigVariables`, `calculateMismatch`), and 3-state firmware recognition engine (`detectFcState`).
+  * `preset.js`: Flash preset execution (`flashBetaflightPreset`) with pre-flash 3-state baseline diff, redundant flash skip for `ALREADY_FLASHED`, warning popup for `NEW_HARDWARE`, clean FC handling, post-flash `diff all` re-read, and expert 3-way preset comparison (`comparePresetWithFc`).
   * `backup.js`: Flight controller configuration backup (`backupBetaflightConfig`).
 * **BLHeli_32 Feature (`js/blheli/`):**
   * `protocol.js`: MSPv1 framing (`sendMsp`), low-level 4-Way protocol (`read4WayRaw`, `send4WayCmd`), FC 4-Way mode setup (`init4WayInterface`), and device connection/disconnection (`connectEscDevice`, `disconnectEscDevice`).
@@ -38,8 +38,34 @@ The application operates as a clean, fully modular single-page application (`ind
   * `preset.js`: Preset constants (`BL32_PRESET_SETTINGS`, normal/reversed headers), motor rotation detection (`detectMotorDirection`), Bluejay 8-bit safety abort, target 0x4706 MCU / BLHeli_32 model validation, and 4-ESC preset flasher preserving 232 calibration bytes (`applyEscPreset`).
   * `backup.js`: Raw backup format serializer (`buildBackupObject`), JSON schema/checksum validator (`parseEscBackup`), backup generator (`backupAllEscs`), and two-phase restore handler (`triggerRestoreFileSelect`, `handleRestoreFileChange`).
 * **Main Bootstrap Entry (`js/main.js`):**
-  * Single application bootstrap wiring serial listeners and DOM events to buttons (`btnFlashFC`, `btnBackup`, `btnSkipToEsc`, `btnReadESC`, `btnBackupESC`, `btnRestoreESC`, `fileRestoreESC`, `btnConfigureESC`, `modalCloseBtn`).
+  * Single application bootstrap wiring serial listeners and DOM events to buttons (`btnFlashFC`, `btnComparePreset`, `btnToggleCleanPreset`, `btnBackup`, `btnSkipToEsc`, `btnReadESC`, `btnBackupESC`, `btnRestoreESC`, `fileRestoreESC`, `btnConfigureESC`, `modalCloseBtn`).
   * Exposes `window.closeModal = closeModal`.
+
+---
+
+## 2. Latest Updates (2026-11-11)
+
+* **3-State Flight Controller Firmware Recognition & Verification Engine (`js/betaflight/info.js`, `js/betaflight/preset.js`, `js/ui/status.js`)**:
+  - `detectFcState()` analyzes live `diff all` against both the target flashed preset (`#presetInput`) and the reference clean preset (`#cleanPresetInput`):
+    1. **`ALREADY_FLASHED`**: 0% mismatch with target preset. Displays badge `⚡ Вже прошитий`. Skips redundant flash write & save commands, marks Step 1 sub-steps as verified, and moves pipeline forward seamlessly to Step 2 (ESC).
+    2. **`CLEAN`**: Matches clean baseline dump (ignoring accelerometer calibration). Proceeds directly to standard flashing without special badges.
+    3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays warning badge `⚠️ Нове обладнання` with amber glowing animation and triggers a warning popup notifying the operator that non-standard configuration was detected.
+* **Flight Controller Preset Dump Store & Dual Backup/Restore Engine (`js/core/db.js`, `js/betaflight/preset.js`, `index5.html`, `css/components.css`, `js/main.js`)**:
+  - IndexedDB upgraded to schema version 3 with dedicated store **`fc_preset_dumps`** explicitly identifying stored dumps as `FC_PRESET_DUMP` (`targetType: 'FLIGHT_CONTROLLER'`).
+  - Automatic backup saves both `diffAll` and `dumpAll` simultaneously upon detecting `NEW_HARDWARE` (both during comparison and before flashing).
+  - Added buttons:
+    1. **«📥 Експорт (diff + dump)»** (`#btnExportNewHwDump`): downloads `NEW_HW_DIFF_...txt` and `NEW_HW_DUMP_...txt` as two separate files.
+    2. **«🔄 Відновити diff»** (`#btnRestoreDiffFromDb`): automatically flashes the saved `diff all` back into the flight controller.
+    3. **«🔄 Відновити dump»** (`#btnRestoreDumpFromDb`): automatically flashes the saved full `dump all` back into the flight controller.
+    4. **«🔄 Відновити з файлу»** (`#btnRestoreFCFromFile` / `#fileRestoreFC`): executes full-cycle flight controller flashing from an external configuration file with all safety and verification checks.
+  - Removed defunct `Перейти до ESC ➜` (`#btnSkipToEsc`) button.
+  - Buttons in Step 1 (Expert Mode) harmoniously sorted and structured into 3 logical functional toolbars (`.controls-toolbar`, `.controls-group`):
+    1. **⚡ Прошивка:** «Залити пресет у FC» (`#btnFlashFC`), «🔍 Порівняти з пресетом» (`#btnComparePreset`), «🧼 Залити чистий дамп» (`#btnFlashCleanFC`).
+    2. **💾 База дампів:** «📥 Експорт (diff + dump)» (`#btnExportNewHwDump`), «🔄 Відновити diff» (`#btnRestoreDiffFromDb`), «🔄 Відновити dump» (`#btnRestoreDumpFromDb`).
+    3. **📁 Бекап:** Селектор diff/dump, «💾 Зберегти бекап у файл» (`#btnBackup`), «🔄 Відновити з файлу» (`#btnRestoreFCFromFile`).
+  - Added new hardware metrics tracking to Statistics card (`Нові FC`: `#statDailyNewHw`, `#statAllNewHw`).
+* **Enhanced Expert Multi-Preset Comparator (`js/betaflight/preset.js`)**:
+  - `#btnComparePreset` now performs 3-way evaluation: logs diff metrics against both target preset and clean baseline preset, sets the appropriate badge, and displays diagnostic modal breakdown.
 
 ---
 

@@ -8,7 +8,17 @@ import { log, exportLogsToJson, clearTerminalAndDbLogs } from './ui/log.js';
 import { resetAllStepStatuses } from './ui/status.js';
 import { resetInfoPanel } from './ui/infoPanel.js';
 import { closeModal, ensureInstructionsAcknowledged } from './ui/modal.js';
-import { flashBetaflightPreset, skipToEsc, comparePresetWithFc } from './betaflight/preset.js';
+import { 
+    flashBetaflightPreset, 
+    skipToEsc, 
+    comparePresetWithFc, 
+    flashCleanPreset, 
+    exportNewHwDumpFromFile, 
+    restoreFcDiffFromDb, 
+    restoreFcDumpFromDb,
+    triggerFcRestoreFileSelect,
+    handleFcRestoreFileChange
+} from './betaflight/preset.js';
 import { backupBetaflightConfig } from './betaflight/backup.js';
 import { readAllEscSettings } from './blheli/eeprom.js';
 import { backupAllEscs, triggerRestoreFileSelect, handleRestoreFileChange } from './blheli/backup.js';
@@ -23,8 +33,13 @@ window.closeModal = closeModal;
 // DOM Elements
 const btnFlashFC          = document.getElementById('btnFlashFC');
 const btnComparePreset    = document.getElementById('btnComparePreset');
-const btnBackup           = document.getElementById('btnBackup');
-const btnSkipToEsc        = document.getElementById('btnSkipToEsc');
+const btnExportNewHwDump   = document.getElementById('btnExportNewHwDump');
+const btnRestoreDiffFromDb = document.getElementById('btnRestoreDiffFromDb');
+const btnRestoreDumpFromDb = document.getElementById('btnRestoreDumpFromDb');
+const btnFlashCleanFC     = document.getElementById('btnFlashCleanFC');
+const btnBackup            = document.getElementById('btnBackup');
+const btnRestoreFCFromFile = document.getElementById('btnRestoreFCFromFile');
+const fileRestoreFC        = document.getElementById('fileRestoreFC');
 const btnConnectESC       = document.getElementById('btnConnectESC');
 const btnDisconnectESC    = document.getElementById('btnDisconnectESC');
 const btnReadESC          = document.getElementById('btnReadESC');
@@ -36,6 +51,8 @@ const btnConfigureESC     = document.getElementById('btnConfigureESC');
 const modalCloseBtn       = document.getElementById('modalCloseBtn');
 const btnToggleMode       = document.getElementById('btnToggleMode');
 const btnRunSimplified    = document.getElementById('btnRunSimplified');
+const btnToggleCleanPreset = document.getElementById('btnToggleCleanPreset');
+const cleanPresetWrapper  = document.getElementById('cleanPresetWrapper');
 const btnResetDailyStats  = document.getElementById('btnResetDailyStats');
 const btnExportLogsJson   = document.getElementById('btnExportLogsJson');
 const btnClearLogs        = document.getElementById('btnClearLogs');
@@ -106,8 +123,44 @@ if (btnComparePreset) {
         ensureInstructionsAcknowledged(comparePresetWithFc);
     });
 }
-if (btnSkipToEsc) btnSkipToEsc.addEventListener('click', skipToEsc);
+if (btnExportNewHwDump) {
+    btnExportNewHwDump.addEventListener('click', () => {
+        exportNewHwDumpFromFile();
+    });
+}
+if (btnRestoreDiffFromDb) {
+    btnRestoreDiffFromDb.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(restoreFcDiffFromDb);
+    });
+}
+if (btnRestoreDumpFromDb) {
+    btnRestoreDumpFromDb.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(restoreFcDumpFromDb);
+    });
+}
+if (btnFlashCleanFC) {
+    btnFlashCleanFC.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(flashCleanPreset);
+    });
+}
+if (btnToggleCleanPreset && cleanPresetWrapper) {
+    btnToggleCleanPreset.addEventListener('click', () => {
+        const isHidden = cleanPresetWrapper.style.display === 'none';
+        cleanPresetWrapper.style.display = isHidden ? 'block' : 'none';
+        btnToggleCleanPreset.textContent = isHidden 
+            ? '⚙️ Еталонний чистий пресет (Clean Diff) ▴' 
+            : '⚙️ Еталонний чистий пресет (Clean Diff) ▾';
+    });
+}
 if (btnBackup) btnBackup.addEventListener('click', backupBetaflightConfig);
+if (btnRestoreFCFromFile) {
+    btnRestoreFCFromFile.addEventListener('click', () => {
+        ensureInstructionsAcknowledged(triggerFcRestoreFileSelect);
+    });
+}
+if (fileRestoreFC) {
+    fileRestoreFC.addEventListener('change', handleFcRestoreFileChange);
+}
 
 // --- STEP 2: BLHELI_32 ESC OPERATIONS ---
 if (btnConnectESC) btnConnectESC.addEventListener('click', connectEscSession);
