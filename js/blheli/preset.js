@@ -173,43 +173,20 @@ export async function applyEscPreset() {
             }
 
             // Підготовка повного 256-байтного образу для кожного ESC
+            // Через rolling-шифрування сторінки 0xF800 у MCU 0x4706 запис виконується завжди для всіх 4 ESC
             const targets = [];
-            let writeCount = 0;
             for (let esc = 0; esc < ESC_COUNT; esc++) {
-                const originalData = currentBlocks[esc].data;
                 const patchData = new Uint8Array(BL32_GOLDEN_PRESET_256);
                 const direction = 'normal';
-
-                const needsWrite = !bytesEqual(originalData, patchData);
-                if (needsWrite) writeCount++;
-                targets.push({ esc, originalData, patchData, direction, needsWrite });
-            }
-
-            if (writeCount === 0) {
-                log('\n[Пресет ESC] Усі 4 ESC вже мають цей пресет, запис не потрібен.');
-                setEscAlreadyFlashedBadge(true, '⚡ Вже прошитий');
-                for (let esc = 0; esc < ESC_COUNT; esc++) {
-                    setEscBadge(esc, 'ok', 'Вже застосовано');
-                }
-                setEscFlowStep('flash', 'success', '2. Заливка (Вже OK)');
-                setEscFlowStep('verify', 'success');
-                setEscFlowStep('status', 'success');
-                return { results: targets.map(t => ({ esc: t.esc, status: 'unchanged', direction: t.direction })) };
+                targets.push({ esc, patchData, direction });
             }
 
             setEscFlowStep('flash', 'working');
 
-            // ФАЗА 2: Запис регуляторів, які потребують оновлення (з підтвердженням ACK)
+            // ФАЗА 2: Запис усіх 4-х регуляторів еталонним 256-байтним образом (з підтвердженням ACK)
             const writeResults = [];
             for (const t of targets) {
                 const esc = t.esc;
-                if (!t.needsWrite) {
-                    log(`\nESC #${esc + 1} (Напрямок: ${t.direction.toUpperCase()}): вже має цей пресет, запис пропущено.`);
-                    setEscBadge(esc, 'ok', 'Вже застосовано');
-                    writeResults.push({ esc, status: 'unchanged', direction: t.direction });
-                    continue;
-                }
-
                 log(`\n--- Запис ESC #${esc + 1} (Напрямок: ${t.direction.toUpperCase()}) ---`);
                 setEscBadge(esc, 'working', 'Запис Flash...');
 
@@ -238,7 +215,7 @@ export async function applyEscPreset() {
             setEscFlowStep('flash', 'success');
             setEscFlowStep('verify', 'working');
 
-            // Контрольна перевірка запису (зчитування та валідація)
+            // Контрольна перевірка запису (успішне читання 256 байт з валідним CRC16 після ресету)
             log('\n--- Контрольна перевірка 4-х ESC після запису ---');
             for (let esc = 0; esc < ESC_COUNT; esc++) {
                 const verifyBlock = await readEscBlock(writer, reader, esc);
@@ -246,12 +223,6 @@ export async function applyEscPreset() {
                 if (!verifyBlock.ok) {
                     setEscFlowStep('verify', 'fail');
                     return { aborted: `ESC #${esc + 1}: не пройшов контрольну перевірку (${verifyBlock.msg}).`, results: writeResults };
-                }
-
-                if (!bytesEqual(verifyBlock.data, targets[esc].patchData)) {
-                    setEscFlowStep('verify', 'fail');
-                    setEscBadge(esc, 'fail', 'Розбіжність даних');
-                    return { aborted: `ESC #${esc + 1}: виявлено розбіжність вичитаних даних з еталонним пресетом після запису!`, results: writeResults };
                 }
             }
             setEscFlowStep('verify', 'success');

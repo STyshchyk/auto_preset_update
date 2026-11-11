@@ -43,7 +43,6 @@ const fileRestoreFC        = document.getElementById('fileRestoreFC');
 const btnConnectESC       = document.getElementById('btnConnectESC');
 const btnDisconnectESC    = document.getElementById('btnDisconnectESC');
 const btnReadESC          = document.getElementById('btnReadESC');
-const btnCompareESC       = document.getElementById('btnCompareESC');
 const btnBackupESC        = document.getElementById('btnBackupESC');
 const btnRestoreESC       = document.getElementById('btnRestoreESC');
 const fileRestoreESC      = document.getElementById('fileRestoreESC');
@@ -166,7 +165,6 @@ if (fileRestoreFC) {
 if (btnConnectESC) btnConnectESC.addEventListener('click', connectEscSession);
 if (btnDisconnectESC) btnDisconnectESC.addEventListener('click', disconnectEscSession);
 if (btnReadESC) btnReadESC.addEventListener('click', readAllEscSettings);
-if (btnCompareESC) btnCompareESC.addEventListener('click', readAllEscSettings);
 if (btnBackupESC) btnBackupESC.addEventListener('click', backupAllEscs);
 if (btnRestoreESC) btnRestoreESC.addEventListener('click', triggerRestoreFileSelect);
 if (fileRestoreESC) fileRestoreESC.addEventListener('change', handleRestoreFileChange);

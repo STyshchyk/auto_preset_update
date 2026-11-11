@@ -628,15 +628,29 @@ save
             <div class="esc-badge pending" id="badgeEsc3">ESC #4: Очікування</div>
         </div>
 
-        <div class="controls expert-only">
-            <button id="btnConnectESC" class="btn-connect">🔗 З'єднатися з ESC</button>
-            <button id="btnDisconnectESC" class="btn-disconnect" disabled>❌ Від'єднатися від ESC</button>
-            <button id="btnReadESC" class="btn-read" disabled>🔍 Зчитати поточні налаштування ESC</button>
-            <button id="btnCompareESC" class="btn-read" title="Зчитати налаштування 4-х ESC та перевірити відповідність пресету" disabled>🔍 Порівняти з пресетом</button>
-            <button id="btnBackupESC" class="btn-backup" disabled>💾 Копія всіх 4 ESC</button>
-            <button id="btnRestoreESC" class="btn-restore" disabled>♻️ Відновити з файлу</button>
-            <input type="file" id="fileRestoreESC" accept=".json,application/json" style="display:none">
-            <button id="btnConfigureESC" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled>⚡ Застосувати пресет до 4 ESC</button>
+        <!-- Step 2 Controls (Grouped & Sorted in Expert Mode) -->
+        <div class="controls-toolbar expert-only">
+            <!-- Group 1: 4-Way Сесія -->
+            <div class="controls-group">
+                <span class="controls-group-label">🔗 Сесія:</span>
+                <button id="btnConnectESC" class="btn-connect" title="Встановити 4-Way з'єднання з ESC через FC">🔗 З'єднатися</button>
+                <button id="btnDisconnectESC" class="btn-disconnect" disabled title="Розірвати 4-Way сесію та звільнити COM-порт">❌ Від'єднатися</button>
+            </div>
+
+            <!-- Group 2: Прошивка та Зчитування -->
+            <div class="controls-group">
+                <span class="controls-group-label">⚡ Прошивка:</span>
+                <button id="btnConfigureESC" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled title="Записати 256-байтний еталонний пресет у всі 4 регулятори">⚡ Застосувати пресет до 4 ESC</button>
+                <button id="btnReadESC" class="btn-read" disabled title="Зчитати поточні налаштування та дампи всіх 4-х ESC">🔍 Зчитати налаштування ESC</button>
+            </div>
+
+            <!-- Group 3: Бекап та Відновлення -->
+            <div class="controls-group">
+                <span class="controls-group-label">📁 Бекап:</span>
+                <button id="btnBackupESC" class="btn-backup" disabled title="Зберегти повний бекап усіх 4 ESC у JSON-файл">💾 Копія всіх 4 ESC</button>
+                <button id="btnRestoreESC" class="btn-restore" disabled title="Відновити налаштування ESC з раніше збереженого JSON-файлу">♻️ Відновити з файлу</button>
+                <input type="file" id="fileRestoreESC" accept=".json,application/json" style="display:none">
+            </div>
         </div>
     </div>
 

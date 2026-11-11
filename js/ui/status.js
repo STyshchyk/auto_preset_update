@@ -230,7 +230,7 @@ export function resetAllStepStatuses() {
 import { state } from '../core/state.js';
 
 export function setAllEscButtons(disabled) {
-    const ids = ['btnReadESC', 'btnCompareESC', 'btnBackupESC', 'btnRestoreESC'];
+    const ids = ['btnReadESC', 'btnBackupESC', 'btnRestoreESC'];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.disabled = disabled;
