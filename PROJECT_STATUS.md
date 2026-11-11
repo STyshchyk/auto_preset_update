@@ -1,7 +1,7 @@
 # PROJECT STATUS — Drone Setup Station Refactoring
 
 **Last Updated:** 2026-11-11  
-**Active Entry Point:** `index5.html`  
+**Active Entry Point:** `index.html`  
 **Refactoring Progress:** Phases 1–14 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM & Strict Verification)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
 **Verification & Safety Protocol:** Full documentation available at `docs/FLASHING_VERIFICATION_PROTOCOL.md`.
@@ -10,7 +10,7 @@
 
 ## 1. Current Implementation State
 
-The application operates as a clean, fully modular single-page application (`index5.html`) using browser-native ES Modules and Web Serial API.
+The application operates as a clean, fully modular single-page application (`index.html`) using browser-native ES Modules and Web Serial API.
 
 ### Extracted & Active Modules
 * **CSS Layer:**
@@ -45,7 +45,7 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-11)
 
-* **Phase 16: Automated ESC IndexedDB Backup & Instant Restore Engine (`js/core/db.js`, `js/blheli/preset.js`, `js/blheli/backup.js`, `index5.html`, `js/main.js`, `js/ui/status.js`)**:
+* **Phase 16: Automated ESC IndexedDB Backup & Instant Restore Engine (`js/core/db.js`, `js/blheli/preset.js`, `js/blheli/backup.js`, `index.html`, `js/main.js`, `js/ui/status.js`)**:
   - Upgraded IndexedDB schema to version 4 with dedicated object store `esc_preset_dumps` keyed by FC `mcuId`.
   - Added automatic backup creation during `applyEscPreset()`: captures original 256-byte blocks of all 4 ESCs with CRC verification and writes to `esc_preset_dumps` under the FC's `mcuId` before applying any flash changes.
   - Implemented «📥 Експорт з БД» (`exportEscBackupFromDb()`): exports stored ESC backup directly from IndexedDB into a valid JSON file.
@@ -69,7 +69,7 @@ The application operates as a clean, fully modular single-page application (`ind
   - Synchronized `docs/FLASHING_VERIFICATION_PROTOCOL.md` (items 2.8, 2.9, 2.14) with the 256-byte golden preset architecture.
     2. **`CLEAN`**: Matches clean baseline dump (ignoring accelerometer calibration). Proceeds directly to standard flashing without special badges.
     3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays warning badge `⚠️ Нове обладнання` with amber glowing animation and triggers a warning popup notifying the operator that non-standard configuration was detected.
-* **Flight Controller Preset Dump Store & Dual Backup/Restore Engine (`js/core/db.js`, `js/betaflight/preset.js`, `index5.html`, `css/components.css`, `js/main.js`)**:
+* **Flight Controller Preset Dump Store & Dual Backup/Restore Engine (`js/core/db.js`, `js/betaflight/preset.js`, `index.html`, `css/components.css`, `js/main.js`)**:
   - IndexedDB upgraded to schema version 3 with dedicated store **`fc_preset_dumps`** explicitly identifying stored dumps as `FC_PRESET_DUMP` (`targetType: 'FLIGHT_CONTROLLER'`).
   - Automatic backup saves both `diffAll` and `dumpAll` simultaneously upon detecting `NEW_HARDWARE` (both during comparison and before flashing).
   - Added buttons:
@@ -97,7 +97,7 @@ The application operates as a clean, fully modular single-page application (`ind
   - Підпункти Кроку 1 інформують: `1. Пропущено (0% diff)`, `2. Звірено (100% збіг)`, `3. Перевірено (Вже прошитий)`.
   - Конвеєр спрощеного режиму відображає `Вже прошитий (0% розбіжностей, пропущено)` та без затримки на перезавантаження продовжує перехід до Кроку 2 (ESC).
 
-* **Operator Instructions & FAQ Redesign (`index5.html`, `css/components.css`)**:
+* **Operator Instructions & FAQ Redesign (`index.html`, `css/components.css`)**:
   - Structured into chronological stages:
     1. **🔌 До підключення**: Сувора заборона підключення декількох девайсів (`‼️`), закриття сторонніх конфігураторів (Betaflight/ESC Configurator/BLHeliSuite32), рекомендація USB Type-A через хаб з живленням, порядок живлення (LiPo ➔ очікування мелодії ➔ 2 сек ➔ USB), техніка безпеки (зняті пропелери `⚠️`).
     2. **⚡ Під час прошивки**: Штатний старт в 1 клік, діалог дозволу для нових пристроїв, сувора заборона вимикання під час запису (`‼️`).
@@ -111,7 +111,7 @@ The application operates as a clean, fully modular single-page application (`ind
   - Стан підтвердження зберігається в `localStorage` (`drone_station_instructions_ack_v1`).
   - Передбачено кнопки скасування/закриття (хрестик `✕` та «Скасувати»), що закривають вікно без запуску процесу прошивки.
 
-* **Pipeline Status & Left Panel Parity Fixes (`js/core/pipeline.js`, `index5.html`)**:
+* **Pipeline Status & Left Panel Parity Fixes (`js/core/pipeline.js`, `index.html`)**:
   - Усунено зависання іконки Кроку 2 в статусі `working`: при успішному записі пресету FC іконка одразу переводиться в статус `success`, навіть якщо через відсутність LiPo батареї зупиняється налаштування ESC.
   - Досягнуто паритету лівої інфо-панелі між спрощеним та експертним режимами: поля **«Дата збірки»** та **«MCU»** відображаються завжди, а блок «Порівняння з пресетом» залишено ексклюзивно для режиму експерта.
   - Кнопку «Дозволити новий пристрій» приховано з інтерфейсу (запит дозволу відбувається безпосередньо при натисканні на прошивку або виборі порту).

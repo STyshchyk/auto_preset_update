@@ -1,11 +1,11 @@
-# PROJECT_MAP: `index5.html`
+# PROJECT_MAP: `index.html`
 
 > **Drone Setup Station: Betaflight & BLHeli_32 Configurator**  
 > Односторінковий веб-додаток (Single-Page HTML Application) на базі **Web Serial API** для прошивки пресетів польотного контролера (Betaflight CLI), моніторингу телеметрії та % неспівпадіння зі стеком, а також конфігурації/резервного копіювання регуляторів обертів (BLHeli_32 через MSP 4-Way Passthrough).
 
 ---
 
-## 1. Загальна структура інтерфейсу (`index5.html`)
+## 1. Загальна структура інтерфейсу (`index.html`)
 
 | Розділ | Елементи / Селектори | Опис |
 | :--- | :--- | :--- |

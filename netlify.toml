@@ -3,6 +3,6 @@
 
 [[redirects]]
   from = "/"
-  to = "/index5.html"
+  to = "/index.html"
   status = 200
   force = true
