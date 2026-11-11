@@ -6,7 +6,7 @@ import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log } from '../ui/log.js';
-import { setStepStatus, setEscBadge, setAllEscButtons, setEscFlowStep } from '../ui/status.js';
+import { setStepStatus, setEscBadge, setAllEscButtons, setEscFlowStep, setEscAlreadyFlashedBadge } from '../ui/status.js';
 import { updateEscInfoPanel } from '../ui/infoPanel.js';
 import { showPopup } from '../ui/modal.js';
 import {
@@ -21,7 +21,8 @@ import {
     BL32_PRESET_SETTINGS,
     BL32_HEADER_NORMAL_100,
     BL32_HEADER_REVERSED_100,
-    detectMotorDirection
+    detectMotorDirection,
+    isGoldenPresetMatched
 } from './preset.js';
 import { bytesEqual } from '../utils/bytes.js';
 import { isEscSessionActive } from './session.js';
@@ -135,6 +136,7 @@ export async function readAllEscSettings() {
     const hasActiveSession = isEscSessionActive();
 
     setStepStatus(2, 'working');
+    setEscAlreadyFlashedBadge(false);
     setAllEscButtons(true);
     for (let i = 0; i < 4; i++) setEscBadge(i, 'pending', 'Очікування');
 
@@ -167,12 +169,9 @@ export async function readAllEscSettings() {
             foundEscCount++;
             const pageData = readRes.data;
 
-            // Перевірка напрямку та відповідності нашому пресету
+            // Перевірка напрямку та відповідності нашому 256-байтному еталонному пресету
             const direction = detectMotorDirection(pageData.slice(0, 8), esc);
-            const hasPresetSettings = pageData.length >= 32 && bytesEqual(pageData.slice(0x10, 0x20), BL32_PRESET_SETTINGS);
-            const expectedHeader = (direction === 'reversed') ? BL32_HEADER_REVERSED_100 : BL32_HEADER_NORMAL_100;
-            const hasPresetHeader = bytesEqual(pageData.slice(0, 8), expectedHeader);
-            const presetMatched = hasPresetSettings && hasPresetHeader;
+            const presetMatched = isGoldenPresetMatched(pageData);
 
             // Витяг відкритого ASCII тексту назви та версії прошивки з блоку
             let asciiName = '';
@@ -183,7 +182,7 @@ export async function readAllEscSettings() {
                     if (b >= 32 && b <= 126) str += String.fromCharCode(b);
                     else break;
                 }
-                if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('_') || str.includes('Rev'))) {
+                if (str.length >= 6 && (str.includes('32.') || str.includes('BLHeli') || str.includes('Rev'))) {
                     asciiName = str;
                     break;
                 }
@@ -212,7 +211,7 @@ export async function readAllEscSettings() {
                 log(`  ${off.toString(16).padStart(4, '0')}: ${row}`);
             }
 
-            setEscBadge(esc, 'ok', presetMatched ? `${direction.toUpperCase()} (100%)` : `${direction.toUpperCase()}`);
+            setEscBadge(esc, 'ok', presetMatched ? 'Вже застосовано' : `${direction.toUpperCase()} (Stock)`);
 
             // Чисто відключаємо поточний ESC перед переходом до наступного
             await disconnectEscDevice(writer, reader, esc);
@@ -239,12 +238,23 @@ export async function readAllEscSettings() {
         const { foundEscCount, escDetails } = result;
 
         if (foundEscCount === 4) {
-            setStepStatus(2, 'success');
-            showPopup('success', 'Дані успішно зчитано', `Зчитано всі 4 ESC!\n\n` + escDetails.map(e => `ESC #${e.esc + 1}: ${e.direction.toUpperCase()} (${e.presetMatched ? '100%' : 'Stock'}) - ${e.mcu}`).join('\n'), 3500);
+            const allMatched = escDetails.length === 4 && escDetails.every(e => e.presetMatched);
+            if (allMatched) {
+                setEscAlreadyFlashedBadge(true, '⚡ Вже прошитий');
+                setStepStatus(2, 'success');
+                showPopup('success', 'Пресет 100% співпадає!', 'Усі 4 ESC вже мають цей пресет (Вже застосовано). Запис не потрібен!', 3500);
+            } else {
+                setEscAlreadyFlashedBadge(false);
+                setStepStatus(2, 'awaiting');
+                const needCount = escDetails.filter(e => !e.presetMatched).length;
+                showPopup('info', 'Результат порівняння ESC', `Зчитано 4 ESC.\n${4 - needCount} з 4 відповідають пресету, ${needCount} потребують прошивки.\n\n` + escDetails.map(e => `ESC #${e.esc + 1}: ${e.direction.toUpperCase()} (${e.presetMatched ? 'Вже застосовано' : 'Потрібен запис'}) - ${e.mcu}`).join('\n'), 3500);
+            }
         } else if (foundEscCount > 0) {
+            setEscAlreadyFlashedBadge(false);
             setStepStatus(2, 'awaiting');
             showPopup('error', 'Зчитано частково', `Знайдено ${foundEscCount} з 4 ESC.\nПеревірте живлення LiPo!\n\n` + escDetails.map(e => `ESC #${e.esc + 1}: ${e.direction.toUpperCase()} - ${e.mcu}`).join('\n'));
         } else {
+            setEscAlreadyFlashedBadge(false);
             setStepStatus(2, 'fail');
             showPopup('error', 'ESC не відповідають', 'Жоден регулятор не відповів. Переконайтеся, що LiPo батарея підключена і мотори пропіщали!');
         }

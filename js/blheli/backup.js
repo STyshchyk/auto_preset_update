@@ -4,9 +4,11 @@
 
 import { delay, bytesToHex, hexToBytes, bytesEqual, timestampStr, downloadTextFile } from '../utils/bytes.js';
 import { crcHex } from '../utils/crc.js';
-import { log } from '../ui/log.js';
+import { log, startOperationStep, endOperationStep } from '../ui/log.js';
 import { setStepStatus, setEscBadge } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
+import { state } from '../core/state.js';
+import { getEscBackupFromDb, hasEscBackupInDb } from '../core/db.js';
 import {
     CMD_INTERFACE_TEST_ALIVE,
     CMD_DEVICE_WRITE,
@@ -254,5 +256,172 @@ export async function handleRestoreFileChange(event) {
         setStepStatus(2, 'fail');
         log(`[Відновлення помилка]: ${err.message}`);
         showPopup('error', 'Збій відновлення', err.message);
+    }
+}
+
+/**
+ * Exports stored BLHeli_32 ESC backup from IndexedDB as a downloadable JSON file.
+ */
+export async function exportEscBackupFromDb() {
+    const deviceId = state.lastFcDetails?.deviceId || document.getElementById('infoDeviceId')?.textContent?.trim()?.toLowerCase();
+    if (!deviceId || deviceId === '—') {
+        showPopup('error', 'Помилка', 'Не вдалося визначити MCU ID поточного контролера. Спочатку виконайте порівняння з пресетом або зчитування.');
+        return;
+    }
+
+    try {
+        const record = await getEscBackupFromDb(deviceId);
+        if (!record || !record.backup) {
+            showPopup('info', 'Бекап відсутній', `Для контролера MCU: ${deviceId} у базі IndexedDB збереженого бекапу ESC не знайдено.`);
+            return;
+        }
+
+        const cleanMcu = deviceId.replace(/^0x/i, '');
+        const filename = `BLHeli32_ESC_backup_MCU_${cleanMcu}_${timestampStr()}.json`;
+        downloadTextFile(filename, JSON.stringify(record.backup, null, 2));
+        log(`[IndexedDB] Бекап 4-х ESC для MCU ${deviceId} успішно експортовано у файл: ${filename}`);
+        showPopup('success', 'Бекап експортовано', `Файл бекапу 4 ESC успішно збережено: ${filename}`, 2500);
+    } catch (err) {
+        console.error('Помилка експорту бекапу ESC з IndexedDB:', err);
+        showPopup('error', 'Помилка експорту', err.message);
+    }
+}
+
+/**
+ * Restores 4-ESC settings directly from IndexedDB by FC MCU ID.
+ */
+export async function restoreEscFromDb() {
+    if (!('serial' in navigator)) {
+        setStepStatus(2, 'fail');
+        showPopup('error', 'Помилка', 'Web Serial API не підтримується.');
+        return;
+    }
+
+    const deviceId = state.lastFcDetails?.deviceId || document.getElementById('infoDeviceId')?.textContent?.trim()?.toLowerCase();
+    if (!deviceId || deviceId === '—') {
+        showPopup('error', 'Помилка', 'Не вдалося визначити MCU ID поточного контролера. Спочатку виконайте порівняння з пресетом або прошивку FC.');
+        return;
+    }
+
+    const record = await getEscBackupFromDb(deviceId);
+    if (!record || !record.backup) {
+        showPopup('error', 'Бекап відсутній', `Для контролера MCU: ${deviceId} у базі IndexedDB збереженого бекапу 4-х ESC не знайдено.`);
+        return;
+    }
+
+    const backupObj = record.backup;
+    const parsed = parseEscBackup(JSON.stringify(backupObj));
+    if (!parsed.ok) {
+        showPopup('error', 'Пошкоджений бекап', `Помилка структури збереженого бекапу ESC: ${parsed.msg}`);
+        return;
+    }
+
+    const escCount = parsed.escs.length;
+    const totalBytes = escCount * ESC_BLOCK_LEN;
+    const formattedDate = record.savedAt ? new Date(record.savedAt).toLocaleString() : 'невідомо';
+
+    const confirmMsg = 
+        `⚠️ Відновити оригінальний бекап 4 ESC для MCU ${deviceId} з бази IndexedDB?\n\n` +
+        `📊 Збережено ESC: ${escCount} шт. (${totalBytes.toLocaleString()} байт)\n` +
+        `⏰ Час створення копії: ${formattedDate}\n\n` +
+        `⏳ Зверніть увагу: процес передачі та запису Flash у регулятори може зайняти деякий час.\n` +
+        `Перед продовженням: зніміть пропелери та перевірте підключення LiPo. Не від'єднуйте кабель живлення або USB під час операції.`;
+
+    if (!window.confirm(confirmMsg)) {
+        log('[Відновлення з БД] Скасовано оператором.');
+        return;
+    }
+
+    const btnRestoreEscDb = document.getElementById('btnRestoreEscDb');
+    const btnConfigureESC = document.getElementById('btnConfigureESC');
+    if (btnRestoreEscDb) btnRestoreEscDb.disabled = true;
+    if (btnConfigureESC) btnConfigureESC.disabled = true;
+
+    setStepStatus(2, 'working');
+    startOperationStep('ESC_RESTORE_FROM_DB', `Відновлення 4 ESC з IndexedDB для MCU ${deviceId}`);
+    for (let i = 0; i < ESC_COUNT; i++) setEscBadge(i, 'pending', 'Очікування');
+
+    try {
+        const outcome = await withEscSession(async (writer, reader) => {
+            // ФАЗА 1: Перевірка чіпів
+            const current = new Map();
+            for (const target of parsed.escs) {
+                const esc = target.index;
+                log(`\n--- Перевірка ESC #${esc + 1} перед записом з БД ---`);
+                setEscBadge(esc, 'working', 'Перевірка...');
+                const r = await readEscBlock(writer, reader, esc);
+                await disconnectEscDevice(writer, reader, esc);
+                if (!r.ok) {
+                    setEscBadge(esc, 'fail', 'Збій читання');
+                    return { aborted: `ESC #${esc + 1} не прочитано (${r.msg}). Нічого не записано.` };
+                }
+                if (r.signature !== target.signature) {
+                    setEscBadge(esc, 'fail', 'Інший чіп');
+                    return { aborted: `ESC #${esc + 1}: чіп ${r.signature} не збігається з бекапом (${target.signature}). Нічого не записано.` };
+                }
+                current.set(esc, r);
+            }
+
+            // ФАЗА 2: Запис з підтвердженням ACK
+            const results = [];
+            for (const target of parsed.escs) {
+                const esc = target.index;
+                log(`\n--- Відновлення ESC #${esc + 1} з IndexedDB ---`);
+
+                if (bytesEqual(current.get(esc).data, target.data)) {
+                    log(`ESC #${esc + 1}: вже збігається з бекапом, запис не потрібен.`);
+                    setEscBadge(esc, 'ok', 'Без змін');
+                    results.push({ esc, status: 'unchanged' });
+                    continue;
+                }
+
+                setEscBadge(esc, 'working', 'Запис Flash...');
+                const conn = await connectEscDevice(writer, reader, esc);
+                if (!conn.ok) {
+                    setEscBadge(esc, 'fail', 'Немає відповіді');
+                    return { aborted: `ESC #${esc + 1}: втрачено звʼязок перед записом (${conn.msg}).`, results };
+                }
+
+                await send4WayCmd(writer, reader, CMD_INTERFACE_TEST_ALIVE, 0, [0], 800);
+                const wr = await send4WayCmd(writer, reader, CMD_DEVICE_WRITE, BL32_EEPROM_ADDR, Array.from(target.data), 4000);
+                if (!wr.ok) {
+                    setEscBadge(esc, 'fail', 'Збій запису');
+                    await disconnectEscDevice(writer, reader, esc);
+                    return { aborted: `ESC #${esc + 1}: запис не підтверджено (${wr.msg}).`, results };
+                }
+
+                await disconnectEscDevice(writer, reader, esc);
+                await delay(50);
+                log(`ESC #${esc + 1}: Flash успішно відновлено (ACK OK).`);
+                setEscBadge(esc, 'ok', 'Відновлено');
+                results.push({ esc, status: 'written' });
+            }
+            return { results };
+        });
+
+        if (outcome.aborted) {
+            setStepStatus(2, 'fail');
+            log(`[Відновлення з БД] ЗУПИНЕНО: ${outcome.aborted}`);
+            await endOperationStep('FAILED', outcome.aborted);
+            showPopup('error', 'Відновлення зупинено', outcome.aborted);
+            return;
+        }
+
+        const written = outcome.results.filter(r => r.status === 'written').length;
+        const same = outcome.results.filter(r => r.status === 'unchanged').length;
+        setStepStatus(2, 'success');
+        await endOperationStep('SUCCESS', `Відновлено ESC з IndexedDB: ${written}, без змін: ${same}`);
+        log(`\n[Відновлення з БД] Успішно завершено: відновлено ${written}, без змін ${same}.`);
+        showPopup('success', 'Відновлення завершено', `Успішно відновлено з IndexedDB для MCU ${deviceId}!\nЗаписано ESC: ${written}, без змін: ${same}.`, 3500);
+
+    } catch (err) {
+        console.error(err);
+        setStepStatus(2, 'fail');
+        await endOperationStep('FAILED', `Збій: ${err.message}`);
+        log(`[Відновлення з БД помилка]: ${err.message}`);
+        showPopup('error', 'Збій відновлення з БД', err.message);
+    } finally {
+        if (btnRestoreEscDb) btnRestoreEscDb.disabled = false;
+        if (btnConfigureESC) btnConfigureESC.disabled = false;
     }
 }

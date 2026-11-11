@@ -157,3 +157,72 @@ export function calculateMismatch(presetText = '', fcDiffText = '') {
         mismatchedKeys
     };
 }
+
+/**
+ * Evaluates the 3-state firmware recognition for the Flight Controller:
+ * 1. 'ALREADY_FLASHED': matches target flashed preset with 0 mismatches.
+ * 2. 'CLEAN': matches clean baseline preset (ignoring hardware-specific acc_calibration).
+ * 3. 'NEW_HARDWARE': does not match either target or clean baseline.
+ *
+ * @param {string} fcDiffText The diff output from the FC
+ * @param {string} targetPresetText The desired flashed preset
+ * @param {string} cleanPresetText The expected clean baseline preset
+ * @returns {object} { state: 'ALREADY_FLASHED' | 'CLEAN' | 'NEW_HARDWARE', targetMismatch, cleanMismatch }
+ */
+export function detectFcState(fcDiffText = '', targetPresetText = '', cleanPresetText = '') {
+    const targetMismatch = calculateMismatch(targetPresetText, fcDiffText);
+
+    // Filter out acc_calibration or dynamic hardware offsets when checking clean preset if needed
+    const cleanVars = extractConfigVariables(cleanPresetText);
+    const fcVars = extractConfigVariables(fcDiffText);
+
+    let cleanMismatchCount = 0;
+    const cleanMismatchedKeys = [];
+    let cleanComparedVars = 0;
+
+    for (const [key, cleanVal] of cleanVars.entries()) {
+        // Skip hardware-specific calibration values from strict mismatch check
+        if (key === 'acc_calibration' || key === 'acc_trim_pitch' || key === 'acc_trim_roll') {
+            continue;
+        }
+        cleanComparedVars++;
+        if (!fcVars.has(key)) {
+            cleanMismatchCount++;
+            cleanMismatchedKeys.push({ key, reason: 'missing_on_fc', expected: cleanVal, actual: null });
+        } else {
+            const actualVal = fcVars.get(key);
+            if (actualVal !== cleanVal) {
+                cleanMismatchCount++;
+                cleanMismatchedKeys.push({ key, reason: 'value_diff', expected: cleanVal, actual: actualVal });
+            }
+        }
+    }
+
+    const cleanMismatchPercent = cleanComparedVars > 0 
+        ? Math.round((cleanMismatchCount / cleanComparedVars) * 100) 
+        : 0;
+
+    const cleanMismatch = {
+        mismatchPercent: cleanMismatchPercent,
+        mismatchCount: cleanMismatchCount,
+        totalPresetVars: cleanComparedVars,
+        mismatchedKeys: cleanMismatchedKeys
+    };
+
+    let state = 'NEW_HARDWARE';
+
+    if (targetMismatch.mismatchCount === 0 && targetMismatch.totalPresetVars > 0) {
+        state = 'ALREADY_FLASHED';
+    } else if (cleanMismatchCount === 0) {
+        state = 'CLEAN';
+    } else {
+        state = 'NEW_HARDWARE';
+    }
+
+    return {
+        state,
+        targetMismatch,
+        cleanMismatch
+    };
+}
+

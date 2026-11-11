@@ -31,7 +31,7 @@ export async function runFullDroneSequence() {
         let tFlashStart = performance.now();
 
         // Execute Step 1 with onTelemetryReady callback
-        await flashBetaflightPreset((fcDetails) => {
+        const flashResult = await flashBetaflightPreset((fcDetails) => {
             const t1 = performance.now();
             const durValidation = ((t1 - t0) / 1000).toFixed(1);
             // As soon as board target, BTFL version, and device UID are identified:
@@ -59,8 +59,13 @@ export async function runFullDroneSequence() {
             throw new Error('Помилка під час прошивки Betaflight (Крок 1 не пройдено).');
         }
 
-        // Пресет FC успішно записано та перевірено (Крок 1 пройшов)
-        setProgressionStep(2, 'success', 'Пресет FC успішно записано', durFlash);
+        const isSkipped = flashResult && flashResult.skipped;
+        if (isSkipped) {
+            setProgressionStep(2, 'success', 'Вже прошитий (0% розбіжностей, пропущено)', durFlash);
+        } else {
+            // Пресет FC успішно записано та перевірено (Крок 1 пройшов)
+            setProgressionStep(2, 'success', 'Пресет FC успішно записано', durFlash);
+        }
 
         // --- BATTERY CHECK IN SIMPLIFIED MODE ---
         // Betaflight 'status' detects battery presence. In simplified mode, ESC cannot be flashed without LiPo!
@@ -69,12 +74,16 @@ export async function runFullDroneSequence() {
             throw new Error(`Силову батарею (LiPo) не підключено: ${state.lastFcDetails.batteryInfo}! Підключіть LiPo акумулятор перед прошивкою регуляторів ESC.`);
         }
 
-        setProgressionBanner('working', 'Крок 1 успішно!', 'Очікування перезавантаження FC перед налаштуванням ESC...');
+        const bannerDetails = isSkipped 
+            ? 'Пристрій вже прошитий. Переходимо до налаштування ESC...' 
+            : 'Очікування перезавантаження FC перед налаштуванням ESC...';
+        setProgressionBanner('working', 'Крок 1 успішно!', bannerDetails);
 
         // --- STEP 2: REBOOT & 4-WAY HANDSHAKE WAIT ---
         const tRebootStart = performance.now();
-        setProgressionStep(3, 'working', 'Перезавантаження FC (3.5 сек)...');
-        await delay(3500);
+        const waitTimeMs = isSkipped ? 2500 : 5000;
+        setProgressionStep(3, 'working', isSkipped ? 'Готовність FC (2.5 сек)...' : 'Перезавантаження FC (5 сек)...');
+        await delay(waitTimeMs);
         const durReboot = ((performance.now() - tRebootStart) / 1000).toFixed(1);
         setProgressionStep(3, 'success', 'FC готовий до 4-Way', durReboot);
 

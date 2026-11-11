@@ -228,6 +228,8 @@
             </div>
             <div class="step-header-right">
                 <span class="badge">CLI Engine</span>
+                <span class="already-flashed-pill fc-state-pill" id="fcStateBadge" style="display:none;" title="Статус відповідності прошивки контролера">⚡ Вже прошитий</span>
+                <span class="already-flashed-pill fc-history-pill" id="fcHistoryBadge" style="display:none;" title="Історія обладнання: цей контролер раніше мав сторонній пресет">⚠️ Був модифікований</span>
                 <span class="step-status awaiting" id="stepStatus1">⏳ Очікування</span>
             </div>
         </div>
@@ -460,6 +462,75 @@ rateprofile 0
 </textarea>
         </div>
 
+        <!-- Clean Preset Collapsible CLI (Expert Mode) -->
+        <div class="clean-preset-toggle-box expert-only" style="margin-top: 8px;">
+            <button type="button" id="btnToggleCleanPreset" class="btn-clean-toggle" title="Показати/приховати еталонний чистий пресет для розпізнавання стану">
+                ⚙️ Еталонний чистий пресет (Clean Diff) ▾
+            </button>
+        </div>
+        <div class="clean-preset-wrapper expert-only" id="cleanPresetWrapper" style="display:none;">
+            <label for="cleanPresetInput" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">
+                Еталонні CLI команди чистого контролера (Clean Diff):
+            </label>
+            <textarea id="cleanPresetInput" style="height:120px;">diff all
+
+# version
+# Betaflight / STM32F7X2 (S7X2) 4.5.1 Dec  2 2024 / 10:06:22 (77d01ba3b) MSP API: 1.46
+# config rev: cb1d3ac
+
+# start the command batch
+batch start
+
+# reset configuration to default settings
+defaults nosave
+
+board_name SPEDIXF722
+manufacturer_id SPDX
+mcu_id 0025002d3036510834323839
+signature 
+
+# feature
+feature SERVO_TILT
+feature TELEMETRY
+feature LED_STRIP
+feature OSD
+feature CHANNEL_FORWARDING
+
+# master
+set acc_calibration = 15,-23,19,1
+set osd_warnings_pos = 14698
+set osd_displayport_device = AUTO
+set osd_canvas_width = 30
+set osd_canvas_height = 13
+set vcd_video_system = AUTO
+
+profile 0
+
+profile 1
+
+profile 2
+
+profile 3
+
+# restore original profile selection
+profile 0
+
+rateprofile 0
+
+rateprofile 1
+
+rateprofile 2
+
+rateprofile 3
+
+# restore original rateprofile selection
+rateprofile 0
+
+# save configuration
+save
+# </textarea>
+        </div>
+
         <!-- Step 1 Sub-stage Progress Badges -->
         <div class="fc-flash-progress" id="fcFlashProgress">
             <div class="fc-sub-step pending" id="subStepFlash">
@@ -476,14 +547,35 @@ rateprofile 0
             </div>
         </div>
 
-        <div class="controls expert-only">
-            <button id="btnFlashFC" class="btn-primary">Залити пресет у FC</button>
-            <select id="backupType" style="flex-grow:0; width:auto;">
-                <option value="diff all">diff all</option>
-                <option value="dump all">dump all</option>
-            </select>
-            <button id="btnBackup" class="btn-backup">💾 Зберегти бекап</button>
-            <button id="btnSkipToEsc" style="background:#2a2e38; color:#bbb;">Перейти до ESC ➜</button>
+        <!-- Step 1 Controls (Grouped & Sorted in Expert Mode) -->
+        <div class="controls-toolbar expert-only">
+            <!-- Group 1: Робоча прошивка та аналіз -->
+            <div class="controls-group">
+                <span class="controls-group-label">⚡ Прошивка:</span>
+                <button id="btnFlashFC" class="btn-primary" title="Залити робочий цільовий пресет у FC">Залити пресет у FC</button>
+                <button id="btnComparePreset" class="btn-read" title="Зчитати актуальну конфігурацію FC та порівняти з пресетом без прошивки">🔍 Порівняти з пресетом</button>
+                <button id="btnFlashCleanFC" class="btn-clean-flash" title="Залити чистий заводський дамп у польотний контролер">🧼 Залити чистий дамп</button>
+            </div>
+
+            <!-- Group 2: Робота з базою IndexedDB (дампи пресетів польотника) -->
+            <div class="controls-group">
+                <span class="controls-group-label">💾 База дампів:</span>
+                <button id="btnExportNewHwDump" class="btn-dump-export" disabled title="Експортувати збережені diff all та dump all у файли окремо (активується після порівняння, якщо знайдено дамп у БД)">📥 Експорт (diff + dump)</button>
+                <button id="btnRestoreDiffFromDb" class="btn-dump-restore" disabled title="Автоматично прошити збережений diff all назад у контролер">🔄 Відновити diff</button>
+                <button id="btnRestoreDumpFromDb" class="btn-dump-restore" disabled title="Автоматично прошити збережений повний dump all назад у контролер">🔄 Відновити dump</button>
+            </div>
+
+            <!-- Group 3: Бекап та відновлення конфігурації у/з файлу -->
+            <div class="controls-group">
+                <span class="controls-group-label">📁 Бекап:</span>
+                <select id="backupType" style="flex-grow:0; width:auto;">
+                    <option value="diff all">diff all</option>
+                    <option value="dump all">dump all</option>
+                </select>
+                <button id="btnBackup" class="btn-backup" title="Зберегти поточну конфігурацію FC у файл">💾 Зберегти бекап у файл</button>
+                <button id="btnRestoreFCFromFile" class="btn-dump-restore" title="Вибрати файл конфігурації та прошити в FC з повною перевіркою">🔄 Відновити з файлу</button>
+                <input type="file" id="fileRestoreFC" style="display:none;" accept=".txt">
+            </div>
         </div>
     </div>
 
@@ -495,6 +587,7 @@ rateprofile 0
             </div>
             <div class="step-header-right">
                 <span class="badge">MSP 4-Way Interface</span>
+                <span class="already-flashed-pill" id="badgeEscAlreadyFlashed" style="display:none;" title="Усі 4 регулятори вже на 100% відповідають зразку пресету">⚡ Вже прошитий</span>
                 <span class="step-status awaiting" id="stepStatus2">⏳ Очікування</span>
             </div>
         </div>
@@ -535,14 +628,36 @@ rateprofile 0
             <div class="esc-badge pending" id="badgeEsc3">ESC #4: Очікування</div>
         </div>
 
-        <div class="controls expert-only">
-            <button id="btnConnectESC" class="btn-connect">🔗 З'єднатися з ESC</button>
-            <button id="btnDisconnectESC" class="btn-disconnect" disabled>❌ Від'єднатися від ESC</button>
-            <button id="btnReadESC" class="btn-read" disabled>🔍 Зчитати поточні налаштування ESC</button>
-            <button id="btnBackupESC" class="btn-backup" disabled>💾 Копія всіх 4 ESC</button>
-            <button id="btnRestoreESC" class="btn-restore" disabled>♻️ Відновити з файлу</button>
-            <input type="file" id="fileRestoreESC" accept=".json,application/json" style="display:none">
-            <button id="btnConfigureESC" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled>⚡ Застосувати пресет до 4 ESC</button>
+        <!-- Step 2 Controls (Grouped & Sorted in Expert Mode) -->
+        <div class="controls-toolbar expert-only">
+            <!-- Group 1: 4-Way Сесія -->
+            <div class="controls-group">
+                <span class="controls-group-label">🔗 Сесія:</span>
+                <button id="btnConnectESC" class="btn-connect" title="Встановити 4-Way з'єднання з ESC через FC">🔗 З'єднатися</button>
+                <button id="btnDisconnectESC" class="btn-disconnect" disabled title="Розірвати 4-Way сесію та звільнити COM-порт">❌ Від'єднатися</button>
+            </div>
+
+            <!-- Group 2: Прошивка та Зчитування -->
+            <div class="controls-group">
+                <span class="controls-group-label">⚡ Прошивка:</span>
+                <button id="btnConfigureESC" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled title="Записати 256-байтний еталонний пресет у всі 4 регулятори">⚡ Застосувати пресет до 4 ESC</button>
+                <button id="btnReadESC" class="btn-read" disabled title="Зчитати поточні налаштування та дампи всіх 4-х ESC">🔍 Зчитати налаштування ESC</button>
+            </div>
+
+            <!-- Group 3: Робота з базою IndexedDB (дампи ESC) -->
+            <div class="controls-group">
+                <span class="controls-group-label">💾 База дампів:</span>
+                <button id="btnExportEscDb" class="btn-dump-export" disabled title="Завантажити збережений в IndexedDB бекап 4 ESC для поточного MCU">📥 Експорт з БД</button>
+                <button id="btnRestoreEscDb" class="btn-dump-restore" disabled title="Автоматично відновити збережений бекап 4 ESC з IndexedDB у регулятори">🔄 Відновити з БД</button>
+            </div>
+
+            <!-- Group 4: Бекап та Відновлення з файлу -->
+            <div class="controls-group">
+                <span class="controls-group-label">📁 Файли:</span>
+                <button id="btnBackupESC" class="btn-backup" disabled title="Зберегти повний бекап усіх 4 ESC у JSON-файл">💾 Зберегти у файл</button>
+                <button id="btnRestoreESC" class="btn-restore" disabled title="Відновити налаштування ESC з раніше збереженого JSON-файлу">♻️ Відновити з файлу</button>
+                <input type="file" id="fileRestoreESC" accept=".json,application/json" style="display:none">
+            </div>
         </div>
     </div>
 
@@ -641,6 +756,10 @@ rateprofile 0
                             <div class="stat-val" id="statDailyFail">0</div>
                             <div class="stat-lbl">Помилка</div>
                         </div>
+                        <div class="stat-pill newhw">
+                            <div class="stat-val" id="statDailyNewHw">0</div>
+                            <div class="stat-lbl">Нові FC</div>
+                        </div>
                         <div class="stat-pill total">
                             <div class="stat-val" id="statDailyTotal">0</div>
                             <div class="stat-lbl">Всього</div>
@@ -659,6 +778,10 @@ rateprofile 0
                         <div class="stat-pill fail">
                             <div class="stat-val" id="statAllFail">0</div>
                             <div class="stat-lbl">Помилка</div>
+                        </div>
+                        <div class="stat-pill newhw">
+                            <div class="stat-val" id="statAllNewHw">0</div>
+                            <div class="stat-lbl">Нові FC</div>
                         </div>
                         <div class="stat-pill total">
                             <div class="stat-val" id="statAllTotal">0</div>

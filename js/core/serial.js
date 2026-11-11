@@ -120,10 +120,21 @@ export function initSerialEvents(log, resetAllStepStatuses) {
 
 export async function resolveSelectedPort(log) {
     if ('serial' in navigator) {
-        await refreshPortList();
+        // Якщо порт ще перезавантажується після save/reboot, даємо до 5 спроб знайти збережений порт
+        for (let poll = 0; poll < 5; poll++) {
+            await refreshPortList();
+            const portSelect = document.getElementById('portSelect');
+            if (portSelect && portSelect.value !== 'new' && state.availablePorts[portSelect.value]) {
+                return state.availablePorts[portSelect.value];
+            }
+            if (state.availablePorts && state.availablePorts.length > 0) {
+                return state.availablePorts[0];
+            }
+            await delay(400);
+        }
     }
     const portSelect = document.getElementById('portSelect');
-    const selectedVal = portSelect.value;
+    const selectedVal = portSelect ? portSelect.value : 'new';
     if (selectedVal === 'new' || !state.availablePorts[selectedVal]) {
         if (typeof log === 'function') {
             log('Відкриття діалогу вибору COM-порту з фільтром FC...');

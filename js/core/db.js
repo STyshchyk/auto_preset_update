@@ -4,8 +4,10 @@
  */
 
 const DB_NAME = 'DroneSetupStationDB';
-const DB_VERSION = 1;
+const DB_VERSION = 4;
 const STORE_NAME = 'operation_logs';
+const DUMP_STORE_NAME = 'fc_preset_dumps';
+const ESC_DUMP_STORE_NAME = 'esc_preset_dumps';
 
 let dbInstance = null;
 
@@ -30,6 +32,18 @@ export function getDb() {
                 store.createIndex('by_deviceId', 'deviceId', { unique: false });
                 store.createIndex('by_timestamp', 'timestamp', { unique: false });
                 store.createIndex('by_step', 'step', { unique: false });
+            }
+            // Dedicated store for flight controller preset dumps (dump all / diff)
+            if (!db.objectStoreNames.contains(DUMP_STORE_NAME)) {
+                const dumpStore = db.createObjectStore(DUMP_STORE_NAME, { keyPath: 'mcuId' });
+                dumpStore.createIndex('by_savedAt', 'savedAt', { unique: false });
+                dumpStore.createIndex('by_board', 'board', { unique: false });
+                dumpStore.createIndex('by_type', 'dumpType', { unique: false });
+            }
+            // Dedicated store for BLHeli_32 4-ESC EEPROM backups keyed by FC mcuId
+            if (!db.objectStoreNames.contains(ESC_DUMP_STORE_NAME)) {
+                const escDumpStore = db.createObjectStore(ESC_DUMP_STORE_NAME, { keyPath: 'mcuId' });
+                escDumpStore.createIndex('by_savedAt', 'savedAt', { unique: false });
             }
         };
 
@@ -102,3 +116,154 @@ export async function clearAllOperationLogs() {
         req.onerror = (err) => reject(err.target.error);
     });
 }
+
+/**
+ * Saves both diff all and dump all of an FC keyed by its mcuId into IndexedDB (Store: fc_preset_dumps).
+ * @param {string} mcuId
+ * @param {object} payloads - { diffAll?: string, dumpAll?: string }
+ * @param {object} [metadata]
+ * @returns {Promise<string>} mcuId
+ */
+export async function saveFcDualDump(mcuId, payloads = {}, metadata = {}) {
+    if (!mcuId || mcuId === '—') return null;
+    const cleanId = String(mcuId).trim().toLowerCase();
+    try {
+        const db = await getDb();
+        return new Promise(async (resolve, reject) => {
+            const existing = await getFcDump(cleanId).catch(() => null);
+            const tx = db.transaction([DUMP_STORE_NAME], 'readwrite');
+            const store = tx.objectStore(DUMP_STORE_NAME);
+
+            const record = {
+                mcuId: cleanId,
+                diffAll: payloads.diffAll || existing?.diffAll || '',
+                dumpAll: payloads.dumpAll || existing?.dumpAll || existing?.dump || '',
+                dumpType: 'FC_PRESET_DUMP',
+                targetType: 'FLIGHT_CONTROLLER',
+                board: metadata.board || existing?.board || 'SPEDIXF722',
+                firmware: metadata.firmware || existing?.firmware || '—',
+                savedAt: new Date().toISOString(),
+                reason: metadata.reason || existing?.reason || 'NEW_HARDWARE_BACKUP'
+            };
+
+            const req = store.put(record);
+            req.onsuccess = () => resolve(cleanId);
+            req.onerror = (err) => reject(err.target.error);
+        });
+    } catch (e) {
+        console.warn('Не вдалося зберегти дампи пресету FC в IndexedDB:', e);
+        return null;
+    }
+}
+
+/**
+ * Backward-compatible wrapper for saveFcDump.
+ */
+export async function saveFcDump(mcuId, dumpContent, metadata = {}) {
+    return saveFcDualDump(mcuId, { dumpAll: dumpContent }, metadata);
+}
+
+/**
+ * Retrieves a stored FC dump by its mcuId.
+ * @param {string} mcuId
+ * @returns {Promise<object|null>}
+ */
+export async function getFcDump(mcuId) {
+    if (!mcuId || mcuId === '—') return null;
+    const cleanId = String(mcuId).trim().toLowerCase();
+    try {
+        const db = await getDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction([DUMP_STORE_NAME], 'readonly');
+            const store = tx.objectStore(DUMP_STORE_NAME);
+            const req = store.get(cleanId);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = (err) => reject(err.target.error);
+        });
+    } catch (e) {
+        console.warn('Не вдалося зчитати дамп FC з IndexedDB:', e);
+        return null;
+    }
+}
+
+/**
+ * Checks whether an FC dump exists for a given mcuId.
+ * @param {string} mcuId
+ * @returns {Promise<boolean>}
+ */
+export async function hasFcDump(mcuId) {
+    const dump = await getFcDump(mcuId);
+    return Boolean(dump && (dump.dumpAll || dump.diffAll));
+}
+
+/**
+ * Saves BLHeli_32 4-ESC EEPROM backup into IndexedDB keyed by FC mcuId.
+ * @param {string} mcuId
+ * @param {object} backupObject - complete parsed/serialized backup object
+ * @param {object} [metadata]
+ * @returns {Promise<string>} cleanId
+ */
+export async function saveEscBackupToDb(mcuId, backupObject, metadata = {}) {
+    if (!mcuId || mcuId === '—') return null;
+    const cleanId = String(mcuId).trim().toLowerCase();
+    try {
+        const db = await getDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction([ESC_DUMP_STORE_NAME], 'readwrite');
+            const store = tx.objectStore(ESC_DUMP_STORE_NAME);
+
+            const record = {
+                mcuId: cleanId,
+                backup: backupObject,
+                savedAt: new Date().toISOString(),
+                metadata: {
+                    ...metadata,
+                    board: metadata.board || 'SPEDIXF722'
+                }
+            };
+
+            const req = store.put(record);
+            req.onsuccess = () => resolve(cleanId);
+            req.onerror = (err) => reject(err.target.error);
+        });
+    } catch (e) {
+        console.warn('Не вдалося зберегти бекап ESC в IndexedDB:', e);
+        return null;
+    }
+}
+
+/**
+ * Retrieves stored BLHeli_32 ESC backup from IndexedDB by FC mcuId.
+ * @param {string} mcuId
+ * @returns {Promise<object|null>}
+ */
+export async function getEscBackupFromDb(mcuId) {
+    if (!mcuId || mcuId === '—') return null;
+    const cleanId = String(mcuId).trim().toLowerCase();
+    try {
+        const db = await getDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction([ESC_DUMP_STORE_NAME], 'readonly');
+            const store = tx.objectStore(ESC_DUMP_STORE_NAME);
+            const req = store.get(cleanId);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = (err) => reject(err.target.error);
+        });
+    } catch (e) {
+        console.warn('Не вдалося зчитати бекап ESC з IndexedDB:', e);
+        return null;
+    }
+}
+
+/**
+ * Checks whether an ESC backup exists in IndexedDB for a given FC mcuId.
+ * @param {string} mcuId
+ * @returns {Promise<boolean>}
+ */
+export async function hasEscBackupInDb(mcuId) {
+    const rec = await getEscBackupFromDb(mcuId);
+    return Boolean(rec && rec.backup);
+}
+
+
+
