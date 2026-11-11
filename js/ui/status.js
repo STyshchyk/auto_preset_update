@@ -1,15 +1,17 @@
 export function setStepStatus(stepNumber, state, customText = null) {
-    const el = document.getElementById(`stepStatus${stepNumber}`);
+    const el = document.getElementById(`stepStatus${stepNumber}`) || document.getElementById(`statusPillStep${stepNumber}`);
     if (!el) return;
 
     const labels = {
         awaiting: '⏳ Очікування',
+        idle: '⏳ Очікування',
         working: '🔄 Виконується...',
         success: '✅ Успішно',
+        ok: '✅ Успішно',
         fail: '❌ Помилка'
     };
 
-    el.className = `step-status ${state}`;
+    el.className = `status-pill ${state} step-status`;
     el.textContent = customText || labels[state] || labels.awaiting;
 }
 
@@ -216,6 +218,7 @@ export function resetFcSubSteps() {
 export function resetAllStepStatuses() {
     setStepStatus(1, 'awaiting');
     setStepStatus(2, 'awaiting');
+    setStepStatus(3, 'awaiting');
     setAlreadyFlashedBadge(false);
     setFcHistoryBadge(false);
     setEscAlreadyFlashedBadge(false);

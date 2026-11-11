@@ -13,6 +13,7 @@
 | **Ліва інфо-панель (Sidebar)** | `.sidebar-col`, `.info-card`, `#infoCardFc`, `#infoCardEsc` | Розділена на два блоки: **Крок 1** (параметри FC: `#infoBoardName`, `#infoFirmwareVer`, `#infoBuildDate`, `#infoMcuType`, `#infoDeviceId`, іконки перевірки `#checkBoard`..`#checkDeviceId`, бейджі неспівпадіння `#infoMismatchBadge`, `#infoMismatchNote`) та **Крок 2** (телеметрія ESC: `#infoEscModel`, `#infoEscMcu`, `#infoEscPowerAck`, `#infoEscDirs`, `#infoEscPresetStatus`, іконки перевірки `#checkEscModel`..`#checkEscPreset`). |
 | **Крок 1: Заливання пресету FC** | `#cardStep1`, `#fcFlashProgress`, `#subStepFlash`..`#subStepVerify`, `#fcStateBadge`, `#fcHistoryBadge`, `#stepStatus1`, `#presetInput`, `.controls-toolbar` | 3-етапний індикатор суб-кроків, бейджі 3-станної ідентифікації (`ALREADY_FLASHED`, `NEW_HARDWARE`), редактор пресету та згруповані панелі інструментів: Прошивка, База дампів IndexedDB (`fc_preset_dumps`), Бекап/Відновлення з файлів. |
 | **Крок 2: Настройка BLHeli_32** | `#cardStep2`, `#escFlowPipeline`, `#escFlowConnect`..`#escFlowClose`, `#badgeEsc0`..`#badgeEsc3`, `#badgeEscAlreadyFlashed`, `#stepStatus2`, `.controls-toolbar` | 5-етапний конвеєр налаштування ESC (Підключення ➔ Заливка ➔ Перевірка ➔ Статус OK ➔ Закриття), бейджі 4-х моторів, згруповані панелі інструментів: 4-Way Сесія, Прошивка/Читання 256-байтного контейнера, База дампів IndexedDB (`esc_preset_dumps`), Бекап/Відновлення з JSON файлів. |
+| **Крок 3: Перевірка та реверс моторів** | `#cardStep3`, `#chkPropellersRemoved`, `#quadCenterDiagram`, `#drone-schema-img`, `#podMotor1`..`#podMotor4`, `#btnSpinAllMotors`, `#btnStopAllMotors`, `#throttleSlider`, `#btnSaveMotorDirections`, `#stepStatus3` | Інтерактивна 3-колонкова схема QuadX, захисний чекбокс-інтерлок пропелерів, тестовий запуск 4-х моторів (`MSP_SET_MOTOR`), DShot-реверс (`MSP_SET_PASSTHROUGH`), живий повзунок обертів у режимі експерта та збереження напрямків у EEPROM ESC (`0x0C`). |
 | **Панель логування (Console)** | `.log-panel`, `#log`, `#btnExportLogsJson`, `#btnClearLogs` | Консоль реального часу з автоскролом, експортом структурованих логів у JSON та швидким очищенням (експертний режим). |
 | **Права колонка (Спрощений режим)** | `.right-col`, `#simplifiedRightCol`, `#progBanner`, `#progStep1`..`#progStep4`, `#statDailySuccess`, `#statAllSuccess`, `#statDailyNewHw`, `#statAllNewHw` | Таймлайн 4 етапів з таймерами, лічильники успішних прошивок і нових FC (за день і за весь час) на базі `localStorage`. |
 | **Інструкція оператора / FAQ** | `.faq-card`, `.faq-section`, `.faq-btn-pill-master`, `.faq-badge-pass`, `.faq-badge-fail` | Структурований покроковий посібник (До підключення, Під час прошивки, Після прошивки, Питання та помилки) з візуальними бейджами дій. |
@@ -81,6 +82,19 @@
 * **Група 4 (📁 Файли):**
   * `#btnBackupESC` — ручне збереження бекапу 4 ESC у JSON-файл.
   * `#btnRestoreESC` + `#fileRestoreESC` — ручне відновлення з вибраного JSON-файлу.
+
+### Крок 3: Перевірка та реверс моторів (Motor Direction & Test)
+* `#cardStep3` — контейнер блоку Кроку 3.
+* `#stepStatus3` — статус виконання Кроку 3 (`awaiting`, `working`, `success`, `fail`).
+* `#chkPropellersRemoved` — обов'язковий чекбокс підтвердження зняття пропелерів (розблоковує пуск).
+* `#quadCenterDiagram` + `.drone-schema-img` — центрована на повну висоту схема рами QuadX (`img/drone-quad-x.png`) з орієнтирами носа та хвоста.
+* `#podMotor1`..`#podMotor4` — візуальні картки моторів 1..4 із статусом обертання, стрілкою та кнопками швидкого реверсу (`#btnRevMotor1`..`#btnRevMotor4`).
+* **Панель інструментів тестування:**
+  * `#btnSpinAllMotors` — одночасний пуск 4-х моторів на низьких безпечних обертах (`MSP_SET_MOTOR 214`).
+  * `#btnStopAllMotors` — негайна зупинка моторів (`1000µs`).
+  * `#throttleSlider` + `#throttleValBadge` — ручний регулятор обертів (1000..1200µs) у режимі експерта з живим оновленням тяги в польоті.
+  * `#btnApplyDefaultThrottle` — скидання тестової швидкості до дефолтних `1060µs`.
+  * `#btnSaveMotorDirections` — постійна фіксація обраних напрямків у пам'ять ESC через команду DShot `0x0C` (`DSHOT_CMD_SAVE_SETTINGS`).
 
 ### Права колонка прогресу та статистики
 * `#btnRunSimplified` — єдина кнопка автоматичного проходження всіх етапів прошивки станції.

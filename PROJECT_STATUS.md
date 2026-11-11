@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-11-11  
 **Active Entry Point:** `index.html`  
-**Refactoring Progress:** Phases 1–16 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine)  
+**Refactoring Progress:** Phases 1–17 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine, Phase 17 Step 3 Motor Direction Testing & DShot Reversal)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
 **Verification & Safety Protocol:** Full documentation available at `docs/FLASHING_VERIFICATION_PROTOCOL.md`.
 
@@ -31,10 +31,13 @@ The application operates as a clean, fully modular single-page application (`ind
   * `crc.js`: CRC-16/CCITT (XMODEM) calculation (`0x1021`, init `0x0000`) and hex formatting.
   * `stats.js`: `localStorage`-backed daily and all-time flashed device counters and new-hardware MCU history registry (`recordDeviceSuccess`, `recordNewHardwareMcu`, `isNewHardwareMcuRecorded`).
 * **Betaflight Feature (`js/betaflight/`):**
+  * `msp.js`: Dedicated MSPv1 protocol framer (`$M<`), motor PWM throttle control (`setMotorOutputs`), and DShot command passthrough (`sendDshotCommand`).
   * `cli.js`: CLI stream reader (`readCliResponse` with prompt detection) and board target parser (`parseBoardName`).
   * `info.js`: Telemetry parser (`parseFcDetails`), preset diff analyzer (`extractConfigVariables`, `calculateMismatch`), and 3-state firmware recognition engine (`detectFcState`).
   * `preset.js`: Flash preset execution (`flashBetaflightPreset`), clean factory flashing (`flashCleanFcPreset`), file restore (`restoreFcFromFile`), DB restore (`restoreFcDumpFromDb`), export (`exportNewHwDumpFromDb`), and expert 3-way preset comparison (`comparePresetWithFc`).
   * `backup.js`: Flight controller configuration backup (`backupBetaflightConfig`).
+* **Motor Direction & Testing Feature (`js/motors/`):**
+  * `test.js`: Step 3 interactive testing engine (`spinAllMotors`, `stopAllMotors`, `toggleMotorDirection`, `saveMotorDirections`, `initMotorControls`, live speed slider synchronization).
 * **BLHeli_32 Feature (`js/blheli/`):**
   * `protocol.js`: MSPv1 framing (`sendMsp`), low-level 4-Way protocol (`read4WayRaw`, `send4WayCmd`), FC 4-Way mode setup (`init4WayInterface` with 400ms/500ms stabilization delays), and retry-resilient device connection (`connectEscDevice` with 3-attempt handshake + `CMD_DEVICE_RESET`, `disconnectEscDevice`).
   * `session.js`: Dedicated 4-Way session management (`connectEscSession`, `disconnectEscSession`, `isEscSessionActive`) with hardened disconnect state cleanup.
@@ -88,3 +91,10 @@ The application operates as a clean, fully modular single-page application (`ind
     2. **`CLEAN`**: Matches clean baseline dump (ignoring accelerometer calibration). Proceeds directly to standard flashing.
     3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays amber badge `⚠️ Нове обладнання`, triggers warning popup, tracks `NEW_HARDWARE` history (`#fcHistoryBadge`, `#statDailyNewHw`, `#statAllNewHw`), and automatically backs up both `diff all` and `dump all` to IndexedDB.
   - Added Step 1 Expert controls grouped into 3 toolbars (Прошивка, База дампів, Бекап): `#btnComparePreset`, `#btnFlashCleanFC`, `#btnExportNewHwDump`, `#btnRestoreDiffFromDb`, `#btnRestoreDumpFromDb`, `#btnRestoreFCFromFile`. Removed defunct `#btnSkipToEsc`.
+
+* **Phase 17: Motor Direction Testing, DShot Passthrough & Speed Controls (`js/betaflight/msp.js`, `js/motors/test.js`, `index.html`, `css/components.css`, `css/main.css`, `img/drone-quad-x.png`)**:
+  - Implemented Step 3: «Перевірка та реверс моторів» with safety propeller check interlock.
+  - Betaflight MSP `214` (`MSP_SET_MOTOR`) override for 4-channel spin testing and `245` (`MSP_SET_PASSTHROUGH`) for DShot direction commands (`20` Normal, `21` Reversed, and `12` / `0x0C` Save Settings to ESC EEPROM).
+  - QuadX 3-column interactive layout featuring central drone schematic image (`img/drone-quad-x.png`) stretching full height between M4/M2 and M3/M1 pods.
+  - Real-time live speed slider in Expert Mode (1000 - 1200µs) with one-click reset to standard 1060µs.
+  - Cleaned layout and restored 3-column Flexbox flow in `.app-layout` eliminating the empty vertical space above the logging panel.

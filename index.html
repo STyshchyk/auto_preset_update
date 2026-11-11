@@ -661,6 +661,114 @@ save
         </div>
     </div>
 
+    <!-- STEP 3: Motor Testing & Direction Reversal -->
+    <div class="step-card" id="cardStep3">
+        <div class="step-header">
+            <div class="step-title" style="color: #22c55e;">
+                <span>Крок 3: Перевірка та реверс моторів</span>
+            </div>
+            <div class="step-header-right">
+                <span class="badge">DShot Passthrough</span>
+                <span class="step-status awaiting" id="stepStatus3">⏳ Очікування</span>
+            </div>
+        </div>
+
+        <!-- Safety Notice & Interlock -->
+        <div class="safety-box">
+            <span class="safety-icon">⚠️</span>
+            <div class="safety-content">
+                <strong>Обов'язкова перевірка безпеки:</strong>
+                <p>Перед запуском моторів обов'язково <u>повністю зніміть усі пропелери</u> з дрона!</p>
+                <label class="safety-checkbox-label">
+                    <input type="checkbox" id="chkPropellersRemoved">
+                    <span>Я зняв усі пропелери перед тестуванням моторів</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- QuadX Visual Motors Layout with Center Drone Diagram -->
+        <div class="quad-layout">
+            <!-- Front Left: M4 -->
+            <div class="motor-pod" id="podMotor4">
+                <div class="motor-top-row">
+                    <span class="motor-num">M4</span>
+                    <span class="motor-dir-badge normal" id="mBadge4">NORMAL</span>
+                </div>
+                <div class="motor-visual">
+                    <div class="motor-arrow normal" id="mArrow4">🔄</div>
+                </div>
+                <button class="btn-rev-motor" id="btnRevMotor4" disabled title="Змінити напрямок мотора 4">Реверс</button>
+            </div>
+
+            <!-- Center: Drone Schematic Diagram -->
+            <div class="quad-center-diagram" id="quadCenterDiagram">
+                <div class="drone-nose-caption">▲ NOSE (ПЕРЕД)</div>
+                <img src="img/drone-quad-x.png" alt="QuadX Drone Motors Direction Diagram" class="drone-schema-img">
+                <div class="drone-tail-caption">▼ TAIL (ЗАД)</div>
+            </div>
+
+            <!-- Front Right: M2 -->
+            <div class="motor-pod" id="podMotor2">
+                <div class="motor-top-row">
+                    <span class="motor-num">M2</span>
+                    <span class="motor-dir-badge normal" id="mBadge2">NORMAL</span>
+                </div>
+                <div class="motor-visual">
+                    <div class="motor-arrow normal" id="mArrow2">🔄</div>
+                </div>
+                <button class="btn-rev-motor" id="btnRevMotor2" disabled title="Змінити напрямок мотора 2">Реверс</button>
+            </div>
+
+            <!-- Rear Left: M3 -->
+            <div class="motor-pod" id="podMotor3">
+                <div class="motor-top-row">
+                    <span class="motor-num">M3</span>
+                    <span class="motor-dir-badge normal" id="mBadge3">NORMAL</span>
+                </div>
+                <div class="motor-visual">
+                    <div class="motor-arrow normal" id="mArrow3">🔄</div>
+                </div>
+                <button class="btn-rev-motor" id="btnRevMotor3" disabled title="Змінити напрямок мотора 3">Реверс</button>
+            </div>
+
+            <!-- Rear Right: M1 -->
+            <div class="motor-pod" id="podMotor1">
+                <div class="motor-top-row">
+                    <span class="motor-num">M1</span>
+                    <span class="motor-dir-badge normal" id="mBadge1">NORMAL</span>
+                </div>
+                <div class="motor-visual">
+                    <div class="motor-arrow normal" id="mArrow1">🔄</div>
+                </div>
+                <button class="btn-rev-motor" id="btnRevMotor1" disabled title="Змінити напрямок мотора 1">Реверс</button>
+            </div>
+        </div>
+
+        <!-- Step 3 Action Controls Toolbar -->
+        <div class="controls-toolbar" style="margin-top: 14px;">
+            <div class="controls-group">
+                <span class="controls-group-label">🕹️ Тестовий запуск:</span>
+                <button id="btnSpinAllMotors" class="btn-primary" style="background:#28a745; border-color:#208738;" disabled title="Запустити всі 4 мотори на низьких обертах">▶ Пуск усіх моторів</button>
+                <button id="btnStopAllMotors" class="btn-disconnect" disabled title="Негайно зупинити всі мотори (1000µs)">⏹ Зупинити всі</button>
+            </div>
+
+            <!-- Expert Mode Manual Throttle Slider & Set Default -->
+            <div class="controls-group expert-only motor-speed-control-group">
+                <span class="controls-group-label">⚡ Оберти (Speed):</span>
+                <div class="throttle-slider-wrap">
+                    <input type="range" id="throttleSlider" min="1000" max="1200" step="5" value="1030" disabled title="Ручне регулювання тестових обертів (1000 - 1200µs)">
+                    <span class="throttle-val-badge" id="throttleValBadge">1030</span>
+                </div>
+                <button id="btnApplyDefaultThrottle" class="btn-read" style="padding: 4px 10px; font-size: 11px;" title="Скинути швидкість до стандартних 1030µs">↺ Скинути (1030)</button>
+            </div>
+
+            <div class="controls-group">
+                <span class="controls-group-label">💾 Фіксація:</span>
+                <button id="btnSaveMotorDirections" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled title="Зберегти обрані напрямки у пам'ять ESC через DShot 0x0C">💾 Зберегти напрямки в ESC</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Realtime Terminal Console / Logging Panel -->
     <div class="log-panel expert-only">
         <div class="log-header">
