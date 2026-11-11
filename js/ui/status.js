@@ -14,12 +14,58 @@ export function setStepStatus(stepNumber, state, customText = null) {
 }
 
 /**
- * Shows or hides the "⚡ Вже прошитий" badge next to Step 1 status.
+ * Updates the FC State Badge next to Step 1 status.
+ * States supported:
+ * - 'ALREADY_FLASHED': ⚡ Вже прошитий (shown in all modes)
+ * - 'NEW_HARDWARE': ⚠️ Нове обладнання (shown in all modes)
+ * - 'CLEAN': 🧼 Чистий контролер (shown ONLY in Expert Mode; hidden in Simplified Mode)
+ * - null: hidden
+ *
+ * @param {'ALREADY_FLASHED'|'NEW_HARDWARE'|'CLEAN'|null} state
+ * @param {string} [customLabel]
+ */
+export function setFcStateBadge(state, customLabel = null) {
+    const badge = document.getElementById('fcStateBadge') || document.getElementById('badgeAlreadyFlashed');
+    if (!badge) return;
+
+    badge.classList.remove('state-already-flashed', 'state-new-hardware', 'state-clean');
+
+    const isSimplified = document.body.classList.contains('simplified-mode');
+
+    if (state === 'ALREADY_FLASHED') {
+        badge.textContent = customLabel || '⚡ Вже прошитий';
+        badge.classList.add('state-already-flashed');
+        badge.title = 'Цей польотний контролер уже на 100% відповідає зразку пресету';
+        badge.style.display = 'inline-flex';
+    } else if (state === 'NEW_HARDWARE') {
+        badge.textContent = customLabel || '⚠️ Нове обладнання';
+        badge.classList.add('state-new-hardware');
+        badge.title = 'Виявлено невідому конфігурацію або відмінний пресет на польотному контролері';
+        badge.style.display = 'inline-flex';
+    } else if (state === 'CLEAN') {
+        // Чистий бейдж відображається ТІЛЬКИ в режимі експерта
+        if (!isSimplified) {
+            badge.textContent = customLabel || '🧼 Чистий контролер';
+            badge.classList.add('state-clean');
+            badge.title = 'Польотний контролер містить чистий заводський дамп';
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+/**
+ * Shows or hides the separate history badge indicating that this MCU
+ * was previously recorded in the unexpected / modified hardware registry.
+ *
  * @param {boolean} visible
  * @param {string} [customLabel]
  */
-export function setAlreadyFlashedBadge(visible, customLabel = '⚡ Вже прошитий') {
-    const badge = document.getElementById('badgeAlreadyFlashed');
+export function setFcHistoryBadge(visible, customLabel = '⚠️ Був модифікований') {
+    const badge = document.getElementById('fcHistoryBadge');
     if (!badge) return;
     if (visible) {
         badge.textContent = customLabel;
@@ -27,6 +73,15 @@ export function setAlreadyFlashedBadge(visible, customLabel = '⚡ Вже про
     } else {
         badge.style.display = 'none';
     }
+}
+
+/**
+ * Backward compatibility wrapper for setAlreadyFlashedBadge.
+ * @param {boolean} visible
+ * @param {string} [customLabel]
+ */
+export function setAlreadyFlashedBadge(visible, customLabel = '⚡ Вже прошитий') {
+    setFcStateBadge(visible ? 'ALREADY_FLASHED' : null, customLabel);
 }
 
 /**
@@ -162,6 +217,7 @@ export function resetAllStepStatuses() {
     setStepStatus(1, 'awaiting');
     setStepStatus(2, 'awaiting');
     setAlreadyFlashedBadge(false);
+    setFcHistoryBadge(false);
     setEscAlreadyFlashedBadge(false);
     resetFcSubSteps();
     for (let i = 0; i < 4; i++) {
