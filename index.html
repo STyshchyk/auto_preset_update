@@ -702,9 +702,7 @@ save
 
             <!-- Center: Drone Schematic Diagram -->
             <div class="quad-center-diagram" id="quadCenterDiagram">
-                <div class="drone-nose-caption">▲ NOSE (ПЕРЕД)</div>
                 <img src="img/drone-quad-x.png" alt="QuadX Drone Motors Direction Diagram" class="drone-schema-img">
-                <div class="drone-tail-caption">▼ TAIL (ЗАД)</div>
             </div>
 
             <!-- Front Right: M2 -->
@@ -748,6 +746,7 @@ save
         <div class="controls-toolbar" style="margin-top: 14px;">
             <div class="controls-group">
                 <span class="controls-group-label">🕹️ Тестовий запуск:</span>
+                <button id="btnFetchMotorDirections" class="btn-read expert-only" style="padding: 4px 10px; font-size: 11px;" title="Опитати актуальні напрямки обертання безпосередньо з 4 ESC">🔍 Опитати ESC</button>
                 <button id="btnSpinAllMotors" class="btn-primary" style="background:#28a745; border-color:#208738;" disabled title="Запустити всі 4 мотори на низьких обертах">▶ Пуск усіх моторів</button>
                 <button id="btnStopAllMotors" class="btn-disconnect" disabled title="Негайно зупинити всі мотори (1000µs)">⏹ Зупинити всі</button>
             </div>

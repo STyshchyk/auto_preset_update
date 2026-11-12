@@ -16,6 +16,9 @@ import {
     DSHOT_CMD_SPIN_DIRECTION_2,
     DSHOT_CMD_SAVE_SETTINGS
 } from '../betaflight/msp.js';
+import { readEscBlock, withEscSession } from '../blheli/eeprom.js';
+import { detectMotorDirection } from '../blheli/preset.js';
+import { disconnectEscDevice } from '../blheli/protocol.js';
 
 // QuadX Standard Motor Layout:
 // Motor 1: Rear Right (Usually CCW or CW depending on props out)
@@ -37,6 +40,14 @@ export const motorState = {
  * Updates UI representation of motor directions and states.
  */
 export function updateMotorUi() {
+    // Synchronize from global state if available
+    if (state.escDirections && Array.isArray(state.escDirections)) {
+        for (let i = 0; i < MOTOR_COUNT; i++) {
+            if (state.escDirections[i]) {
+                motorState.directions[i] = state.escDirections[i];
+            }
+        }
+    }
     for (let i = 0; i < MOTOR_COUNT; i++) {
         const dir = motorState.directions[i];
         const badge = document.getElementById(`mBadge${i + 1}`);
@@ -205,6 +216,9 @@ export async function toggleMotorDirection(motorIndex) {
         // 2. Dispatch DShot direction command (7 or 8) + Save Settings (12) immediately
         await sendDshotProgCommand(port, motorIndex, [dshotCmd, DSHOT_CMD_SAVE_SETTINGS]);
         motorState.directions[motorIndex] = newDir;
+        if (state.escDirections) {
+            state.escDirections[motorIndex] = newDir;
+        }
         log(`Напрямок Мотора #${motorIndex + 1} змінено та збережено: ${newDir.toUpperCase()} (DShot cmd ${dshotCmd} + 12).`);
 
         // 3. If motors were spinning, spin all 4 motors back up automatically
@@ -284,6 +298,59 @@ export async function saveMotorDirections() {
 }
 
 /**
+ * Queries the actual motor directions directly from all 4 ESCs via BLHeli 4-Way interface.
+ */
+export async function fetchMotorDirections() {
+    if (motorState.isBusy || motorState.isSpinning) {
+        log('Зупиніть мотори перед опитуванням ESC.', 'warning');
+        return;
+    }
+
+    try {
+        motorState.isBusy = true;
+        updateMotorUi();
+        setStepStatus(3, 'working');
+        startOperationStep('FETCH_ESC_DIRECTIONS', 'Опитування напрямків ESC через 4-Way');
+        log('Зчитування поточних напрямків з 4-х ESC...');
+
+        const readDirs = [];
+        await withEscSession(async (writer, reader) => {
+            for (let esc = 0; esc < MOTOR_COUNT; esc++) {
+                log(`Зчитування ESC #${esc + 1}...`);
+                const res = await readEscBlock(writer, reader, esc);
+                await disconnectEscDevice(writer, reader, esc);
+                if (res.ok && res.data) {
+                    const dir = detectMotorDirection(res.data.slice(0, 8), esc);
+                    readDirs.push(dir);
+                    log(`ESC #${esc + 1}: Напрямок = ${dir.toUpperCase()}`);
+                } else {
+                    readDirs.push('normal');
+                    log(`ESC #${esc + 1}: Не вдалося прочитати, за замовчуванням NORMAL (${res.msg || 'немає відповіді'})`, 'warning');
+                }
+            }
+        });
+
+        for (let i = 0; i < MOTOR_COUNT; i++) {
+            motorState.directions[i] = readDirs[i];
+            if (state.escDirections) state.escDirections[i] = readDirs[i];
+        }
+
+        updateMotorUi();
+        endOperationStep('FETCH_ESC_DIRECTIONS');
+        setStepStatus(3, 'idle');
+        log(`Напрямки оновлено: [${readDirs.map((d, i) => `M${i+1}:${d.toUpperCase()}`).join(', ')}]`);
+        showPopup('success', 'Напрямки оновлено', `Зчитано напрямки 4 ESC:\n` + readDirs.map((d, i) => `Мотор #${i+1}: ${d.toUpperCase()}`).join('\n'), 3000);
+    } catch (err) {
+        log(`Помилка опитування ESC: ${err.message}`, 'error');
+        showPopup('error', 'Помилка опитування ESC', err.message);
+        setStepStatus(3, 'idle');
+    } finally {
+        motorState.isBusy = false;
+        updateMotorUi();
+    }
+}
+
+/**
  * Initializes DOM listeners and safety state for Step 3.
  */
 export function initMotorControls() {
@@ -293,6 +360,11 @@ export function initMotorControls() {
             motorState.propellersRemovedConfirmed = e.target.checked;
             updateMotorUi();
         });
+    }
+
+    const btnFetchDirs = document.getElementById('btnFetchMotorDirections');
+    if (btnFetchDirs) {
+        btnFetchDirs.addEventListener('click', fetchMotorDirections);
     }
 
     const btnSpin = document.getElementById('btnSpinAllMotors');

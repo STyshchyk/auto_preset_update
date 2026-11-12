@@ -173,6 +173,10 @@ export async function readAllEscSettings() {
             const direction = detectMotorDirection(pageData.slice(0, 8), esc);
             const presetMatched = isGoldenPresetMatched(pageData);
 
+            if (state.escDirections) {
+                state.escDirections[esc] = direction;
+            }
+
             // Витяг відкритого ASCII тексту назви та версії прошивки з блоку
             let asciiName = '';
             for (let i = 0x20; i < pageData.length - 8; i++) {

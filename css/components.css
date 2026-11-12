@@ -1342,28 +1342,27 @@ body.simplified-mode .info-val {
     grid-column: 2;
     grid-row: 1 / span 2;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     align-self: stretch;
     height: 100%;
-    gap: 8px;
-    padding: 12px 10px;
+    padding: 0;
     background: #171b24;
     border: 1px solid #283344;
     border-radius: 8px;
     width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .drone-schema-img {
-    max-width: 100%;
-    max-height: 220px;
-    height: auto;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
     object-fit: contain;
-    border-radius: 4px;
+    border-radius: 6px;
     display: block;
-    margin: auto;
+    margin: 0;
 }
 
 .drone-nose-caption {
