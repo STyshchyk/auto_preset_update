@@ -265,7 +265,7 @@ export async function connectEscDevice(writer, reader, escIndex) {
 
         lastInitRes = initRes;
         if (attempt < MAX_ATTEMPTS) {
-            const retryDelay = 250 + (attempt * 200); // 350ms, 450ms, 550ms
+            const retryDelay = 250 + (attempt * 200); // 450ms, 650ms, 850ms
             log(`[ESC #${escIndex + 1} InitFlash спроба ${attempt}/${MAX_ATTEMPTS} не вдалась (${initRes.msg})]. Повтор через ${retryDelay}мс...`);
             await delay(retryDelay);
         }

@@ -33,6 +33,7 @@ export const DEFAULT_SPIN_THROTTLE = 1030; // Safe idle spin speed (~3%)
 export const motorState = {
     isSpinning: false,
     isBusy: false,
+    isInitializing: false,
     propellersRemovedConfirmed: false,
     step2Finished: false,
     capturedDeviceId: null,
@@ -49,6 +50,12 @@ export const motorState = {
 export function setMotorCountdownOverlay(show, secondsText = '') {
     const overlay = document.getElementById('motorCountdownOverlay');
     const secEl = document.getElementById('motorCountdownSec');
+    const nextInitializing = Boolean(show);
+    const stateChanged = motorState.isInitializing !== nextInitializing;
+    motorState.isInitializing = nextInitializing;
+    if (stateChanged) {
+        updateMotorUi();
+    }
     if (!overlay) return;
 
     if (show) {
@@ -127,8 +134,8 @@ export function updateMotorUi() {
     }
 
     const canOperate = isSimplified
-        ? Boolean(motorState.step2Finished) && !motorState.isBusy
-        : Boolean(chkSafety && chkSafety.checked) && !motorState.isBusy;
+        ? Boolean(motorState.step2Finished) && !motorState.isBusy && !motorState.isInitializing
+        : Boolean(chkSafety && chkSafety.checked) && !motorState.isBusy && !motorState.isInitializing;
 
     if (slider) {
         slider.disabled = !canOperate;
@@ -151,12 +158,21 @@ export function updateMotorUi() {
     if (btnSave) {
         btnSave.disabled = !canOperate;
     }
+    const btnResetThrottle = document.getElementById('btnApplyDefaultThrottle');
+    if (btnResetThrottle) {
+        btnResetThrottle.disabled = !canOperate;
+    }
+    const btnFetchDirs = document.getElementById('btnFetchMotorDirections');
+    if (btnFetchDirs) {
+        btnFetchDirs.disabled = motorState.isInitializing || motorState.isBusy || motorState.isSpinning;
+    }
 }
 
 /**
  * Spins all 4 motors simultaneously at low idle speed.
  */
 export async function spinAllMotors() {
+    if (motorState.isInitializing) return;
     if (!motorState.propellersRemovedConfirmed) {
         showPopup('warning', 'Увага: Безпека!', 'Будь ласка, зніміть пропелери та підтвердіть чекбокс безпеки перед пуском.');
         return;
@@ -203,6 +219,7 @@ export async function spinAllMotors() {
  * Stops all motors immediately.
  */
 export async function stopAllMotors() {
+    if (motorState.isInitializing) return;
     const port = await resolveSelectedPort();
     if (!port) return;
 
@@ -234,7 +251,7 @@ export async function stopAllMotors() {
  * @param {number} motorIndex 0-indexed (0=M1, 1=M2, 2=M3, 3=M4)
  */
 export async function toggleMotorDirection(motorIndex) {
-    if (motorIndex < 0 || motorIndex >= MOTOR_COUNT || motorState.isBusy) return;
+    if (motorIndex < 0 || motorIndex >= MOTOR_COUNT || motorState.isBusy || motorState.isInitializing) return;
 
     const currentDir = motorState.directions[motorIndex];
     // If unknown or reversed, toggle to normal/reversed predictably
@@ -306,7 +323,7 @@ export async function toggleMotorDirection(motorIndex) {
  * Stops any spinning motors, finalizes Step 3, and cleanly closes the serial port connection.
  */
 export async function saveMotorDirections() {
-    if (motorState.isBusy) return;
+    if (motorState.isBusy || motorState.isInitializing) return;
 
     const port = await resolveSelectedPort();
     if (!port) {
@@ -378,6 +395,7 @@ export async function saveMotorDirections() {
  * Queries the actual motor directions directly from all 4 ESCs via BLHeli 4-Way interface.
  */
 export async function fetchMotorDirections() {
+    if (motorState.isInitializing) return;
     if (motorState.isBusy || motorState.isSpinning) {
         log('Зупиніть мотори перед опитуванням ESC.', 'warning');
         return;
