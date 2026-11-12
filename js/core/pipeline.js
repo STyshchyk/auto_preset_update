@@ -107,16 +107,16 @@ export async function runFullDroneSequence() {
 
         // --- STEP 4: TRANSITION TO MOTOR DIRECTION TESTING (STEP 3 IN UI / STAGE 5 IN PROGRESSION) ---
         setStep2Finished(true, capturedDeviceId);
-        setProgressionStep(5, 'working', 'Перезавантаження ESC та готовність (3 сек)...');
-        setProgressionBanner('working', 'Крок 3: Підготовка моторів...', 'Перезавантаження ESC після запису. Мотори запустяться за 3 секунди.');
+        setProgressionStep(5, 'working', 'Перезавантаження ESC та готовність (5 сек)...');
+        setProgressionBanner('working', 'Крок 3: Підготовка моторів...', 'Перезавантаження ESC після запису. Мотори запустяться за 5 секунд.');
 
         // Show countdown spinner overlay over drone diagram
-        setMotorCountdownOverlay(true, '3.0s');
-        log('\n[КРОК 3] Очікування 3.0 секунди для стабілізації ESC після перезавантаження...');
+        setMotorCountdownOverlay(true, '5.0s');
+        log('\n[КРОК 3] Очікування 5.0 секунд для стабілізації ESC після перезавантаження...');
 
-        // 3-second countdown ticker (100ms updates)
+        // 5-second countdown ticker (100ms updates)
         const countdownStart = performance.now();
-        const totalWaitMs = 3000;
+        const totalWaitMs = 5000;
         while (performance.now() - countdownStart < totalWaitMs) {
             const remaining = Math.max(0, (totalWaitMs - (performance.now() - countdownStart)) / 1000).toFixed(1);
             setMotorCountdownOverlay(true, `${remaining}s`);

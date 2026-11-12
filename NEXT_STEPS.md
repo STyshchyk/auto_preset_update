@@ -11,7 +11,7 @@ The Drone Setup Station features a unified one-click simplified assembly pipelin
 1. **`docs/FLASHING_VERIFICATION_PROTOCOL.md`**:
    - Comprehensive technical protocol detailing all pre-flash, during-flash, and post-flash checks for Step 1 (FC) and Step 2 (ESC), including 3-state baseline diff, automatic IndexedDB backup, full 256-byte golden EEPROM writing, and strict post-flash verification.
 2. **`PROJECT_STATUS.md` & `PROJECT_MAP.md`**:
-   - Up-to-date tracking of Phases 1–16, DOM selectors, grouped toolbars, and active ES module structure anchored on `index.html`.
+   - Up-to-date tracking of Phases 1–19, DOM selectors, grouped toolbars, Simplified Mode popup filtering, and active ES module structure anchored on `index.html`.
 3. **`index.html` & `css/components.css`**:
    - Grouped expert toolbars for Step 1 (⚡ Прошивка, 💾 База дампів, 📁 Бекап) and Step 2 (🔗 Сесія, ⚡ Прошивка, 💾 База дампів, 📁 Файли).
    - Structured operator instructions FAQ (`🔌 До підключення`, `⚡ Під час прошивки`, `✅ Після прошивки`, `❓ Загальні питання та помилки`) with master run pill (`.faq-btn-pill-master`) and status badges.
@@ -40,6 +40,11 @@ The Drone Setup Station features a unified one-click simplified assembly pipelin
    - Individual motor reversal via `MSP_SET_PASSTHROUGH` (`245`) with DShot commands `20` / `21`.
    - ESC EEPROM persistence with `DSHOT_CMD_SAVE_SETTINGS` (`12` / `0x0C`).
    - Live speed slider in Expert Mode with quick default reset button.
+10. **Simplified Mode Popup Streamlining (`js/ui/modal.js` & `js/motors/test.js`)**:
+   - Centralized popup suppression during Step 1 (FC) and Step 2 (ESC) when running in Simplified Mode.
+   - Automatic execution of popup callbacks to maintain pipeline progression and logs without UI blocking.
+   - Exclusively permitted final completion popup following «🏁 Завершити налаштування» (`#btnSaveMotorDirections`) with a 1-second auto-close timer (`1000ms`) in Simplified Mode.
+   - Full modal popup preservation in Expert Mode.
 
 ---
 

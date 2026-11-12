@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-11-12  
 **Active Entry Point:** `index.html`  
-**Refactoring Progress:** Phases 1–18 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine, Phase 17 Step 3 Motor Direction Testing, Phase 18 Simplified Mode Motor Gating, 5-Step Progression & "Finish Setup" Completion)  
+**Refactoring Progress:** Phases 1–19 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine, Phase 17 Step 3 Motor Direction Testing, Phase 18 Simplified Mode Motor Gating, 5-Step Progression & "Finish Setup" Completion, Phase 19 Simplified Mode Popup Streamlining)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
 **Verification & Safety Protocol:** Full documentation available at `docs/FLASHING_VERIFICATION_PROTOCOL.md`.
 
@@ -26,7 +26,7 @@ The application operates as a clean, fully modular single-page application (`ind
   * `log.js`: DOM terminal logging with operation grouping, auto-scroll, and JSON export.
   * `status.js`: Step, FC flash sub-steps, ESC badges, FC state/history badges, and button lock/unlock managers (`setStepStatus`, `setFcSubStep`, `resetFcSubSteps`, `setFcStateBadge`, `setFcHistoryBadge`, `setEscBadge`, `resetAllStepStatuses`, `setAllEscButtons`).
   * `infoPanel.js`: Telemetry sidebar updater (`updateInfoPanel`, `updateEscInfoPanel`, `resetInfoPanel`, `setCheckStatus`) managing FC/ESC telemetry, verification check icons, and automatic flash button safety locking.
-  * `modal.js`: Modal dialog management (`showPopup`, `closeModal`) and single-time operator instruction safety acknowledgment (`ensureInstructionsAcknowledged`).
+  * `modal.js`: Modal dialog management (`showPopup`, `closeModal`) with Simplified Mode popup filtering and single-time operator instruction safety acknowledgment (`ensureInstructionsAcknowledged`).
 * **Utilities (`js/utils/`):**
   * `bytes.js`: Delay timer, byte/hex serialization, array comparison, timestamp generation, file download.
   * `crc.js`: CRC-16/CCITT (XMODEM) calculation (`0x1021`, init `0x0000`) and hex formatting.
@@ -97,6 +97,13 @@ The application operates as a clean, fully modular single-page application (`ind
     2. **`CLEAN`**: Matches clean baseline dump (ignoring accelerometer calibration). Proceeds directly to standard flashing.
     3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays amber badge `⚠️ Нове обладнання`, triggers warning popup, tracks `NEW_HARDWARE` history (`#fcHistoryBadge`, `#statDailyNewHw`, `#statAllNewHw`), and automatically backs up both `diff all` and `dump all` to IndexedDB.
   - Added Step 1 Expert controls grouped into 3 toolbars (Прошивка, База дампів, Бекап): `#btnComparePreset`, `#btnFlashCleanFC`, `#btnExportNewHwDump`, `#btnRestoreDiffFromDb`, `#btnRestoreDumpFromDb`, `#btnRestoreFCFromFile`. Removed defunct `#btnSkipToEsc`.
+
+* **Phase 19: Simplified Mode Popup Streamlining (`js/ui/modal.js`, `js/motors/test.js`)**:
+  - Implemented automatic popup suppression in `showPopup()` whenever `.simplified-mode` is active on `document.body`.
+  - All intermediate notifications during Step 1 (FC pre-checks, auto-skip, new hardware warning, flash success) and Step 2 (ESC connections, preset application, and status popups) are cleanly suppressed so the one-click conveyor runs seamlessly.
+  - Suppressed popup callbacks are executed immediately to preserve state flow and logging.
+  - Granted `{ allowInSimplified: true }` solely to the final «🏁 Завершити налаштування» button in `saveMotorDirections()`, configured with a 1-second auto-close timer (`autoCloseTimeMs = 1000`) in Simplified Mode for quick, unobtrusive completion feedback.
+  - In Expert Mode, all modal popups and intermediate step notifications remain fully functional with manual closure.
 
 * **Phase 18: Simplified Mode Motor Workflow, 5-Point Progression & "Finish Setup" Completion (`index.html`, `css/components.css`, `js/motors/test.js`, `js/core/pipeline.js`, `js/ui/progression.js`, `js/main.js`)**:
   - **Propeller Interlock Streamlining**: In Simplified Mode, `.safety-box` is hidden via CSS (`display: none !important`), and propeller removal is permanently treated as confirmed (`motorState.propellersRemovedConfirmed = true`). In Expert Mode, the safety box and checkbox remain active as an explicit operator interlock.

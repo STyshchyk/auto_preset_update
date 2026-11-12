@@ -360,7 +360,9 @@ export async function saveMotorDirections() {
         recordDeviceResult(deviceId, true);
         log(`\n🎉 [НАЛАШТУВАННЯ МОТОРІВ] УСПІШНО ЗАВЕРШЕНО ТА ЗАФІКСОВАНО ДЛЯ: ${deviceId || 'OK'}`);
 
-        showPopup('success', 'Успішно', 'Напрямки обертання моторів збережено, мотори зупинено, з\'єднання з портом закрито! Дрон повністю готовий.');
+        const isSimplified = document.body.classList.contains('simplified-mode');
+        const autoCloseTimeMs = isSimplified ? 1000 : 0;
+        showPopup('success', 'Успішно', 'Напрямки обертання моторів збережено, мотори зупинено, з\'єднання з портом закрито! Дрон повністю готовий.', autoCloseTimeMs, null, { allowInSimplified: true });
     } catch (e) {
         log(`Помилка завершення налаштувань ESC: ${e.message}`, 'error');
         showPopup('error', 'Помилка', `Не вдалося завершити збереження: ${e.message}`);

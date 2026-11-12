@@ -17,7 +17,7 @@
 | **Панель логування (Console)** | `.log-panel`, `#log`, `#btnExportLogsJson`, `#btnClearLogs` | Консоль реального часу з автоскролом, експортом структурованих логів у JSON та швидким очищенням (експертний режим). |
 | **Права колонка (Спрощений режим)** | `.right-col`, `#simplifiedRightCol`, `#progBanner`, `#progStep1`..`#progStep5`, `#statDailySuccess`, `#statAllSuccess`, `#statDailyNewHw`, `#statAllNewHw` | Таймлайн 5 етапів (включаючи 5. Налаштування моторів) з таймерами, лічильники успішних прошивок і нових FC (за день і за весь час) на базі `localStorage`. |
 | **Інструкція оператора / FAQ** | `.faq-card`, `.faq-section`, `.faq-btn-pill-master`, `.faq-badge-pass`, `.faq-badge-fail` | Структурований покроковий посібник (До підключення, Під час прошивки, Після прошивки, Питання та помилки) з візуальними бейджами дій. |
-| **Модальні вікна** | `#statusModal`, `#modalBox`, `#instructionsModal`, `#chkAgreeInstructions`, `#btnConfirmInstructions`, `#btnCancelInstructions` | Спливаюче інформаційне вікно нотифікацій та діалогів, а також обов'язковий одноразовий інструктаж оператора станції перед першим запуском. |
+| **Модальні вікна** | `#statusModal`, `#modalBox`, `#instructionsModal`, `#chkAgreeInstructions`, `#btnConfirmInstructions`, `#btnCancelInstructions` | Спливаюче інформаційне вікно нотифікацій та діалогів (`js/ui/modal.js`, автоматично фільтрується у спрощеному режимі для усунення переривань на Кроках 1 та 2, залишаючи лише фінальний попап після «🏁 Завершити налаштування»), а також обов'язковий одноразовий інструктаж оператора станції перед першим запуском. |
 | **Точка завантаження скриптів** | `<script type="module" src="./js/main.js"></script>` | Повністю модульний нативний ES Modules JavaScript без зовнішніх бандлерів. |
 
 ---
