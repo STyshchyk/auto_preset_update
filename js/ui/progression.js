@@ -2,7 +2,7 @@
  * UI Controller for Simplified Mode Progression Timeline & Status Banner
  */
 
-const STEP_IDS = ['progStep1', 'progStep2', 'progStep3', 'progStep4'];
+const STEP_IDS = ['progStep1', 'progStep2', 'progStep3', 'progStep4', 'progStep5'];
 
 /**
  * Updates the overall top badge in the progression card header.

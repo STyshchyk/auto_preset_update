@@ -1,6 +1,20 @@
 import { state } from '../core/state.js';
 
-export function showPopup(type, title, message, autoCloseMs = 0, callback = null) {
+export function showPopup(type, title, message, autoCloseMs = 0, callback = null, options = {}) {
+    const isSimplified = document.body && document.body.classList.contains('simplified-mode');
+
+    // In Simplified Mode, suppress all step popups except explicitly permitted ones (e.g. final Save Setup)
+    if (isSimplified && !options.allowInSimplified) {
+        if (typeof callback === 'function') {
+            try {
+                callback();
+            } catch (err) {
+                console.warn('Popup suppressed callback error:', err);
+            }
+        }
+        return;
+    }
+
     const modal = document.getElementById('statusModal');
     const box = document.getElementById('modalBox');
     const closeBtn = document.getElementById('modalCloseBtn');
