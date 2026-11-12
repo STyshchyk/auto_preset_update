@@ -111,12 +111,12 @@ export async function runFullDroneSequence() {
         setProgressionBanner('working', 'Крок 3: Підготовка моторів...', 'Перезавантаження ESC після запису. Мотори запустяться за 5 секунд.');
 
         // Show countdown spinner overlay over drone diagram
-        setMotorCountdownOverlay(true, '5.0s');
+        setMotorCountdownOverlay(true, '8.0s');
         log('\n[КРОК 3] Очікування 5.0 секунд для стабілізації ESC після перезавантаження...');
 
         // 5-second countdown ticker (100ms updates)
         const countdownStart = performance.now();
-        const totalWaitMs = 5000;
+        const totalWaitMs = 8000;
         while (performance.now() - countdownStart < totalWaitMs) {
             const remaining = Math.max(0, (totalWaitMs - (performance.now() - countdownStart)) / 1000).toFixed(1);
             setMotorCountdownOverlay(true, `${remaining}s`);

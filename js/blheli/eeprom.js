@@ -62,7 +62,7 @@ export async function withEscSession(fn) {
             } catch (openErr) {
                 lastOpenErr = openErr;
                 log(`[BLHeli_32] Очікування готовності COM-порту (спроба ${attempt}/7: ${openErr.message})...`);
-                await delay(700);
+                await delay(1500);
             }
         }
 
@@ -78,7 +78,7 @@ export async function withEscSession(fn) {
     } finally {
         setEscFlowStep('close', 'working');
         try {
-            const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 600);
+            const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 1000);
             log(`[BLHeli_32] Команду виходу 0x34 виконано (${exitRes.ok ? 'ACK OK' : exitRes.msg}).`);
             setEscFlowStep('close', exitRes.ok ? 'success' : 'fail');
         } catch (_) {

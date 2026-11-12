@@ -237,23 +237,24 @@ export async function init4WayInterface(writer, reader) {
         throw new Error(`Помилка 4-Way SET_MODE: ${mRes.msg}`);
     }
     log('[4-Way] Режим BLHeli32 успішно активовано.');
-    // Пауза перед початком опитування моторів
-    await delay(500);
+    // Пауза перед початком опитування моторів для повної стабілізації апаратної шини 4-Way
+    await delay(2000);
 }
 
 // Connects to a specific ESC bootloader (STM32G0 ARM) exactly like BLHeliSuite32
 export async function connectEscDevice(writer, reader, escIndex) {
     let lastInitRes = null;
 
-    // Спроби ініціалізації (до 3 спроб для усунення випадкових затримок стабілізації бутлоадера ESC)
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    // Спроби ініціалізації (до 4 спроб з адаптивною паузою для усунення випадкових затримок стабілізації бутлоадера ESC)
+    const MAX_ATTEMPTS = 4;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         // Step A: cmd_ProtocolGetVersion (resets channel state in FC)
         await send4WayCmd(writer, reader, CMD_PROTOCOL_GET_VERSION, 0, [0], 800);
-        await delay(30);
+        await delay(350);
 
         // Step B: cmd_DeviceReset(escIndex)
         await send4WayCmd(writer, reader, CMD_DEVICE_RESET, 0, [escIndex], 800);
-        await delay(120); // bootloader delay
+        await delay(520); // bootloader delay
 
         // Step C: cmd_DeviceInitFlash(escIndex) -> returns chip signature & bootloader
         const initRes = await send4WayCmd(writer, reader, CMD_DEVICE_INIT_FLASH, 0, [escIndex], 1200);
@@ -263,9 +264,10 @@ export async function connectEscDevice(writer, reader, escIndex) {
         }
 
         lastInitRes = initRes;
-        if (attempt < 3) {
-            log(`[ESC #${escIndex + 1} InitFlash спроба ${attempt}/3 не вдалась (${initRes.msg})]. Повтор через 250мс...`);
-            await delay(250);
+        if (attempt < MAX_ATTEMPTS) {
+            const retryDelay = 250 + (attempt * 200); // 350ms, 450ms, 550ms
+            log(`[ESC #${escIndex + 1} InitFlash спроба ${attempt}/${MAX_ATTEMPTS} не вдалась (${initRes.msg})]. Повтор через ${retryDelay}мс...`);
+            await delay(retryDelay);
         }
     }
 

@@ -94,13 +94,13 @@ export function updateMotorUi() {
         }
     }
     for (let i = 0; i < MOTOR_COUNT; i++) {
-        const dir = motorState.directions[i];
+        const dir = motorState.directions[i] || 'normal';
         const badge = document.getElementById(`mBadge${i + 1}`);
         const icon = document.getElementById(`mArrow${i + 1}`);
         const btnRev = document.getElementById(`btnRevMotor${i + 1}`);
 
         if (badge) {
-            badge.textContent = dir === 'reversed' ? 'REVERSED' : 'NORMAL';
+            badge.textContent = dir.toUpperCase();
             badge.className = `motor-dir-badge ${dir}`;
         }
         if (icon) {
@@ -237,7 +237,8 @@ export async function toggleMotorDirection(motorIndex) {
     if (motorIndex < 0 || motorIndex >= MOTOR_COUNT || motorState.isBusy) return;
 
     const currentDir = motorState.directions[motorIndex];
-    const newDir = currentDir === 'normal' ? 'reversed' : 'normal';
+    // If unknown or reversed, toggle to normal/reversed predictably
+    const newDir = currentDir === 'reversed' ? 'normal' : 'reversed';
     const dshotCmd = newDir === 'reversed' ? DSHOT_CMD_SPIN_DIRECTION_2 : DSHOT_CMD_SPIN_DIRECTION_1;
 
     const port = await resolveSelectedPort();
@@ -390,6 +391,8 @@ export async function fetchMotorDirections() {
         log('Зчитування поточних напрямків з 4-х ESC...');
 
         const readDirs = [];
+        const isSimplified = document.body && document.body.classList.contains('simplified-mode');
+
         await withEscSession(async (writer, reader) => {
             for (let esc = 0; esc < MOTOR_COUNT; esc++) {
                 log(`Зчитування ESC #${esc + 1}...`);
@@ -400,8 +403,9 @@ export async function fetchMotorDirections() {
                     readDirs.push(dir);
                     log(`ESC #${esc + 1}: Напрямок = ${dir.toUpperCase()}`);
                 } else {
-                    readDirs.push('normal');
-                    log(`ESC #${esc + 1}: Не вдалося прочитати, за замовчуванням NORMAL (${res.msg || 'немає відповіді'})`, 'warning');
+                    const fallbackDir = isSimplified ? 'normal' : 'unknown';
+                    readDirs.push(fallbackDir);
+                    log(`ESC #${esc + 1}: Не вдалося прочитати, статус ${fallbackDir.toUpperCase()} (${res.msg || 'немає відповіді'})`, 'warning');
                 }
             }
         });

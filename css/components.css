@@ -1512,6 +1512,12 @@ body.simplified-mode .info-val {
     border: 1px solid #d97706;
 }
 
+.motor-dir-badge.unknown {
+    background: #475569;
+    color: #cbd5e1;
+    border: 1px dashed #94a3b8;
+}
+
 .motor-visual {
     display: flex;
     justify-content: center;
@@ -1530,6 +1536,11 @@ body.simplified-mode .info-val {
 
 .motor-arrow.reversed {
     transform: rotate(180deg);
+}
+
+.motor-arrow.unknown {
+    opacity: 0.5;
+    filter: grayscale(1);
 }
 
 .btn-rev-motor {
