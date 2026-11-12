@@ -12,12 +12,13 @@ import { flashBetaflightPreset } from '../betaflight/preset.js';
 import { applyEscPreset } from '../blheli/preset.js';
 import { setProgressionStep, setProgressionBanner, resetProgression } from '../ui/progression.js';
 import { recordDeviceResult } from '../utils/stats.js';
-import { setStep2Finished } from '../motors/test.js';
+import { setStep2Finished, spinAllMotors, setMotorCountdownOverlay } from '../motors/test.js';
 
 export async function runFullDroneSequence() {
     const btnRun = document.getElementById('btnRunSimplified');
     if (btnRun) btnRun.disabled = true;
 
+    setMotorCountdownOverlay(false);
     setStep2Finished(false);
     resetProgression();
     setProgressionBanner('working', 'Запуск автоматичної прошивки...', 'Ініціалізація зв\'язку з польотним контролером.');
@@ -106,13 +107,41 @@ export async function runFullDroneSequence() {
 
         // --- STEP 4: TRANSITION TO MOTOR DIRECTION TESTING (STEP 3 IN UI / STAGE 5 IN PROGRESSION) ---
         setStep2Finished(true, capturedDeviceId);
-        setProgressionStep(5, 'working', 'Перевірте напрямки моторів на Кроці 3...');
-        setProgressionBanner('working', 'Крок 3: Перевірка моторів', 'Запустіть мотори, перевірте обертання та натисніть «Завершити налаштування».');
+        setProgressionStep(5, 'working', 'Перезавантаження ESC та готовність (3 сек)...');
+        setProgressionBanner('working', 'Крок 3: Підготовка моторів...', 'Перезавантаження ESC після запису. Мотори запустяться за 3 секунди.');
 
-        log(`\n👉 [АВТО-КОНВЕЄР] ЕТАП 2 ЗАВЕРШЕНО. ПЕРЕХОДЬТЕ ДО КРОКУ 3 («Перевірка та реверс моторів») ТА ЗАТИСНІТЬ «🏁 Завершити налаштування».`);
+        // Show countdown spinner overlay over drone diagram
+        setMotorCountdownOverlay(true, '3.0s');
+        log('\n[КРОК 3] Очікування 3.0 секунди для стабілізації ESC після перезавантаження...');
+
+        // 3-second countdown ticker (100ms updates)
+        const countdownStart = performance.now();
+        const totalWaitMs = 3000;
+        while (performance.now() - countdownStart < totalWaitMs) {
+            const remaining = Math.max(0, (totalWaitMs - (performance.now() - countdownStart)) / 1000).toFixed(1);
+            setMotorCountdownOverlay(true, `${remaining}s`);
+            await delay(100);
+        }
+
+        // Fade out overlay
+        setMotorCountdownOverlay(false);
+        setProgressionStep(5, 'working', 'Автоматичний запуск моторів...');
+        setProgressionBanner('working', 'Крок 3: Перевірка моторів', 'Мотори запущено. Перевірте обертання та натисніть «Завершити налаштування».');
+
+        // Automatically start all motors on safe idle speed
+        try {
+            await delay(150); // Minor stabilization delay
+            await spinAllMotors();
+        } catch (spinErr) {
+            console.warn('Auto-spin warning:', spinErr);
+            log(`Попередження автозапуску моторів: ${spinErr.message}`, 'warning');
+        }
+
+        log(`\n👉 [АВТО-КОНВЕЄР] ЕТАП 2 ЗАВЕРШЕНО. МОТОРИ ЗАПУЩЕНО АВТОМАТИЧНО. ПЕРЕВІРТЕ ОБЕРТАННЯ ТА НАТИСНІТЬ «🏁 Завершити налаштування».`);
 
     } catch (err) {
         console.error('[Pipeline Error]:', err);
+        setMotorCountdownOverlay(false);
         const errMsg = err.message || 'Невідома помилка під час прошивки.';
         setProgressionBanner('fail', 'ЗБІЙ ПРОШИВКИ ДРОНА', errMsg);
 

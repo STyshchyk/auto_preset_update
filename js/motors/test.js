@@ -4,7 +4,7 @@
 
 import { delay } from '../utils/bytes.js';
 import { state } from '../core/state.js';
-import { resolveSelectedPort } from '../core/serial.js';
+import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log, startOperationStep, endOperationStep } from '../ui/log.js';
 import { setStepStatus } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
@@ -40,6 +40,30 @@ export const motorState = {
     currentThrottle: DEFAULT_SPIN_THROTTLE,
     directions: ['normal', 'normal', 'normal', 'normal'] // 0: M1, 1: M2, 2: M3, 3: M4
 };
+
+/**
+ * Shows or hides the countdown spinner overlay on the drone diagram.
+ * @param {boolean} show
+ * @param {string} [secondsText]
+ */
+export function setMotorCountdownOverlay(show, secondsText = '') {
+    const overlay = document.getElementById('motorCountdownOverlay');
+    const secEl = document.getElementById('motorCountdownSec');
+    if (!overlay) return;
+
+    if (show) {
+        overlay.classList.remove('fade-out');
+        overlay.style.display = 'flex';
+        if (secEl && secondsText) secEl.textContent = secondsText;
+    } else {
+        overlay.classList.add('fade-out');
+        setTimeout(() => {
+            if (overlay.classList.contains('fade-out')) {
+                overlay.style.display = 'none';
+            }
+        }, 400);
+    }
+}
 
 /**
  * Marks whether Step 2 (ESC setup) has finished in the pipeline or manually.
@@ -303,16 +327,16 @@ export async function saveMotorDirections() {
             await delay(200);
         }
 
-        // 2. Close serial port connection cleanly
-        if (port.readable || port.writable) {
-            log('Закриття послідовного порту (COM)...');
-            try {
-                await port.close();
-            } catch (closeErr) {
-                console.warn('port.close() warning:', closeErr);
-            }
-        }
+        // 2. Close serial port connection cleanly and reset state
+        log('Закриття послідовного порту (COM) та відключення дрона...');
+        await closeSerialSession(port, null, null, null);
         state.port = null;
+        motorState.step2Finished = false; // Mark step 3 finished/inactive
+        if (!document.body.classList.contains('simplified-mode')) {
+            const chkSafety = document.getElementById('chkPropellersRemoved');
+            if (chkSafety) chkSafety.checked = false;
+            motorState.propellersRemovedConfirmed = false;
+        }
 
         log('Налаштування напрямків моторів завершено. З\'єднання з портом закрито.');
         endOperationStep('MOTOR_SAVE_SETTINGS');

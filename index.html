@@ -182,7 +182,7 @@
                         </div>
                         <div class="faq-item">
                             <strong>Крок 3: Перевірка моторів (Етап 5 конвеєра):</strong>
-                            <p>Після завершення Кроку 2 (ESC) автоматично стає активним 5-й етап конвеєра — <strong>Налаштування моторів</strong>. У спрощеному режимі всі кнопки Кроку 3 розблоковуються автоматично. Натисніть <strong>«▶ Пуск усіх моторів»</strong>, перевірте відповідність обертання схемі QuadX (при потребі натисніть <strong>«Реверс»</strong> потрібного мотора) та обов'язково зафіксуйте результат кнопкою <span class="faq-btn-pill-master">🏁 Завершити налаштування</span>.</p>
+                            <p>Після завершення Кроку 2 (ESC) автоматично стає активним 5-й етап конвеєра — <strong>Налаштування моторів</strong>. У спрощеному режимі <strong>мотори запускаються автоматично</strong> без необхідності натискати кнопку пуску вручну. Перевірте відповідність обертання схемі QuadX (при потребі натисніть <strong>«Реверс»</strong> потрібного мотора) та обов'язково зафіксуйте результат кнопкою <span class="faq-btn-pill-master">🏁 Завершити налаштування</span>.</p>
                         </div>
                     </div>
 
@@ -710,8 +710,13 @@ save
             </div>
 
             <!-- Center: Drone Schematic Diagram -->
-            <div class="quad-center-diagram" id="quadCenterDiagram">
+            <div class="quad-center-diagram" id="quadCenterDiagram" style="position: relative;">
                 <img src="img/drone-quad-x.png" alt="QuadX Drone Motors Direction Diagram" class="drone-schema-img">
+                <div class="motor-countdown-overlay" id="motorCountdownOverlay" style="display: none;">
+                    <div class="countdown-spinner"></div>
+                    <div class="countdown-title">⚡ Ініціалізація моторів...</div>
+                    <div class="countdown-seconds" id="motorCountdownSec">3.0s</div>
+                </div>
             </div>
 
             <!-- Front Right: M2 -->
