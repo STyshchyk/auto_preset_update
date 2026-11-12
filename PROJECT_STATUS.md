@@ -55,6 +55,10 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-12)
 
+* **Post-Flash ESC Motor Direction Sync & Golden Preset Maintenance Note (`js/blheli/preset.js`, `js/core/pipeline.js`)**:
+  - Fixed stale pre-flash motor directions persisting into Step 3 in Simplified Mode: `runFullDroneSequence()` now resets `state.escDirections` to `['normal', 'normal', 'normal', 'normal']` at the start of each run, `applyEscPreset()` sets `targets` direction to `'normal'` (matching `BL32_GOLDEN_PRESET_256`), and Phase 3 verification re-runs `detectMotorDirection()` on the post-flash readback to update `state.escDirections` and `writeResults`.
+  - **Important:** `BL32_GOLDEN_PRESET_256` is a `NORMAL`-direction preset for all 4 ESCs, and `detectMotorDirection()` only detects `REVERSED` via exact 8-byte header matches (`BL32_HEADER_REVERSED_100` / `BL32_HEADER_REVERSED_50`). **If you change the golden preset** (e.g., to flash reversed directions on specific motors), you **must also update `js/blheli/preset.js`** (`targets` selection/direction and `detectMotorDirection()` 8-byte headers) so the UI reflects the expected motor directions.
+
 * **Application Version Indicator & Auto-Increment CI/CD Workflow (`js/core/version.js`, `index.html`, `css/components.css`, `js/main.js`, `.github/workflows/vercel-deploy.yml`)**:
   - Implemented centralized version tracking module `js/core/version.js` (`APP_VERSION`, `APP_BUILD_DATE`, `initVersionBadge()`).
   - Added `#appVersionBadge` inside `.top-bar` on the far left before the device selector, styled with `.version-badge` pill style and hover tooltip.

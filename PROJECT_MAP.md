@@ -75,7 +75,7 @@
   * `#btnConnectESC` — встановлення 4-Way з'єднання через MSP 245.
   * `#btnDisconnectESC` — розрив сесії та надсилання `CMD_INTERFACE_EXIT (0x34)`.
 * **Група 2 (⚡ Прошивка):**
-  * `#btnConfigureESC` — запис повного 256-байтного крипто-контейнера `BL32_GOLDEN_PRESET_256` (`0xF800`).
+  * `#btnConfigureESC` — запис повного 256-байтного крипто-контейнера `BL32_GOLDEN_PRESET_256` (`0xF800`, напрямок `NORMAL` для всіх 4 моторів; при зміні золотого пресету необхідно також оновити `targets` та заголовки у `detectMotorDirection()` в `js/blheli/preset.js`, щоб UI коректно відображав очікувані напрямки моторів).
   * `#btnReadESC` — повне зчитування налаштувань 4-х регуляторів.
 * **Група 3 (💾 База дампів IndexedDB `esc_preset_dumps`):**
   * `#btnExportEscDb` — завантаження збереженого бекапу 4 ESC з IndexedDB у JSON-файл.
