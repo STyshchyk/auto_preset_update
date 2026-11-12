@@ -1,8 +1,8 @@
 # PROJECT STATUS — Drone Setup Station Refactoring
 
-**Last Updated:** 2026-11-11  
+**Last Updated:** 2026-11-12  
 **Active Entry Point:** `index.html`  
-**Refactoring Progress:** Phases 1–17 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine, Phase 17 Step 3 Motor Direction Testing & DShot Reversal)  
+**Refactoring Progress:** Phases 1–18 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine, Phase 17 Step 3 Motor Direction Testing, Phase 18 Simplified Mode Motor Gating, 5-Step Progression & "Finish Setup" Completion)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
 **Verification & Safety Protocol:** Full documentation available at `docs/FLASHING_VERIFICATION_PROTOCOL.md`.
 
@@ -17,6 +17,7 @@ The application operates as a clean, fully modular single-page application (`ind
   * `css/main.css`: Core design tokens (`:root`), base layout, two-column/three-column responsive flex container (`.app-layout`, `.sidebar-col`, `.main-col`, `.right-col`), and input styling.
   * `css/components.css`: Step cards, badges, status indicators, grouped toolbars (`.controls-toolbar`, `.controls-group`), buttons, console panel, modal overlays, `.info-card`, `.info-row`, `.info-val-wrap`, `.check-icon`, `.fc-state-pill` (`.state-already-flashed`, `.state-new-hardware`), `.fc-history-pill`, `.mismatch-box`, and `.mismatch-badge`.
 * **Core Layer (`js/core/`):**
+  * `version.js`: Application version and build date registry (`APP_VERSION`, `APP_BUILD_DATE`, `initVersionBadge`).
   * `state.js`: Centralized shared application state (`port`, `availablePorts`, `escSession`, `lastFcDetails`, `popupTimer`, `ignoreRebootEventsUntil`, `escChecksPassed`).
   * `serial.js`: Web Serial lifecycle with post-reboot port polling (`refreshPortList`, `initSerialEvents`, `resolveSelectedPort`, `closeSerialSession`).
   * `pipeline.js`: One-click automated drone setup conveyor (`runFullDroneSequence`) orchestrating FC flashing, reboot wait stabilization, and ESC configuration.
@@ -52,7 +53,12 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ---
 
-## 2. Latest Updates (2026-11-11)
+## 2. Latest Updates (2026-11-12)
+
+* **Application Version Indicator & Auto-Increment CI/CD Workflow (`js/core/version.js`, `index.html`, `css/components.css`, `js/main.js`, `.github/workflows/vercel-deploy.yml`)**:
+  - Implemented centralized version tracking module `js/core/version.js` (`APP_VERSION`, `APP_BUILD_DATE`, `initVersionBadge()`).
+  - Added `#appVersionBadge` inside `.top-bar` on the far left before the device selector, styled with `.version-badge` pill style and hover tooltip.
+  - Configured GitHub Actions CI/CD step in `vercel-deploy.yml` on push/merge to `main` to automatically bump `v1.0.${{ github.run_number }}` with the current date, committing back to `main` with `[skip ci]` so that both Vercel and GitHub Pages are continuously synchronized.
 
 * **Entry Point Consolidation & Deployment Configuration (`index.html`, `vercel.json`, `.github/workflows/vercel-deploy.yml`)**:
   - Renamed primary entry point from `index5.html` to standard `index.html` across codebase, `.gitignore`, `netlify.toml`, and project documentation.
@@ -92,9 +98,9 @@ The application operates as a clean, fully modular single-page application (`ind
     3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays amber badge `⚠️ Нове обладнання`, triggers warning popup, tracks `NEW_HARDWARE` history (`#fcHistoryBadge`, `#statDailyNewHw`, `#statAllNewHw`), and automatically backs up both `diff all` and `dump all` to IndexedDB.
   - Added Step 1 Expert controls grouped into 3 toolbars (Прошивка, База дампів, Бекап): `#btnComparePreset`, `#btnFlashCleanFC`, `#btnExportNewHwDump`, `#btnRestoreDiffFromDb`, `#btnRestoreDumpFromDb`, `#btnRestoreFCFromFile`. Removed defunct `#btnSkipToEsc`.
 
-* **Phase 17: Motor Direction Testing, DShot Passthrough & Speed Controls (`js/betaflight/msp.js`, `js/motors/test.js`, `index.html`, `css/components.css`, `css/main.css`, `img/drone-quad-x.png`)**:
-  - Implemented Step 3: «Перевірка та реверс моторів» with safety propeller check interlock.
-  - Betaflight MSP `214` (`MSP_SET_MOTOR`) override for 4-channel spin testing and `245` (`MSP_SET_PASSTHROUGH`) for DShot direction commands (`20` Normal, `21` Reversed, and `12` / `0x0C` Save Settings to ESC EEPROM).
-  - QuadX 3-column interactive layout featuring central drone schematic image (`img/drone-quad-x.png`) stretching full height between M4/M2 and M3/M1 pods.
-  - Real-time live speed slider in Expert Mode (1000 - 1200µs) with one-click reset to standard 1060µs.
-  - Cleaned layout and restored 3-column Flexbox flow in `.app-layout` eliminating the empty vertical space above the logging panel.
+* **Phase 18: Simplified Mode Motor Workflow, 5-Point Progression & "Finish Setup" Completion (`index.html`, `css/components.css`, `js/motors/test.js`, `js/core/pipeline.js`, `js/ui/progression.js`, `js/main.js`)**:
+  - **Propeller Interlock Streamlining**: In Simplified Mode, `.safety-box` is hidden via CSS (`display: none !important`), and propeller removal is permanently treated as confirmed (`motorState.propellersRemovedConfirmed = true`). In Expert Mode, the safety box and checkbox remain active as an explicit operator interlock.
+  - **Step 3 Buttons Gating**: Motor action buttons (`#btnSpinAllMotors`, `#btnStopAllMotors`, `#btnRevMotor1..4`, `#btnSaveMotorDirections`, `#throttleSlider`) are disabled in Simplified Mode until Step 2 (ESC setup) completes.
+  - **5-Point Progression Timeline**: Added 5th stage (`#progStep5`: `5. Налаштування моторів`). After ESC flashing completes, Stage 4 marks `success` and Stage 5 activates as `working` (`⚙️ Налаштування моторів...`).
+  - **"Finish Setup" Run Completion**: Renamed `#btnSaveMotorDirections` to `🏁 Завершити налаштування`. Clicking this button saves motor directions into ESC EEPROM, cleanly disconnects the port, marks Step 5 as `success`, updates the overall progression banner, and registers the completed run in daily/all-time device statistics (`recordDeviceResult`).
+  - **Operator FAQ & Instructions**: Updated Section 2 («Під час прошивки») and Section 3 («Після прошивки») describing the 5-point setup and the motor verification step.

@@ -8,6 +8,8 @@ import { resolveSelectedPort } from '../core/serial.js';
 import { log, startOperationStep, endOperationStep } from '../ui/log.js';
 import { setStepStatus } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
+import { setProgressionStep, setProgressionBanner } from '../ui/progression.js';
+import { recordDeviceResult } from '../utils/stats.js';
 import {
     sendMsp,
     setMotorOutputs,
@@ -32,9 +34,28 @@ export const motorState = {
     isSpinning: false,
     isBusy: false,
     propellersRemovedConfirmed: false,
+    step2Finished: false,
+    capturedDeviceId: null,
+    step5StartTime: null,
     currentThrottle: DEFAULT_SPIN_THROTTLE,
     directions: ['normal', 'normal', 'normal', 'normal'] // 0: M1, 1: M2, 2: M3, 3: M4
 };
+
+/**
+ * Marks whether Step 2 (ESC setup) has finished in the pipeline or manually.
+ * @param {boolean} finished
+ * @param {string|null} [deviceId]
+ */
+export function setStep2Finished(finished, deviceId = null) {
+    motorState.step2Finished = Boolean(finished);
+    if (deviceId) {
+        motorState.capturedDeviceId = deviceId;
+    }
+    if (finished) {
+        motorState.step5StartTime = performance.now();
+    }
+    updateMotorUi();
+}
 
 /**
  * Updates UI representation of motor directions and states.
@@ -73,7 +94,17 @@ export function updateMotorUi() {
     const slider = document.getElementById('throttleSlider');
     const badgeVal = document.getElementById('throttleValBadge');
 
-    const canOperate = Boolean(chkSafety && chkSafety.checked) && !motorState.isBusy;
+    const isSimplified = document.body.classList.contains('simplified-mode');
+    
+    // In Simplified Mode, safety is confirmed all the time, but controls unlock only after Step 2 is finished
+    if (isSimplified) {
+        motorState.propellersRemovedConfirmed = true;
+        if (chkSafety) chkSafety.checked = true;
+    }
+
+    const canOperate = isSimplified
+        ? Boolean(motorState.step2Finished) && !motorState.isBusy
+        : Boolean(chkSafety && chkSafety.checked) && !motorState.isBusy;
 
     if (slider) {
         slider.disabled = !canOperate;
@@ -286,7 +317,26 @@ export async function saveMotorDirections() {
         log('Налаштування напрямків моторів завершено. З\'єднання з портом закрито.');
         endOperationStep('MOTOR_SAVE_SETTINGS');
         setStepStatus(3, 'ok');
-        showPopup('success', 'Успішно', 'Напрямки обертання моторів збережено, мотори зупинено, з\'єднання з портом закрито!');
+
+        // Resolve device UID from motorState or DOM
+        let deviceId = motorState.capturedDeviceId;
+        if (!deviceId) {
+            const elDeviceId = document.getElementById('infoDeviceId');
+            if (elDeviceId && elDeviceId.textContent && elDeviceId.textContent !== '—') {
+                deviceId = elDeviceId.textContent.trim().toLowerCase();
+            }
+        }
+
+        // Calculate duration if step5 was tracked
+        const durSec = motorState.step5StartTime ? ((performance.now() - motorState.step5StartTime) / 1000).toFixed(1) : null;
+        setProgressionStep(5, 'success', 'Напрямки збережено. Станція готова!', durSec);
+        setProgressionBanner('success', 'ДРОН ПРОШИТО ТА НАЛАШТОВАНО! 🎉', `UID: ${deviceId || 'Успішно'}. Напрямки збережено, з'єднання закрито.`);
+
+        // Record successful run completion in statistics
+        recordDeviceResult(deviceId, true);
+        log(`\n🎉 [НАЛАШТУВАННЯ МОТОРІВ] УСПІШНО ЗАВЕРШЕНО ТА ЗАФІКСОВАНО ДЛЯ: ${deviceId || 'OK'}`);
+
+        showPopup('success', 'Успішно', 'Напрямки обертання моторів збережено, мотори зупинено, з\'єднання з портом закрито! Дрон повністю готовий.');
     } catch (e) {
         log(`Помилка завершення налаштувань ESC: ${e.message}`, 'error');
         showPopup('error', 'Помилка', `Не вдалося завершити збереження: ${e.message}`);

@@ -14,6 +14,7 @@
     <!-- USB COM Port Selection Bar -->
     <div class="top-bar">
         <div class="port-controls">
+            <span class="badge version-badge" id="appVersionBadge" title="Версія: v1.0.0 (2026-11-12)">v1.0.0 • 2026-11-12</span>
             <strong style="font-size: 13px;">Пристрій:</strong>
             <select id="portSelect">
                 <option value="new">+ Обрати / Додати новий порт...</option>
@@ -179,11 +180,19 @@
                             <strong>Суворе правило під час запису:</strong>
                             <p><strong style="color: #ff4444;">‼️ Не вимикати:</strong> категорично заборонено від'єднувати живлення або USB під час активного запису пресету чи EEPROM моторів!</p>
                         </div>
+                        <div class="faq-item">
+                            <strong>Крок 3: Перевірка моторів (Етап 5 конвеєра):</strong>
+                            <p>Після завершення Кроку 2 (ESC) автоматично стає активним 5-й етап конвеєра — <strong>Налаштування моторів</strong>. У спрощеному режимі всі кнопки Кроку 3 розблоковуються автоматично. Натисніть <strong>«▶ Пуск усіх моторів»</strong>, перевірте відповідність обертання схемі QuadX (при потребі натисніть <strong>«Реверс»</strong> потрібного мотора) та обов'язково зафіксуйте результат кнопкою <span class="faq-btn-pill-master">🏁 Завершити налаштування</span>.</p>
+                        </div>
                     </div>
 
                     <!-- 3. ПІСЛЯ ПРОШИВКИ -->
                     <div class="faq-section">
                         <div class="faq-section-title">✅ 3. Після прошивки</div>
+                        <div class="faq-item">
+                            <strong>Фіксація та завершення циклу:</strong>
+                            <p>Прошивка вважається повністю завершеною лише після натискання <span class="faq-btn-pill-master">🏁 Завершити налаштування</span> на Кроці 3 (напрямки зберігаються в EEPROM ESC, порт безпечно закривається, а пристрій зараховується у статистику).</p>
+                        </div>
                         <div class="faq-item">
                             <strong>Порядок безпечного відключення:</strong>
                             <p>Після появи зеленого статусу <span class="faq-status-pill-success">✓ УСПІШНО</span> відключати строго в порядку:<br>
@@ -763,7 +772,7 @@ save
 
             <div class="controls-group">
                 <span class="controls-group-label">💾 Фіксація:</span>
-                <button id="btnSaveMotorDirections" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled title="Зберегти обрані напрямки у пам'ять ESC через DShot 0x0C">💾 Зберегти напрямки в ESC</button>
+                <button id="btnSaveMotorDirections" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled title="Зафіксувати напрямки моторів в ESC та завершити налаштування">🏁 Завершити налаштування</button>
             </div>
         </div>
     </div>
@@ -839,6 +848,16 @@ save
                                 <span class="prog-step-time expert-only" id="progTimeStep4"></span>
                             </div>
                             <div class="step-subtitle">BLHeli_32 запис пресету 100%</div>
+                        </div>
+                    </div>
+                    <div class="prog-step awaiting" id="progStep5">
+                        <div class="step-icon">⏳</div>
+                        <div class="step-content">
+                            <div class="step-title-row" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div class="step-title-text">5. Налаштування моторів</div>
+                                <span class="prog-step-time expert-only" id="progTimeStep5"></span>
+                            </div>
+                            <div class="step-subtitle">Тестовий пуск, реверс & фіксація</div>
                         </div>
                     </div>
                 </div>

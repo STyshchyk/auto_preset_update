@@ -11,6 +11,9 @@ env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
+permissions:
+  contents: write
+
 jobs:
   deploy-production:
     name: Deploy to Vercel (Production)
@@ -19,6 +22,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Auto-increment version and commit
+        run: |
+          BUILD_DATE=$(date -u +'%Y-%m-%d')
+          VERSION="v1.0.${{ github.run_number }}"
+          echo "Updating version to $VERSION ($BUILD_DATE)"
+          sed -i "s/export const APP_VERSION = .*/export const APP_VERSION = '$VERSION';/" js/core/version.js
+          sed -i "s/export const APP_BUILD_DATE = .*/export const APP_BUILD_DATE = '$BUILD_DATE';/" js/core/version.js
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add js/core/version.js
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(release): bump version to $VERSION ($BUILD_DATE) [skip ci]"
+            git push origin main
+          fi
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest

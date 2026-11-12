@@ -12,11 +12,13 @@ import { flashBetaflightPreset } from '../betaflight/preset.js';
 import { applyEscPreset } from '../blheli/preset.js';
 import { setProgressionStep, setProgressionBanner, resetProgression } from '../ui/progression.js';
 import { recordDeviceResult } from '../utils/stats.js';
+import { setStep2Finished } from '../motors/test.js';
 
 export async function runFullDroneSequence() {
     const btnRun = document.getElementById('btnRunSimplified');
     if (btnRun) btnRun.disabled = true;
 
+    setStep2Finished(false);
     resetProgression();
     setProgressionBanner('working', 'Запуск автоматичної прошивки...', 'Ініціалізація зв\'язку з польотним контролером.');
 
@@ -101,11 +103,13 @@ export async function runFullDroneSequence() {
         }
 
         setProgressionStep(4, 'success', '4 ESC: Заливка ➔ Перевірка ➔ Статус OK', durEsc);
-        setProgressionBanner('success', 'ДРОН ПРОШИТО УСПІШНО! 🎉', `UID: ${capturedDeviceId || 'Успішно'}. Всі 4 мотори готові до польоту.`);
 
-        // Record successful run by UID
-        recordDeviceResult(capturedDeviceId, true);
-        log(`\n🎉 [АВТО-КОНВЕЄР] УСПІШНО ЗАВЕРШЕНО ДЛЯ ПРИСТРОЮ: ${capturedDeviceId || 'OK'}`);
+        // --- STEP 4: TRANSITION TO MOTOR DIRECTION TESTING (STEP 3 IN UI / STAGE 5 IN PROGRESSION) ---
+        setStep2Finished(true, capturedDeviceId);
+        setProgressionStep(5, 'working', 'Перевірте напрямки моторів на Кроці 3...');
+        setProgressionBanner('working', 'Крок 3: Перевірка моторів', 'Запустіть мотори, перевірте обертання та натисніть «Завершити налаштування».');
+
+        log(`\n👉 [АВТО-КОНВЕЄР] ЕТАП 2 ЗАВЕРШЕНО. ПЕРЕХОДЬТЕ ДО КРОКУ 3 («Перевірка та реверс моторів») ТА ЗАТИСНІТЬ «🏁 Завершити налаштування».`);
 
     } catch (err) {
         console.error('[Pipeline Error]:', err);

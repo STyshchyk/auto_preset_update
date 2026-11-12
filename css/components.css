@@ -49,6 +49,17 @@
     border: 1px solid #333;
 }
 
+.version-badge {
+    font-family: monospace;
+    font-size: 11px;
+    color: #9aa5b8;
+    background: #1e222a;
+    border-color: #363c4a;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    user-select: none;
+}
+
 .step-status {
     display: inline-flex;
     align-items: center;
@@ -1208,6 +1219,10 @@ body.simplified-mode {
 }
 
 body.simplified-mode .expert-only {
+    display: none !important;
+}
+
+body.simplified-mode .safety-box {
     display: none !important;
 }
 
