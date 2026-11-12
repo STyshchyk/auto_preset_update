@@ -141,6 +141,11 @@ export async function applyEscPreset() {
                 const matched = isGoldenPresetMatched(block.data);
                 log(`  Match status: dir=${dir}, matched=${matched}`);
 
+                // Зберігаємо актуальний зчитаний напрямок мотора в загальний стан
+                if (state.escDirections) {
+                    state.escDirections[esc] = dir;
+                }
+
                 const isBluejay = (block.signatureHex === '0xE8B2' || block.signatureHex === '0xB2E8' || 
                                    block.signatureHex === '0xE8B1' || block.signatureHex === '0xB1E8' ||
                                    (asciiName && asciiName.toLowerCase().includes('bluejay')));
@@ -208,7 +213,7 @@ export async function applyEscPreset() {
             const targets = [];
             for (let esc = 0; esc < ESC_COUNT; esc++) {
                 const patchData = new Uint8Array(BL32_GOLDEN_PRESET_256);
-                const direction = 'normal';
+                const direction = (state.escDirections && state.escDirections[esc]) ? state.escDirections[esc] : 'normal';
                 targets.push({ esc, patchData, direction });
             }
 

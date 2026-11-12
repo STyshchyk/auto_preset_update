@@ -62,7 +62,7 @@ export async function withEscSession(fn) {
             } catch (openErr) {
                 lastOpenErr = openErr;
                 log(`[BLHeli_32] Очікування готовності COM-порту (спроба ${attempt}/7: ${openErr.message})...`);
-                await delay(700);
+                await delay(1500);
             }
         }
 
@@ -78,7 +78,7 @@ export async function withEscSession(fn) {
     } finally {
         setEscFlowStep('close', 'working');
         try {
-            const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 600);
+            const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 1000);
             log(`[BLHeli_32] Команду виходу 0x34 виконано (${exitRes.ok ? 'ACK OK' : exitRes.msg}).`);
             setEscFlowStep('close', exitRes.ok ? 'success' : 'fail');
         } catch (_) {
@@ -172,6 +172,10 @@ export async function readAllEscSettings() {
             // Перевірка напрямку та відповідності нашому 256-байтному еталонному пресету
             const direction = detectMotorDirection(pageData.slice(0, 8), esc);
             const presetMatched = isGoldenPresetMatched(pageData);
+
+            if (state.escDirections) {
+                state.escDirections[esc] = direction;
+            }
 
             // Витяг відкритого ASCII тексту назви та версії прошивки з блоку
             let asciiName = '';

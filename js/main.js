@@ -26,6 +26,8 @@ import { applyEscPreset } from './blheli/preset.js';
 import { connectEscSession, disconnectEscSession } from './blheli/session.js';
 import { runFullDroneSequence } from './core/pipeline.js';
 import { renderStatsWidget, resetDailyStats } from './utils/stats.js';
+import { initMotorControls, updateMotorUi } from './motors/test.js';
+import { initVersionBadge } from './core/version.js';
 
 // Expose closeModal globally for modal HTML onclick handler
 window.closeModal = closeModal;
@@ -76,6 +78,7 @@ function applyMode(isSimplified) {
         }
     }
     localStorage.setItem(MODE_STORAGE_KEY, isSimplified ? 'simplified' : 'expert');
+    updateMotorUi();
 }
 
 // Default to simplified mode unless explicitly set to expert
@@ -92,6 +95,7 @@ if (btnToggleMode) {
 
 // --- STATS INITIALIZATION ---
 renderStatsWidget();
+initVersionBadge();
 if (btnResetDailyStats) {
     btnResetDailyStats.addEventListener('click', () => {
         if (window.confirm('Скинути статистику за сьогодні?')) {
@@ -196,3 +200,6 @@ if (btnClearLogs) {
         }
     });
 }
+
+// --- STEP 3: MOTOR TESTING & DIRECTION REVERSAL ---
+initMotorControls();

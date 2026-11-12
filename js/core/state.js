@@ -5,6 +5,7 @@ export const state = {
     ignoreRebootEventsUntil: 0,
     lastFcDetails: null,
     escChecksPassed: null,
+    escDirections: ['normal', 'normal', 'normal', 'normal'],
     escSession: {
         isConnected: false,
         port: null,
