@@ -30,7 +30,7 @@ The Drone Setup Station features a unified one-click simplified assembly pipelin
    - 3-state firmware recognition (`ALREADY_FLASHED` skip, `CLEAN`, `NEW_HARDWARE` warning).
    - Dual FC dump backup (`diff all` and `dump all`) to IndexedDB with one-click restore and file export.
 8. **`js/blheli/preset.js`, `eeprom.js`, `protocol.js`, `backup.js`**:
-   - 256-byte golden EEPROM container (`BL32_GOLDEN_PRESET_256`, CRC16 `0xbc05`) targeting MCU `0x4706`.
+   - 256-byte golden EEPROM container (`BL32_GOLDEN_PRESET_256`, CRC16 `0xbc05`) targeting MCU `0x4706` (`NORMAL` direction for all 4 ESCs; if the golden preset is changed, `targets` and `detectMotorDirection()` headers in `js/blheli/preset.js` must also be updated to reflect expected motor directions in the UI).
    - Automatic pre-flash ESC backup to IndexedDB (`esc_preset_dumps` keyed by FC `mcu_id`) with one-click DB restore and export.
    - 3-attempt handshake with `CMD_DEVICE_RESET` preventing transient connection failures.
    - Strict Bluejay 8-bit detection (`0xE8B2` / `0xE8B1` / Silicon Labs EFM8BB21) and safety abort.

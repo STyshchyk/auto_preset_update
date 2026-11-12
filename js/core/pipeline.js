@@ -19,6 +19,7 @@ export async function runFullDroneSequence() {
     if (btnRun) btnRun.disabled = true;
 
     setMotorCountdownOverlay(false);
+    state.escDirections = ['normal', 'normal', 'normal', 'normal'];
     setStep2Finished(false);
     resetProgression();
     setProgressionBanner('working', 'Запуск автоматичної прошивки...', 'Ініціалізація зв\'язку з польотним контролером.');
