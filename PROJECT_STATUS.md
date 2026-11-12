@@ -98,6 +98,14 @@ The application operates as a clean, fully modular single-page application (`ind
     3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays amber badge `⚠️ Нове обладнання`, triggers warning popup, tracks `NEW_HARDWARE` history (`#fcHistoryBadge`, `#statDailyNewHw`, `#statAllNewHw`), and automatically backs up both `diff all` and `dump all` to IndexedDB.
   - Added Step 1 Expert controls grouped into 3 toolbars (Прошивка, База дампів, Бекап): `#btnComparePreset`, `#btnFlashCleanFC`, `#btnExportNewHwDump`, `#btnRestoreDiffFromDb`, `#btnRestoreDumpFromDb`, `#btnRestoreFCFromFile`. Removed defunct `#btnSkipToEsc`.
 
+* **Phase 20: Simplified Mode 1-Viewport & Low-Strain UI Refinement (`index.html`, `css/components.css`, `js/main.js`)**:
+  - Removed `125%` global font scaling in `body.simplified-mode` and tightened layout/card spacing with calm high-contrast slate surfaces (`#161a22`, `#252c3a`) so the entire 3-column workflow fits within a single desktop viewport.
+  - Streamlined Step 1 & Step 2 into compact status bars (hiding `CLI Engine`, `MSP 4-Way Interface`, `#fcFlashProgress`, and `#escFlowPipeline` in Simplified Mode while keeping `#fcStateBadge`, `#fcHistoryBadge`, `#badgeEscAlreadyFlashed`, `#stepStatus1..3`, and inline `#badgeEsc0..3` pills visible).
+  - Made Step 3 (Motors) the largest centerpiece with cleaner QuadX motor pods, larger `Реверс` buttons, and a unified 3-button action bar (`▶ Пуск усіх моторів`, `⏹ Зупинити всі`, `🏁 Завершити налаштування`).
+  - Slimmed Left Sidebar FC/ESC info cards (4 critical rows each) and moved the verbose `.faq-card` behind an on-demand `? Допомога` button (`#btnOpenFaq`) and modal (`#faqModal`) in `.top-bar`.
+  - Streamlined Right Sidebar Progression timeline (hiding `.step-subtitle` in Simplified Mode, compacting `#progBanner` and `.stats-card`).
+  - Expert Mode left untouched for debugging.
+
 * **Phase 19: Simplified Mode Popup Streamlining (`js/ui/modal.js`, `js/motors/test.js`)**:
   - Implemented automatic popup suppression in `showPopup()` whenever `.simplified-mode` is active on `document.body`.
   - All intermediate notifications during Step 1 (FC pre-checks, auto-skip, new hardware warning, flash success) and Step 2 (ESC connections, preset application, and status popups) are cleanly suppressed so the one-click conveyor runs seamlessly.

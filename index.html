@@ -24,6 +24,9 @@
             </button>
         </div>
         <div class="top-bar-right" style="display:flex; align-items:center; gap:12px;">
+            <button id="btnOpenFaq" class="btn-help-toggle simplified-only" title="Відкрити інструкцію оператора / FAQ">
+                ? FAQ та допомога
+            </button>
             <button id="btnToggleMode" class="btn-mode-toggle" title="Перемкнути між спрощеним та експертним режимами">
                 ⚡ Спрощений режим: УВІМК
             </button>
@@ -58,7 +61,7 @@
                             <span class="check-icon state-idle" id="checkFw" title="Статус перевірки прошивки">—</span>
                         </div>
                     </div>
-                    <div class="info-row">
+                    <div class="info-row expert-only">
                         <span class="info-label">Дата збірки:</span>
                         <div class="info-val-wrap">
                             <span class="info-val" id="infoBuildDate">—</span>
@@ -121,7 +124,7 @@
                             <span class="check-icon state-idle" id="checkEscPower" title="Статус LiPo живлення та ACK">—</span>
                         </div>
                     </div>
-                    <div class="info-row">
+                    <div class="info-row expert-only">
                         <span class="info-label">ESC #1..#4:</span>
                         <div class="info-val-wrap">
                             <span class="info-val" id="infoEscDirs" style="font-size:11px;">—</span>
@@ -139,7 +142,7 @@
             </div>
 
             <!-- Instructions & FAQ -->
-            <div class="info-card faq-card">
+            <div class="info-card faq-card expert-only">
                 <div class="info-card-header">
                     <span class="info-card-title">ℹ️ Інструкція оператора / FAQ</span>
                 </div>
@@ -236,7 +239,7 @@
                 <span>Крок 1: Заливання пресету Betaflight</span>
             </div>
             <div class="step-header-right">
-                <span class="badge">CLI Engine</span>
+                <span class="badge expert-only">CLI Engine</span>
                 <span class="already-flashed-pill fc-state-pill" id="fcStateBadge" style="display:none;" title="Статус відповідності прошивки контролера">⚡ Вже прошитий</span>
                 <span class="already-flashed-pill fc-history-pill" id="fcHistoryBadge" style="display:none;" title="Історія обладнання: цей контролер раніше мав сторонній пресет">⚠️ Був модифікований</span>
                 <span class="step-status awaiting" id="stepStatus1">⏳ Очікування</span>
@@ -541,7 +544,7 @@ save
         </div>
 
         <!-- Step 1 Sub-stage Progress Badges -->
-        <div class="fc-flash-progress" id="fcFlashProgress">
+        <div class="fc-flash-progress expert-only" id="fcFlashProgress">
             <div class="fc-sub-step pending" id="subStepFlash">
                 <span class="sub-step-icon">⏳</span>
                 <span class="sub-step-label">1. Прошивка команд</span>
@@ -595,14 +598,14 @@ save
                 <span>Крок 2: Автоматична настройка BLHeli_32</span>
             </div>
             <div class="step-header-right">
-                <span class="badge">MSP 4-Way Interface</span>
+                <span class="badge expert-only">MSP 4-Way Interface</span>
                 <span class="already-flashed-pill" id="badgeEscAlreadyFlashed" style="display:none;" title="Усі 4 регулятори вже на 100% відповідають зразку пресету">⚡ Вже прошитий</span>
                 <span class="step-status awaiting" id="stepStatus2">⏳ Очікування</span>
             </div>
         </div>
 
         <!-- ESC Pipeline Flow Status Bar (Підключення -> Заливка -> Перевірка -> Статус OK -> Закриття сесії) -->
-        <div class="esc-flow-pipeline" id="escFlowPipeline">
+        <div class="esc-flow-pipeline expert-only" id="escFlowPipeline">
             <div class="esc-flow-step awaiting" id="escFlowConnect">
                 <span class="step-dot">🔗</span>
                 <span class="step-label">1. Підключення</span>
@@ -677,7 +680,7 @@ save
                 <span>Крок 3: Перевірка та реверс моторів</span>
             </div>
             <div class="step-header-right">
-                <span class="badge">DShot Passthrough</span>
+                <span class="badge expert-only">DShot Passthrough</span>
                 <span class="step-status awaiting" id="stepStatus3">⏳ Очікування</span>
             </div>
         </div>
@@ -757,9 +760,9 @@ save
         </div>
 
         <!-- Step 3 Action Controls Toolbar -->
-        <div class="controls-toolbar" style="margin-top: 14px;">
+        <div class="controls-toolbar step3-toolbar" style="margin-top: 14px;">
             <div class="controls-group">
-                <span class="controls-group-label">🕹️ Тестовий запуск:</span>
+                <span class="controls-group-label expert-only">🕹️ Тестовий запуск:</span>
                 <button id="btnFetchMotorDirections" class="btn-read expert-only" style="padding: 4px 10px; font-size: 11px;" title="Опитати актуальні напрямки обертання безпосередньо з 4 ESC">🔍 Опитати ESC</button>
                 <button id="btnSpinAllMotors" class="btn-primary" style="background:#28a745; border-color:#208738;" disabled title="Запустити всі 4 мотори на низьких обертах">▶ Пуск усіх моторів</button>
                 <button id="btnStopAllMotors" class="btn-disconnect" disabled title="Негайно зупинити всі мотори (1000µs)">⏹ Зупинити всі</button>
@@ -775,8 +778,8 @@ save
                 <button id="btnApplyDefaultThrottle" class="btn-read" style="padding: 4px 10px; font-size: 11px;" title="Скинути швидкість до стандартних 1030µs">↺ Скинути (1030)</button>
             </div>
 
-            <div class="controls-group">
-                <span class="controls-group-label">💾 Фіксація:</span>
+            <div class="controls-group step3-finish-group">
+                <span class="controls-group-label expert-only">💾 Фіксація:</span>
                 <button id="btnSaveMotorDirections" class="btn-primary" style="background:#007acc; border-color:#0099ff;" disabled title="Зафіксувати напрямки моторів в ESC та завершити налаштування">🏁 Завершити налаштування</button>
             </div>
         </div>
@@ -822,7 +825,7 @@ save
                                 <div class="step-title-text">1. Підключення & Валідація FC</div>
                                 <span class="prog-step-time expert-only" id="progTimeStep1"></span>
                             </div>
-                            <div class="step-subtitle">Зчитування Target та Unique ID</div>
+                            <div class="step-subtitle expert-only">Зчитування Target та Unique ID</div>
                         </div>
                     </div>
                     <div class="prog-step awaiting" id="progStep2">
@@ -832,7 +835,7 @@ save
                                 <div class="step-title-text">2. Заливання пресету FC</div>
                                 <span class="prog-step-time expert-only" id="progTimeStep2"></span>
                             </div>
-                            <div class="step-subtitle">CLI запис та перевірка помилок</div>
+                            <div class="step-subtitle expert-only">CLI запис та перевірка помилок</div>
                         </div>
                     </div>
                     <div class="prog-step awaiting" id="progStep3">
@@ -842,7 +845,7 @@ save
                                 <div class="step-title-text">3. Перезавантаження FC</div>
                                 <span class="prog-step-time expert-only" id="progTimeStep3"></span>
                             </div>
-                            <div class="step-subtitle">Ініціалізація MSP 4-Way режиму</div>
+                            <div class="step-subtitle expert-only">Ініціалізація MSP 4-Way режиму</div>
                         </div>
                     </div>
                     <div class="prog-step awaiting" id="progStep4">
@@ -852,7 +855,7 @@ save
                                 <div class="step-title-text">4. Налаштування 4-х ESC</div>
                                 <span class="prog-step-time expert-only" id="progTimeStep4"></span>
                             </div>
-                            <div class="step-subtitle">BLHeli_32 запис пресету 100%</div>
+                            <div class="step-subtitle expert-only">BLHeli_32 запис пресету 100%</div>
                         </div>
                     </div>
                     <div class="prog-step awaiting" id="progStep5">
@@ -862,7 +865,7 @@ save
                                 <div class="step-title-text">5. Налаштування моторів</div>
                                 <span class="prog-step-time expert-only" id="progTimeStep5"></span>
                             </div>
-                            <div class="step-subtitle">Тестовий пуск, реверс & фіксація</div>
+                            <div class="step-subtitle expert-only">Тестовий пуск, реверс & фіксація</div>
                         </div>
                     </div>
                 </div>
@@ -964,6 +967,17 @@ save
                 Підтвердити та перейти до роботи
             </button>
         </div>
+    </div>
+</div>
+
+<!-- FAQ Modal (On-demand in Simplified Mode) -->
+<div id="faqModal" class="modal">
+    <div class="modal-box modal-faq-dialog">
+        <div class="modal-header-row">
+            <h3>ℹ️ Інструкція оператора / FAQ</h3>
+            <button id="btnCloseFaqModal" class="modal-btn-close-icon" title="Закрити">✕</button>
+        </div>
+        <div id="faqModalBody" class="faq-content"></div>
     </div>
 </div>
 
