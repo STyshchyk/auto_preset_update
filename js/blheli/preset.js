@@ -213,7 +213,7 @@ export async function applyEscPreset() {
             const targets = [];
             for (let esc = 0; esc < ESC_COUNT; esc++) {
                 const patchData = new Uint8Array(BL32_GOLDEN_PRESET_256);
-                const direction = (state.escDirections && state.escDirections[esc]) ? state.escDirections[esc] : 'normal';
+                const direction = 'normal';
                 targets.push({ esc, patchData, direction });
             }
 
@@ -259,6 +259,14 @@ export async function applyEscPreset() {
                 if (!verifyBlock.ok) {
                     setEscFlowStep('verify', 'fail');
                     return { aborted: `ESC #${esc + 1}: не пройшов контрольну перевірку (${verifyBlock.msg}).`, results: writeResults };
+                }
+                const verifiedDir = detectMotorDirection(verifyBlock.data.slice(0, 8), esc);
+                if (state.escDirections) {
+                    state.escDirections[esc] = verifiedDir;
+                }
+                const wrItem = writeResults.find(r => r.esc === esc);
+                if (wrItem) {
+                    wrItem.direction = verifiedDir;
                 }
             }
             setEscFlowStep('verify', 'success');

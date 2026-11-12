@@ -93,6 +93,41 @@ if (btnToggleMode) {
     });
 }
 
+// --- ON-DEMAND FAQ MODAL (SIMPLIFIED MODE) ---
+const btnOpenFaq = document.getElementById('btnOpenFaq');
+const faqModal = document.getElementById('faqModal');
+const faqModalBody = document.getElementById('faqModalBody');
+const btnCloseFaqModal = document.getElementById('btnCloseFaqModal');
+
+if (btnOpenFaq && faqModal && faqModalBody) {
+    btnOpenFaq.addEventListener('click', () => {
+        if (!faqModalBody.hasChildNodes()) {
+            const sourceFaq = document.querySelector('.faq-card .faq-content');
+            if (sourceFaq) {
+                faqModalBody.innerHTML = sourceFaq.innerHTML;
+            }
+        }
+        faqModal.classList.add('active');
+    });
+}
+if (btnCloseFaqModal && faqModal) {
+    btnCloseFaqModal.addEventListener('click', () => {
+        faqModal.classList.remove('active');
+    });
+}
+if (faqModal) {
+    faqModal.addEventListener('click', (e) => {
+        if (e.target === faqModal) {
+            faqModal.classList.remove('active');
+        }
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && faqModal.classList.contains('active')) {
+            faqModal.classList.remove('active');
+        }
+    });
+}
+
 // --- STATS INITIALIZATION ---
 renderStatsWidget();
 initVersionBadge();

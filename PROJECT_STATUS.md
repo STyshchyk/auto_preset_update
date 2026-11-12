@@ -55,6 +55,10 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-12)
 
+* **Post-Flash ESC Motor Direction Sync & Golden Preset Maintenance Note (`js/blheli/preset.js`, `js/core/pipeline.js`)**:
+  - Fixed stale pre-flash motor directions persisting into Step 3 in Simplified Mode: `runFullDroneSequence()` now resets `state.escDirections` to `['normal', 'normal', 'normal', 'normal']` at the start of each run, `applyEscPreset()` sets `targets` direction to `'normal'` (matching `BL32_GOLDEN_PRESET_256`), and Phase 3 verification re-runs `detectMotorDirection()` on the post-flash readback to update `state.escDirections` and `writeResults`.
+  - **Important:** `BL32_GOLDEN_PRESET_256` is a `NORMAL`-direction preset for all 4 ESCs, and `detectMotorDirection()` only detects `REVERSED` via exact 8-byte header matches (`BL32_HEADER_REVERSED_100` / `BL32_HEADER_REVERSED_50`). **If you change the golden preset** (e.g., to flash reversed directions on specific motors), you **must also update `js/blheli/preset.js`** (`targets` selection/direction and `detectMotorDirection()` 8-byte headers) so the UI reflects the expected motor directions.
+
 * **Application Version Indicator & Auto-Increment CI/CD Workflow (`js/core/version.js`, `index.html`, `css/components.css`, `js/main.js`, `.github/workflows/vercel-deploy.yml`)**:
   - Implemented centralized version tracking module `js/core/version.js` (`APP_VERSION`, `APP_BUILD_DATE`, `initVersionBadge()`).
   - Added `#appVersionBadge` inside `.top-bar` on the far left before the device selector, styled with `.version-badge` pill style and hover tooltip.
@@ -97,6 +101,14 @@ The application operates as a clean, fully modular single-page application (`ind
     2. **`CLEAN`**: Matches clean baseline dump (ignoring accelerometer calibration). Proceeds directly to standard flashing.
     3. **`NEW_HARDWARE`**: Neither clean nor flashed. Displays amber badge `⚠️ Нове обладнання`, triggers warning popup, tracks `NEW_HARDWARE` history (`#fcHistoryBadge`, `#statDailyNewHw`, `#statAllNewHw`), and automatically backs up both `diff all` and `dump all` to IndexedDB.
   - Added Step 1 Expert controls grouped into 3 toolbars (Прошивка, База дампів, Бекап): `#btnComparePreset`, `#btnFlashCleanFC`, `#btnExportNewHwDump`, `#btnRestoreDiffFromDb`, `#btnRestoreDumpFromDb`, `#btnRestoreFCFromFile`. Removed defunct `#btnSkipToEsc`.
+
+* **Phase 20: Simplified Mode 1-Viewport & Low-Strain UI Refinement (`index.html`, `css/components.css`, `js/main.js`)**:
+  - Removed `125%` global font scaling in `body.simplified-mode` and tightened layout/card spacing with calm high-contrast slate surfaces (`#161a22`, `#252c3a`) so the entire 3-column workflow fits within a single desktop viewport.
+  - Streamlined Step 1 & Step 2 into compact status bars (hiding `CLI Engine`, `MSP 4-Way Interface`, `#fcFlashProgress`, and `#escFlowPipeline` in Simplified Mode while keeping `#fcStateBadge`, `#fcHistoryBadge`, `#badgeEscAlreadyFlashed`, `#stepStatus1..3`, and inline `#badgeEsc0..3` pills visible).
+  - Made Step 3 (Motors) the largest centerpiece with cleaner QuadX motor pods, larger `Реверс` buttons, and a unified 3-button action bar (`▶ Пуск усіх моторів`, `⏹ Зупинити всі`, `🏁 Завершити налаштування`).
+  - Slimmed Left Sidebar FC/ESC info cards (4 critical rows each) and moved the verbose `.faq-card` behind an on-demand `? Допомога` button (`#btnOpenFaq`) and modal (`#faqModal`) in `.top-bar`.
+  - Streamlined Right Sidebar Progression timeline (hiding `.step-subtitle` in Simplified Mode, compacting `#progBanner` and `.stats-card`).
+  - Expert Mode left untouched for debugging.
 
 * **Phase 19: Simplified Mode Popup Streamlining (`js/ui/modal.js`, `js/motors/test.js`)**:
   - Implemented automatic popup suppression in `showPopup()` whenever `.simplified-mode` is active on `document.body`.
