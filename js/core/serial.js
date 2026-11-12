@@ -97,7 +97,7 @@ export function initSerialEvents(log, resetAllStepStatuses) {
             
             // If new hardware was plugged in but browser has no saved permission for it
             if (newCount === 0 || newCount === prevCount) {
-                log('⚡ Підключено новий пристрій. Натисніть «ПРОШИТИ ДРОН» або виберіть порт у списку для надання доступу.');
+                log('⚡ Підключено новий пристрій. Натисніть «Почати налаштування» або виберіть порт у списку для надання доступу.');
                 updateGrantButtonVisibility();
             }
 
