@@ -220,6 +220,26 @@ export async function sendDshotProgCommand(port, escIndex, dshotCmds, maxRetries
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         console.log(`[DShot ACK] Attempt ${attempt + 1}/${maxRetries + 1} for ESC #${escIndex + 1} (cmds: [${cmdArray.join(', ')}])...`);
+
+        // Drain stale bytes from port.readable (e.g. leftover $M> from MSP_SET_MOTOR)
+        if (port.readable && !port.readable.locked) {
+            const drainReader = port.readable.getReader();
+            try {
+                while (true) {
+                    const drainRes = await Promise.race([
+                        drainReader.read(),
+                        new Promise((resolve) => setTimeout(() => resolve({ value: null, done: true }), 15))
+                    ]).catch(() => ({ value: null, done: true }));
+                    if (drainRes.done || !drainRes.value || drainRes.value.length === 0) break;
+                }
+            } finally {
+                try {
+                    await drainReader.cancel();
+                } catch (_) {}
+                drainReader.releaseLock();
+            }
+        }
+
         const writer = port.writable.getWriter();
         try {
             // Send each command (e.g. direction 7/8, then save 12) with proper timing for 10x DShot repeats + EEPROM write
@@ -229,15 +249,32 @@ export async function sendDshotProgCommand(port, escIndex, dshotCmds, maxRetries
             writer.releaseLock();
         }
 
-        // Verify MSPv2 ACK response from Betaflight FC
+        // Verify MSPv2 ACK response from Betaflight FC (accumulate chunks up to 250ms)
         if (port.readable && !port.readable.locked) {
             const reader = port.readable.getReader();
             try {
-                const res = await Promise.race([
-                    reader.read(),
-                    new Promise((resolve) => setTimeout(() => resolve({ value: null, done: true }), 150))
-                ]).catch(() => ({ value: null, done: true }));
-                const ack = parseMsp2DshotAck(res?.value);
+                const rxBuf = [];
+                const deadline = performance.now() + 250;
+                let ack = { ok: false, reason: 'timeout' };
+
+                while (performance.now() < deadline) {
+                    const remainingMs = Math.max(10, Math.ceil(deadline - performance.now()));
+                    const res = await Promise.race([
+                        reader.read(),
+                        new Promise((resolve) => setTimeout(() => resolve({ value: null, done: true }), remainingMs))
+                    ]).catch(() => ({ value: null, done: true }));
+
+                    if (res.done || !res.value || res.value.length === 0) break;
+
+                    for (let i = 0; i < res.value.length; i++) {
+                        rxBuf.push(res.value[i]);
+                    }
+                    ack = parseMsp2DshotAck(rxBuf);
+                    if (ack.ok || ack.reason === 'MSPv2 error ($X!)') {
+                        break;
+                    }
+                }
+
                 if (ack.ok) {
                     console.log(`[DShot ACK] Attempt ${attempt + 1} succeeded ($X> ACK received).`);
                     return true;

@@ -1,6 +1,6 @@
 # PROJECT STATUS — Drone Setup Station Refactoring
 
-**Last Updated:** 2026-11-12  
+**Last Updated:** 2026-11-16  
 **Active Entry Point:** `index.html`  
 **Refactoring Progress:** Phases 1–19 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine, Phase 17 Step 3 Motor Direction Testing, Phase 18 Simplified Mode Motor Gating, 5-Step Progression & "Finish Setup" Completion, Phase 19 Simplified Mode Popup Streamlining)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
@@ -53,7 +53,25 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ---
 
-## 2. Latest Updates (2026-11-12)
+## 2. Latest Updates (2026-11-16)
+
+* **Simplified Mode & Auto-Pipeline Stability Hardening (`js/core/state.js`, `js/core/serial.js`, `js/core/pipeline.js`, `js/motors/test.js`, `js/betaflight/preset.js`, `js/betaflight/msp.js`)**:
+  - Added `state.isPipelineRunning` guard in `js/core/state.js` / `pipeline.js` / `serial.js` to prevent `resetAllStepStatuses()` from clearing UI progress during FC USB reboots.
+  - Locked `#btnRunSimplified` while Step 3 is active (`motorState.step2Finished === true`), unlocking only on `saveMotorDirections()`, pipeline error, or USB disconnect (`resetMotorStateOnDisconnect()`).
+  - Kept `motorState.isBusy = true` across the `150ms` pre-spin delay and added `if (!state.port.readable || !state.port.writable)` guards before `open()` in `js/betaflight/preset.js`.
+  - Upgraded `sendDshotProgCommand()` in `js/betaflight/msp.js` to drain stale RX bytes before sending `$X<` and accumulate fragmented USB chunks up to `250ms` while checking `parseMsp2DshotAck()`.
+  - Hardened `stopAllMotors()` (double `1000µs` send with `50ms` interval), verified motor stop in `saveMotorDirections()` before `closeSerialSession()`, added 3-attempt port open retry (`200ms`) in `spinAllMotors()`, surfaced Step 3 errors in `#progBanner` in Simplified Mode, and optimized `#throttleSlider` with direct `state.port` access and `isThrottleUpdating` lock.
+* **DShot MSPv2 ACK Verification & Retry Engine (`js/betaflight/msp.js`, `js/motors/test.js`)**:
+  - Added `parseMsp2DshotAck()` and upgraded `sendDshotProgCommand(port, escIndex, dshotCmds, maxRetries = 3)` to verify MSPv2 (`$X>`, cmd `0x3003`) ACK responses from Betaflight FC with a `150ms` read timeout, `$X!` error detection, and up to 3 automatic retries (`150ms` apart) before throwing an error.
+  - Updated `toggleMotorDirection()` in `js/motors/test.js` with a `1000ms` motor-stop settle delay before dispatching DShot commands and a `250ms` post-EEPROM save settle delay before resuming motor output.
+* **ESC Flow Pipeline Simplification (`index.html`, `js/ui/status.js`)**:
+  - Streamlined the ESC flow pipeline from 5 stages to 4 stages (`connect` → `flash` → `verify` → `close`), removing the redundant `escFlowStatus` stage.
+* **CI/CD & Deployment Cleanup (`.github/workflows/vercel-deploy.yml`)**:
+  - Updated `vercel-deploy.yml` to auto-increment the patch version directly from `js/core/version.js` and ignore `develop` branch builds; removed `.github/workflows/netlify-deploy.yml`.
+
+---
+
+## 3. Previous Updates (2026-11-12)
 
 * **Post-Flash ESC Motor Direction Sync & Golden Preset Maintenance Note (`js/blheli/preset.js`, `js/core/pipeline.js`)**:
   - Fixed stale pre-flash motor directions persisting into Step 3 in Simplified Mode: `runFullDroneSequence()` now resets `state.escDirections` to `['normal', 'normal', 'normal', 'normal']` at the start of each run, `applyEscPreset()` sets `targets` direction to `'normal'` (matching `BL32_GOLDEN_PRESET_256`), and Phase 3 verification re-runs `detectMotorDirection()` on the post-flash readback to update `state.escDirections` and `writeResults`.

@@ -90,8 +90,10 @@ export async function flashBetaflightPreset(onTelemetryReady = null, customPrese
             await disconnectEscSession();
         }
         state.port = await resolveSelectedPort(log);
-        await state.port.open({ baudRate: 115200 });
-        log('Порт відкрито на 115200.');
+        if (!state.port.readable || !state.port.writable) {
+            await state.port.open({ baudRate: 115200 });
+            log('Порт відкрито на 115200.');
+        }
 
         textEncoder = new TextEncoderStream();
         textEncoder.readable.pipeTo(state.port.writable);
@@ -409,8 +411,10 @@ export async function comparePresetWithFc() {
             await disconnectEscSession();
         }
         state.port = await resolveSelectedPort(log);
-        await state.port.open({ baudRate: 115200 });
-        log('Порт відкрито на 115200.');
+        if (!state.port.readable || !state.port.writable) {
+            await state.port.open({ baudRate: 115200 });
+            log('Порт відкрито на 115200.');
+        }
 
         textEncoder = new TextEncoderStream();
         textEncoder.readable.pipeTo(state.port.writable);
@@ -678,8 +682,10 @@ export async function flashCleanPreset() {
             await disconnectEscSession();
         }
         state.port = await resolveSelectedPort(log);
-        await state.port.open({ baudRate: 115200 });
-        log('Порт відкрито на 115200.');
+        if (!state.port.readable || !state.port.writable) {
+            await state.port.open({ baudRate: 115200 });
+            log('Порт відкрито на 115200.');
+        }
 
         textEncoder = new TextEncoderStream();
         textEncoder.readable.pipeTo(state.port.writable);
@@ -874,8 +880,10 @@ async function executeCliRestoreFromRecord(commandsText, restoreTypeLabel, stepN
             await disconnectEscSession();
         }
         state.port = await resolveSelectedPort(log);
-        await state.port.open({ baudRate: 115200 });
-        log('Порт відкрито на 115200.');
+        if (!state.port.readable || !state.port.writable) {
+            await state.port.open({ baudRate: 115200 });
+            log('Порт відкрито на 115200.');
+        }
 
         textEncoder = new TextEncoderStream();
         textEncoder.readable.pipeTo(state.port.writable);
