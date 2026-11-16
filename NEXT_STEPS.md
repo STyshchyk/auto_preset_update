@@ -37,8 +37,8 @@ The Drone Setup Station features a unified one-click simplified assembly pipelin
 9. **`js/betaflight/msp.js` & `js/motors/test.js` (Step 3: Motor Testing & Reversal)**:
    - Interactive QuadX layout with schematic drone diagram (`img/drone-quad-x.png`).
    - Low-speed motor test via Betaflight `MSP_SET_MOTOR` (`214`).
-   - Individual motor reversal via `MSP_SET_PASSTHROUGH` (`245`) with DShot commands `20` / `21`.
-   - ESC EEPROM persistence with `DSHOT_CMD_SAVE_SETTINGS` (`12` / `0x0C`).
+   - Individual motor reversal via `MSP_SET_PASSTHROUGH` (`245`) with DShot commands `20` / `21` (and `7` / `8` via MSPv2 `0x3003` with `$X>` ACK verification and up to 3 retries).
+   - ESC EEPROM persistence with `DSHOT_CMD_SAVE_SETTINGS` (`12` / `0x0C`) and stabilized motor-stop (`1000ms`) / post-save (`250ms`) delays.
    - Live speed slider in Expert Mode with quick default reset button.
 10. **Simplified Mode Popup Streamlining (`js/ui/modal.js` & `js/motors/test.js`)**:
    - Centralized popup suppression during Step 1 (FC) and Step 2 (ESC) when running in Simplified Mode.

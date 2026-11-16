@@ -1,6 +1,6 @@
 # PROJECT STATUS — Drone Setup Station Refactoring
 
-**Last Updated:** 2026-11-12  
+**Last Updated:** 2026-11-16  
 **Active Entry Point:** `index.html`  
 **Refactoring Progress:** Phases 1–19 Completed (Modular Architecture, Multi-Target Safety Guards, 3-State Firmware Recognition & Auto-Skip, Full 256-byte BLHeli_32 Golden EEPROM, COM Port Stabilization, Dual FC & ESC IndexedDB Backup/Restore Engine, Phase 17 Step 3 Motor Direction Testing, Phase 18 Simplified Mode Motor Gating, 5-Step Progression & "Finish Setup" Completion, Phase 19 Simplified Mode Popup Streamlining)  
 **Sidebar Architecture:** Split into dedicated Step 1 (FC Telemetry, Verification Icons & Diff) and Step 2 (`#infoCardEsc`, ESC Telemetry & Verification Badges) cards  
@@ -53,7 +53,19 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ---
 
-## 2. Latest Updates (2026-11-12)
+## 2. Latest Updates (2026-11-16)
+
+* **DShot MSPv2 ACK Verification & Retry Engine (`js/betaflight/msp.js`, `js/motors/test.js`)**:
+  - Added `parseMsp2DshotAck()` and upgraded `sendDshotProgCommand(port, escIndex, dshotCmds, maxRetries = 3)` to verify MSPv2 (`$X>`, cmd `0x3003`) ACK responses from Betaflight FC with a `150ms` read timeout, `$X!` error detection, and up to 3 automatic retries (`150ms` apart) before throwing an error.
+  - Updated `toggleMotorDirection()` in `js/motors/test.js` with a `1000ms` motor-stop settle delay before dispatching DShot commands and a `250ms` post-EEPROM save settle delay before resuming motor output.
+* **ESC Flow Pipeline Simplification (`index.html`, `js/ui/status.js`)**:
+  - Streamlined the ESC flow pipeline from 5 stages to 4 stages (`connect` → `flash` → `verify` → `close`), removing the redundant `escFlowStatus` stage.
+* **CI/CD & Deployment Cleanup (`.github/workflows/vercel-deploy.yml`)**:
+  - Updated `vercel-deploy.yml` to auto-increment the patch version directly from `js/core/version.js` and ignore `develop` branch builds; removed `.github/workflows/netlify-deploy.yml`.
+
+---
+
+## 3. Previous Updates (2026-11-12)
 
 * **Post-Flash ESC Motor Direction Sync & Golden Preset Maintenance Note (`js/blheli/preset.js`, `js/core/pipeline.js`)**:
   - Fixed stale pre-flash motor directions persisting into Step 3 in Simplified Mode: `runFullDroneSequence()` now resets `state.escDirections` to `['normal', 'normal', 'normal', 'normal']` at the start of each run, `applyEscPreset()` sets `targets` direction to `'normal'` (matching `BL32_GOLDEN_PRESET_256`), and Phase 3 verification re-runs `detectMotorDirection()` on the post-flash readback to update `state.escDirections` and `writeResults`.
