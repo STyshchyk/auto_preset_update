@@ -283,11 +283,12 @@ export async function toggleMotorDirection(motorIndex) {
             } finally {
                 writer.releaseLock();
             }
-            await delay(300); // Allow all 4 motors to come to a complete stop
+            await delay(700); // Allow all 4 motors to come to a complete stop and Betaflight to settle
         }
 
         // 2. Dispatch DShot direction command (7 or 8) + Save Settings (12) immediately
         await sendDshotProgCommand(port, motorIndex, [dshotCmd, DSHOT_CMD_SAVE_SETTINGS]);
+        await delay(100); // Brief settle after EEPROM save before resuming motor output
         motorState.directions[motorIndex] = newDir;
         if (state.escDirections) {
             state.escDirections[motorIndex] = newDir;
