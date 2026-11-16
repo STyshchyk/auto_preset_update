@@ -55,6 +55,12 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-16)
 
+* **Cross-Platform Web Serial, Motor & UI Stability Hardening (`js/betaflight/cli.js`, `js/betaflight/preset.js`, `js/betaflight/backup.js`, `js/motors/test.js`, `js/core/serial.js`, `js/blheli/eeprom.js`, `js/blheli/protocol.js`, `js/core/db.js`, `js/ui/log.js`, `js/ui/modal.js`, `js/ui/progression.js`, `js/main.js`)**:
+  - Replaced `TextEncoderStream`/`TextDecoderStream` + unawaited `pipeTo()` in `preset.js` and `backup.js` with `createCliStreams(port)` in `js/betaflight/cli.js` (direct `getReader()`/`getWriter()`), preventing permanent stream locks on macOS/Linux and non-reboot paths, and ensured `closeSerialSession()` runs in `flashBetaflightPreset()`'s `"device has been lost"` catch branch.
+  - Added `withMotorPortWriter()` in `js/motors/test.js` to wait for `port.writable.locked` (up to `300ms`) before writing, and increased `spinAllMotors()` `port.open()` retries to `5 × 300ms` (`1.5s`).
+  - Hardened `navigator.serial` `disconnect` handler in `js/core/serial.js` to always call `resetMotorStateOnDisconnect()` when `!state.isPipelineRunning`, guarded `CMD_INTERFACE_EXIT` in `withEscSession()` (`js/blheli/eeprom.js`) with `if (writer && reader)`, and drained stale `session.buffer` bytes at the start of `send4WayCmd()` (`js/blheli/protocol.js`).
+  - Fixed `saveFcDualDump()` async `Promise` executor in `js/core/db.js`, capped `#log` DOM output to `800` lines in `js/ui/log.js`, replaced `innerHTML` with `textContent` in `setProgressionBanner()` (`js/ui/progression.js`), and wrapped `localStorage` calls in `try/catch` (`js/ui/modal.js`, `js/main.js`).
+
 * **Simplified Mode & Auto-Pipeline Stability Hardening (`js/core/state.js`, `js/core/serial.js`, `js/core/pipeline.js`, `js/motors/test.js`, `js/betaflight/preset.js`, `js/betaflight/msp.js`)**:
   - Added `state.isPipelineRunning` guard in `js/core/state.js` / `pipeline.js` / `serial.js` to prevent `resetAllStepStatuses()` from clearing UI progress during FC USB reboots.
   - Locked `#btnRunSimplified` while Step 3 is active (`motorState.step2Finished === true`), unlocking only on `saveMotorDirections()`, pipeline error, or USB disconnect (`resetMotorStateOnDisconnect()`).

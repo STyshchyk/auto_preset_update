@@ -169,6 +169,34 @@ export function updateMotorUi() {
 }
 
 /**
+ * Waits briefly if port.writable is currently locked (e.g., by live slider updates),
+ * then acquires a writer and guarantees releaseLock().
+ * @param {SerialPort} port
+ * @param {(writer: WritableStreamDefaultWriter) => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+async function withMotorPortWriter(port, fn) {
+    if (!port || !port.writable) {
+        throw new Error('Порт не відкритий для запису.');
+    }
+    const deadline = performance.now() + 300;
+    while (port.writable.locked && performance.now() < deadline) {
+        await delay(15);
+    }
+    if (port.writable.locked) {
+        throw new Error('Потік запису COM-порту зайнятий.');
+    }
+    const writer = port.writable.getWriter();
+    try {
+        return await fn(writer);
+    } finally {
+        try {
+            writer.releaseLock();
+        } catch (_) {}
+    }
+}
+
+/**
  * Spins all 4 motors simultaneously at low idle speed.
  */
 export async function spinAllMotors() {
@@ -192,21 +220,21 @@ export async function spinAllMotors() {
 
         if (!port.readable || !port.writable) {
             let openErr = null;
-            for (let attempt = 0; attempt < 3; attempt++) {
+            for (let attempt = 0; attempt < 5; attempt++) {
                 try {
                     await port.open({ baudRate: 115200 });
                     openErr = null;
                     break;
                 } catch (err) {
                     openErr = err;
-                    if (attempt < 2) await delay(200);
+                    if (attempt < 4) await delay(300);
                 }
             }
             if (openErr) throw openErr;
         }
+        state.port = port;
 
-        const writer = port.writable.getWriter();
-        try {
+        await withMotorPortWriter(port, async (writer) => {
             await setMotorOutputs(writer, [
                 targetThrottle,
                 targetThrottle,
@@ -215,9 +243,7 @@ export async function spinAllMotors() {
             ]);
             motorState.isSpinning = true;
             log(`Мотори обертаються (${targetThrottle}µs). Перевірте напрямок кожного мотора.`);
-        } finally {
-            writer.releaseLock();
-        }
+        });
     } catch (e) {
         log(`Помилка пуску моторів: ${e.message}`, 'error');
         showPopup('error', 'Помилка пуску', `Не вдалося запустити мотори: ${e.message}`);
@@ -244,8 +270,7 @@ export async function stopAllMotors() {
             await port.open({ baudRate: 115200 });
         }
 
-        const writer = port.writable.getWriter();
-        try {
+        await withMotorPortWriter(port, async (writer) => {
             await setMotorOutputs(writer, [1000, 1000, 1000, 1000]);
             await delay(50);
             await setMotorOutputs(writer, [1000, 1000, 1000, 1000]);
@@ -254,10 +279,8 @@ export async function stopAllMotors() {
             log('Всі мотори зупинено (1000µs).');
             endOperationStep('MOTOR_SPIN_ALL');
             setStepStatus(3, 'idle');
-            return true;
-        } finally {
-            writer.releaseLock();
-        }
+        });
+        return true;
     } catch (e) {
         log(`Помилка зупинки моторів: ${e.message}`, 'error');
         return false;
@@ -297,12 +320,9 @@ export async function toggleMotorDirection(motorIndex) {
 
         // 1. Betaflight requires ALL motors to be at 1000µs (!motorIsEnabled) to accept blocking DShot commands
         if (wasSpinning) {
-            const writer = port.writable.getWriter();
-            try {
+            await withMotorPortWriter(port, async (writer) => {
                 await setMotorOutputs(writer, [1000, 1000, 1000, 1000]);
-            } finally {
-                writer.releaseLock();
-            }
+            });
             await delay(1000); // Allow all 4 motors to come to a complete stop and Betaflight to settle
         }
 
@@ -318,17 +338,14 @@ export async function toggleMotorDirection(motorIndex) {
         // 3. If motors were spinning, spin all 4 motors back up automatically
         if (wasSpinning && motorState.isSpinning) {
             const targetThrottle = motorState.currentThrottle || DEFAULT_SPIN_THROTTLE;
-            const writer = port.writable.getWriter();
-            try {
+            await withMotorPortWriter(port, async (writer) => {
                 await setMotorOutputs(writer, [
                     targetThrottle,
                     targetThrottle,
                     targetThrottle,
                     targetThrottle
                 ]);
-            } finally {
-                writer.releaseLock();
-            }
+            });
             log(`Обертання моторів відновлено (${targetThrottle}µs).`);
         }
     } catch (e) {
@@ -555,14 +572,11 @@ export function initMotorControls() {
             if (badgeVal) badgeVal.textContent = DEFAULT_SPIN_THROTTLE;
 
             if (motorState.isSpinning) {
-                const port = await resolveSelectedPort();
+                const port = state.port || await resolveSelectedPort();
                 if (port && port.writable) {
-                    const writer = port.writable.getWriter();
-                    try {
+                    await withMotorPortWriter(port, async (writer) => {
                         await setMotorOutputs(writer, [DEFAULT_SPIN_THROTTLE, DEFAULT_SPIN_THROTTLE, DEFAULT_SPIN_THROTTLE, DEFAULT_SPIN_THROTTLE]);
-                    } finally {
-                        writer.releaseLock();
-                    }
+                    });
                 }
             }
             log(`Швидкість скинуто до дефолтної: ${DEFAULT_SPIN_THROTTLE}µs.`);

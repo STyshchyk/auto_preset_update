@@ -57,7 +57,10 @@ const INSTRUCTIONS_ACK_STORAGE_KEY = 'drone_station_instructions_ack_v1';
  * @param {Function} onConfirmed Callback executed once acknowledged
  */
 export function ensureInstructionsAcknowledged(onConfirmed) {
-    const isAcknowledged = localStorage.getItem(INSTRUCTIONS_ACK_STORAGE_KEY) === 'true';
+    let isAcknowledged = false;
+    try {
+        isAcknowledged = localStorage.getItem(INSTRUCTIONS_ACK_STORAGE_KEY) === 'true';
+    } catch (_) {}
     if (isAcknowledged) {
         if (typeof onConfirmed === 'function') onConfirmed();
         return;
@@ -91,7 +94,9 @@ export function ensureInstructionsAcknowledged(onConfirmed) {
 
     btnConfirm.onclick = () => {
         if (chk.checked) {
-            localStorage.setItem(INSTRUCTIONS_ACK_STORAGE_KEY, 'true');
+            try {
+                localStorage.setItem(INSTRUCTIONS_ACK_STORAGE_KEY, 'true');
+            } catch (_) {}
             modal.classList.remove('active');
             if (typeof onConfirmed === 'function') onConfirmed();
         }

@@ -4,7 +4,7 @@ import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log, startOperationStep, endOperationStep, setLogDeviceId } from '../ui/log.js';
 import { setStepStatus, setFcSubStep, resetFcSubSteps, setAlreadyFlashedBadge, setFcStateBadge, setFcHistoryBadge } from '../ui/status.js';
 import { showPopup } from '../ui/modal.js';
-import { readCliResponse, parseBoardName } from './cli.js';
+import { readCliResponse, parseBoardName, createCliStreams } from './cli.js';
 import { parseFcDetails, calculateMismatch, detectFcState } from './info.js';
 import { updateInfoPanel } from '../ui/infoPanel.js';
 import { isEscSessionActive, disconnectEscSession } from '../blheli/session.js';
@@ -95,13 +95,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null, customPrese
             log('Порт відкрито на 115200.');
         }
 
-        textEncoder = new TextEncoderStream();
-        textEncoder.readable.pipeTo(state.port.writable);
-        writer = textEncoder.writable.getWriter();
-
-        const textDecoder = new TextDecoderStream();
-        state.port.readable.pipeTo(textDecoder.writable);
-        reader = textDecoder.readable.getReader();
+        ({ reader, writer } = createCliStreams(state.port));
 
         // Enter CLI mode
         log('Ініціалізація Betaflight CLI (#)...');
@@ -364,6 +358,7 @@ export async function flashBetaflightPreset(onTelemetryReady = null, customPrese
             state.ignoreRebootEventsUntil = Date.now() + 5000;
             setStepStatus(1, 'success');
             log('Контролер перезавантажився штатно.');
+            await closeSerialSession(state.port, reader, writer, textEncoder);
             state.port = null;
             await endOperationStep('SUCCESS', 'Контролер перезавантажився штатно після запису пресету');
             showPopup('success', 'Крок 1 Завершено', 'Пресет записано! Переходимо до настройки ESC...', 2000);
@@ -416,13 +411,7 @@ export async function comparePresetWithFc() {
             log('Порт відкрито на 115200.');
         }
 
-        textEncoder = new TextEncoderStream();
-        textEncoder.readable.pipeTo(state.port.writable);
-        writer = textEncoder.writable.getWriter();
-
-        const textDecoder = new TextDecoderStream();
-        state.port.readable.pipeTo(textDecoder.writable);
-        reader = textDecoder.readable.getReader();
+        ({ reader, writer } = createCliStreams(state.port));
 
         // Enter CLI mode
         await writer.write('#\r\n');
@@ -687,13 +676,7 @@ export async function flashCleanPreset() {
             log('Порт відкрито на 115200.');
         }
 
-        textEncoder = new TextEncoderStream();
-        textEncoder.readable.pipeTo(state.port.writable);
-        writer = textEncoder.writable.getWriter();
-
-        const textDecoder = new TextDecoderStream();
-        state.port.readable.pipeTo(textDecoder.writable);
-        reader = textDecoder.readable.getReader();
+        ({ reader, writer } = createCliStreams(state.port));
 
         // Enter CLI mode
         log('Ініціалізація Betaflight CLI (#)...');
@@ -885,13 +868,7 @@ async function executeCliRestoreFromRecord(commandsText, restoreTypeLabel, stepN
             log('Порт відкрито на 115200.');
         }
 
-        textEncoder = new TextEncoderStream();
-        textEncoder.readable.pipeTo(state.port.writable);
-        writer = textEncoder.writable.getWriter();
-
-        const textDecoder = new TextDecoderStream();
-        state.port.readable.pipeTo(textDecoder.writable);
-        reader = textDecoder.readable.getReader();
+        ({ reader, writer } = createCliStreams(state.port));
 
         // Enter CLI mode
         log('Ініціалізація Betaflight CLI (#)...');

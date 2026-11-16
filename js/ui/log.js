@@ -36,10 +36,17 @@ export function getLogDeviceId() {
  * Streams output to #log and collects details into the active step session.
  * @param {string} msg
  */
+const MAX_LOG_LINES = 800;
+
 export function log(msg) {
     const logDiv = document.getElementById('log');
     if (logDiv) {
-        logDiv.textContent += msg + '\n';
+        let nextText = logDiv.textContent + msg + '\n';
+        const lines = nextText.split('\n');
+        if (lines.length > MAX_LOG_LINES + 1) {
+            nextText = lines.slice(-MAX_LOG_LINES - 1).join('\n');
+        }
+        logDiv.textContent = nextText;
         logDiv.scrollTop = logDiv.scrollHeight;
     }
 
