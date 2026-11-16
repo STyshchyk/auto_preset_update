@@ -12,11 +12,12 @@ import { flashBetaflightPreset } from '../betaflight/preset.js';
 import { applyEscPreset } from '../blheli/preset.js';
 import { setProgressionStep, setProgressionBanner, resetProgression } from '../ui/progression.js';
 import { recordDeviceResult } from '../utils/stats.js';
-import { setStep2Finished, spinAllMotors, setMotorCountdownOverlay } from '../motors/test.js';
+import { motorState, setStep2Finished, spinAllMotors, setMotorCountdownOverlay } from '../motors/test.js';
 
 export async function runFullDroneSequence() {
     const btnRun = document.getElementById('btnRunSimplified');
     if (btnRun) btnRun.disabled = true;
+    state.isPipelineRunning = true;
 
     setMotorCountdownOverlay(false);
     state.escDirections = ['normal', 'normal', 'normal', 'normal'];
@@ -133,12 +134,15 @@ export async function runFullDroneSequence() {
         setProgressionBanner('working', 'Крок 3: Перевірка моторів', 'Мотори запущено. Перевірте обертання та натисніть «Завершити налаштування».');
 
         // Automatically start all motors on safe idle speed
+        motorState.isBusy = true;
         try {
             await delay(150); // Minor stabilization delay
             await spinAllMotors();
         } catch (spinErr) {
+            motorState.isBusy = false;
             console.warn('Auto-spin warning:', spinErr);
             log(`Попередження автозапуску моторів: ${spinErr.message}`, 'warning');
+            setProgressionBanner('fail', 'Помилка автозапуску моторів', spinErr.message || 'Не вдалося запустити мотори.');
         }
 
         log(`\n👉 [АВТО-КОНВЕЄР] ЕТАП 2 ЗАВЕРШЕНО. МОТОРИ ЗАПУЩЕНО АВТОМАТИЧНО. ПЕРЕВІРТЕ ОБЕРТАННЯ ТА НАТИСНІТЬ «🏁 Завершити налаштування».`);
@@ -162,6 +166,7 @@ export async function runFullDroneSequence() {
         recordDeviceResult(capturedDeviceId, false);
         log(`\n❌ [АВТО-КОНВЕЄР] ПОМИЛКА: ${errMsg}`);
     } finally {
-        if (btnRun) btnRun.disabled = false;
+        state.isPipelineRunning = false;
+        if (btnRun && !motorState.step2Finished) btnRun.disabled = false;
     }
 }

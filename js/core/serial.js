@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { delay } from '../utils/bytes.js';
+import { resetMotorStateOnDisconnect } from '../motors/test.js';
 
 export const FLIGHT_CONTROLLER_USB_FILTERS = [
     { usbVendorId: 0x0483 }, // STMicroelectronics (Standard STM32 Betaflight VCP)
@@ -101,7 +102,7 @@ export function initSerialEvents(log, resetAllStepStatuses) {
                 updateGrantButtonVisibility();
             }
 
-            if (Date.now() > state.ignoreRebootEventsUntil) {
+            if (!state.isPipelineRunning && Date.now() > state.ignoreRebootEventsUntil) {
                 resetAllStepStatuses();
             }
         });
@@ -110,8 +111,9 @@ export function initSerialEvents(log, resetAllStepStatuses) {
             state.escSession = { isConnected: false, port: null, reader: null, writer: null };
             state.port = null;
             refreshPortList();
-            if (Date.now() > state.ignoreRebootEventsUntil) {
+            if (!state.isPipelineRunning && Date.now() > state.ignoreRebootEventsUntil) {
                 resetAllStepStatuses();
+                resetMotorStateOnDisconnect();
             }
         });
         refreshPortList();

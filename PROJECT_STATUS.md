@@ -55,6 +55,12 @@ The application operates as a clean, fully modular single-page application (`ind
 
 ## 2. Latest Updates (2026-11-16)
 
+* **Simplified Mode & Auto-Pipeline Stability Hardening (`js/core/state.js`, `js/core/serial.js`, `js/core/pipeline.js`, `js/motors/test.js`, `js/betaflight/preset.js`, `js/betaflight/msp.js`)**:
+  - Added `state.isPipelineRunning` guard in `js/core/state.js` / `pipeline.js` / `serial.js` to prevent `resetAllStepStatuses()` from clearing UI progress during FC USB reboots.
+  - Locked `#btnRunSimplified` while Step 3 is active (`motorState.step2Finished === true`), unlocking only on `saveMotorDirections()`, pipeline error, or USB disconnect (`resetMotorStateOnDisconnect()`).
+  - Kept `motorState.isBusy = true` across the `150ms` pre-spin delay and added `if (!state.port.readable || !state.port.writable)` guards before `open()` in `js/betaflight/preset.js`.
+  - Upgraded `sendDshotProgCommand()` in `js/betaflight/msp.js` to drain stale RX bytes before sending `$X<` and accumulate fragmented USB chunks up to `250ms` while checking `parseMsp2DshotAck()`.
+  - Hardened `stopAllMotors()` (double `1000µs` send with `50ms` interval), verified motor stop in `saveMotorDirections()` before `closeSerialSession()`, added 3-attempt port open retry (`200ms`) in `spinAllMotors()`, surfaced Step 3 errors in `#progBanner` in Simplified Mode, and optimized `#throttleSlider` with direct `state.port` access and `isThrottleUpdating` lock.
 * **DShot MSPv2 ACK Verification & Retry Engine (`js/betaflight/msp.js`, `js/motors/test.js`)**:
   - Added `parseMsp2DshotAck()` and upgraded `sendDshotProgCommand(port, escIndex, dshotCmds, maxRetries = 3)` to verify MSPv2 (`$X>`, cmd `0x3003`) ACK responses from Betaflight FC with a `150ms` read timeout, `$X!` error detection, and up to 3 automatic retries (`150ms` apart) before throwing an error.
   - Updated `toggleMotorDirection()` in `js/motors/test.js` with a `1000ms` motor-stop settle delay before dispatching DShot commands and a `250ms` post-EEPROM save settle delay before resuming motor output.

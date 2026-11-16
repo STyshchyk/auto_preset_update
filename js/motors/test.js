@@ -191,7 +191,18 @@ export async function spinAllMotors() {
         log(`Пуск усіх 4 моторів на швидкості ${targetThrottle}µs...`);
 
         if (!port.readable || !port.writable) {
-            await port.open({ baudRate: 115200 });
+            let openErr = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    await port.open({ baudRate: 115200 });
+                    openErr = null;
+                    break;
+                } catch (err) {
+                    openErr = err;
+                    if (attempt < 2) await delay(200);
+                }
+            }
+            if (openErr) throw openErr;
         }
 
         const writer = port.writable.getWriter();
@@ -203,7 +214,6 @@ export async function spinAllMotors() {
                 targetThrottle
             ]);
             motorState.isSpinning = true;
-            updateMotorUi();
             log(`Мотори обертаються (${targetThrottle}µs). Перевірте напрямок кожного мотора.`);
         } finally {
             writer.releaseLock();
@@ -211,7 +221,13 @@ export async function spinAllMotors() {
     } catch (e) {
         log(`Помилка пуску моторів: ${e.message}`, 'error');
         showPopup('error', 'Помилка пуску', `Не вдалося запустити мотори: ${e.message}`);
+        if (document.body.classList.contains('simplified-mode')) {
+            setProgressionBanner('fail', 'Помилка пуску моторів', e.message);
+        }
         setStepStatus(3, 'fail');
+    } finally {
+        motorState.isBusy = false;
+        updateMotorUi();
     }
 }
 
@@ -219,9 +235,9 @@ export async function spinAllMotors() {
  * Stops all motors immediately.
  */
 export async function stopAllMotors() {
-    if (motorState.isInitializing) return;
+    if (motorState.isInitializing) return false;
     const port = await resolveSelectedPort();
-    if (!port) return;
+    if (!port) return false;
 
     try {
         if (!port.readable || !port.writable) {
@@ -231,16 +247,20 @@ export async function stopAllMotors() {
         const writer = port.writable.getWriter();
         try {
             await setMotorOutputs(writer, [1000, 1000, 1000, 1000]);
+            await delay(50);
+            await setMotorOutputs(writer, [1000, 1000, 1000, 1000]);
             motorState.isSpinning = false;
             updateMotorUi();
             log('Всі мотори зупинено (1000µs).');
             endOperationStep('MOTOR_SPIN_ALL');
             setStepStatus(3, 'idle');
+            return true;
         } finally {
             writer.releaseLock();
         }
     } catch (e) {
         log(`Помилка зупинки моторів: ${e.message}`, 'error');
+        return false;
     }
 }
 
@@ -314,6 +334,9 @@ export async function toggleMotorDirection(motorIndex) {
     } catch (e) {
         log(`Помилка зміни напрямку мотора #${motorIndex + 1}: ${e.message}`, 'error');
         showPopup('error', 'Помилка реверсу', e.message);
+        if (document.body.classList.contains('simplified-mode')) {
+            setProgressionBanner('fail', `Помилка реверсу мотора #${motorIndex + 1}`, e.message);
+        }
     } finally {
         motorState.isBusy = false;
         updateMotorUi();
@@ -342,7 +365,10 @@ export async function saveMotorDirections() {
         // 1. Stop motors if currently spinning
         if (motorState.isSpinning) {
             log('Зупинка моторів перед закриттям з\'єднання...');
-            await stopAllMotors();
+            const stopped = await stopAllMotors();
+            if (!stopped || motorState.isSpinning) {
+                throw new Error('Не вдалося гарантовано зупинити мотори перед закриттям порту.');
+            }
             await delay(200);
         }
 
@@ -351,6 +377,8 @@ export async function saveMotorDirections() {
         await closeSerialSession(port, null, null, null);
         state.port = null;
         motorState.step2Finished = false; // Mark step 3 finished/inactive
+        const btnRun = document.getElementById('btnRunSimplified');
+        if (btnRun) btnRun.disabled = false;
         if (!document.body.classList.contains('simplified-mode')) {
             const chkSafety = document.getElementById('chkPropellersRemoved');
             if (chkSafety) chkSafety.checked = false;
@@ -385,6 +413,9 @@ export async function saveMotorDirections() {
     } catch (e) {
         log(`Помилка завершення налаштувань ESC: ${e.message}`, 'error');
         showPopup('error', 'Помилка', `Не вдалося завершити збереження: ${e.message}`);
+        if (document.body.classList.contains('simplified-mode')) {
+            setProgressionBanner('fail', 'Помилка завершення налаштувань', e.message);
+        }
         setStepStatus(3, 'fail');
     } finally {
         motorState.isBusy = false;
@@ -490,6 +521,7 @@ export function initMotorControls() {
 
     const slider = document.getElementById('throttleSlider');
     const badgeVal = document.getElementById('throttleValBadge');
+    let isThrottleUpdating = false;
     if (slider) {
         slider.addEventListener('input', async (e) => {
             const val = parseInt(e.target.value, 10);
@@ -497,9 +529,10 @@ export function initMotorControls() {
             if (badgeVal) badgeVal.textContent = val;
 
             // If motors are currently active, live-update their speed in real-time
-            if (motorState.isSpinning) {
-                const port = await resolveSelectedPort();
-                if (port && port.writable) {
+            if (motorState.isSpinning && !isThrottleUpdating) {
+                const port = state.port;
+                if (port && port.writable && !port.writable.locked) {
+                    isThrottleUpdating = true;
                     const writer = port.writable.getWriter();
                     try {
                         await setMotorOutputs(writer, [val, val, val, val]);
@@ -507,6 +540,7 @@ export function initMotorControls() {
                         // ignore live slider transmission glitches
                     } finally {
                         writer.releaseLock();
+                        isThrottleUpdating = false;
                     }
                 }
             }
@@ -535,5 +569,19 @@ export function initMotorControls() {
         });
     }
 
+    updateMotorUi();
+}
+
+/**
+ * Resets motor testing state when USB is physically disconnected.
+ */
+export function resetMotorStateOnDisconnect() {
+    motorState.isSpinning = false;
+    motorState.isBusy = false;
+    motorState.isInitializing = false;
+    motorState.step2Finished = false;
+    setMotorCountdownOverlay(false);
+    const btnRun = document.getElementById('btnRunSimplified');
+    if (btnRun) btnRun.disabled = false;
     updateMotorUi();
 }

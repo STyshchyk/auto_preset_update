@@ -3,6 +3,7 @@ export const state = {
     availablePorts: [],
     popupTimer: null,
     ignoreRebootEventsUntil: 0,
+    isPipelineRunning: false,
     lastFcDetails: null,
     escChecksPassed: null,
     escDirections: ['normal', 'normal', 'normal', 'normal'],
