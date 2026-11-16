@@ -26,8 +26,12 @@ jobs:
       - name: Auto-increment version and commit
         run: |
           BUILD_DATE=$(date -u +'%Y-%m-%d')
-          VERSION="v1.0.${{ github.run_number }}"
-          echo "Updating version to $VERSION ($BUILD_DATE)"
+          CURRENT_VER=$(grep -oP "APP_VERSION = '\K[^']+" js/core/version.js)
+          MAJOR_MINOR=$(echo "$CURRENT_VER" | sed -E 's/^v?([0-9]+\.[0-9]+)\.[0-9]+$/\1/')
+          PATCH=$(echo "$CURRENT_VER" | sed -E 's/^v?[0-9]+\.[0-9]+\.([0-9]+)$/\1/')
+          NEXT_PATCH=$((PATCH + 1))
+          VERSION="v${MAJOR_MINOR}.${NEXT_PATCH}"
+          echo "Updating version from $CURRENT_VER to $VERSION ($BUILD_DATE)"
           sed -i "s/export const APP_VERSION = .*/export const APP_VERSION = '$VERSION';/" js/core/version.js
           sed -i "s/export const APP_BUILD_DATE = .*/export const APP_BUILD_DATE = '$BUILD_DATE';/" js/core/version.js
           git config user.name "github-actions[bot]"
