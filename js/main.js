@@ -77,12 +77,17 @@ function applyMode(isSimplified) {
             btnToggleMode.classList.remove('active');
         }
     }
-    localStorage.setItem(MODE_STORAGE_KEY, isSimplified ? 'simplified' : 'expert');
+    try {
+        localStorage.setItem(MODE_STORAGE_KEY, isSimplified ? 'simplified' : 'expert');
+    } catch (_) {}
     updateMotorUi();
 }
 
 // Default to simplified mode unless explicitly set to expert
-const savedMode = localStorage.getItem(MODE_STORAGE_KEY);
+let savedMode = null;
+try {
+    savedMode = localStorage.getItem(MODE_STORAGE_KEY);
+} catch (_) {}
 const initialIsSimplified = savedMode !== 'expert';
 applyMode(initialIsSimplified);
 

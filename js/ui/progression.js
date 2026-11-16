@@ -102,10 +102,23 @@ export function setProgressionBanner(type, title, details = '') {
     else if (type === 'success') icon = '🎉';
     else if (type === 'fail') icon = '⚠️';
 
-    banner.innerHTML = `
-        <div class="banner-title"><span class="banner-icon">${icon}</span> <strong>${title}</strong></div>
-        ${details ? `<div class="banner-details">${details}</div>` : ''}
-    `;
+    banner.textContent = '';
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'banner-title';
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'banner-icon';
+    iconSpan.textContent = icon;
+    const strongTitle = document.createElement('strong');
+    strongTitle.textContent = title;
+    titleDiv.append(iconSpan, ' ', strongTitle);
+    banner.appendChild(titleDiv);
+
+    if (details) {
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'banner-details';
+        detailsDiv.textContent = details;
+        banner.appendChild(detailsDiv);
+    }
 
     // Sync header badge with banner state
     if (type === 'ready') {

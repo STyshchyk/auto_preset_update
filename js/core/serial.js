@@ -111,9 +111,11 @@ export function initSerialEvents(log, resetAllStepStatuses) {
             state.escSession = { isConnected: false, port: null, reader: null, writer: null };
             state.port = null;
             refreshPortList();
-            if (!state.isPipelineRunning && Date.now() > state.ignoreRebootEventsUntil) {
-                resetAllStepStatuses();
+            if (!state.isPipelineRunning) {
                 resetMotorStateOnDisconnect();
+                if (Date.now() > state.ignoreRebootEventsUntil) {
+                    resetAllStepStatuses();
+                }
             }
         });
         refreshPortList();

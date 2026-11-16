@@ -76,15 +76,17 @@ export async function withEscSession(fn) {
         await init4WayInterface(writer, reader);
         return await fn(writer, reader);
     } finally {
-        setEscFlowStep('close', 'working');
-        try {
-            const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 1000);
-            log(`[BLHeli_32] Команду виходу 0x34 виконано (${exitRes.ok ? 'ACK OK' : exitRes.msg}).`);
-            setEscFlowStep('close', exitRes.ok ? 'success' : 'fail');
-        } catch (_) {
-            setEscFlowStep('close', 'fail');
+        if (writer && reader) {
+            setEscFlowStep('close', 'working');
+            try {
+                const exitRes = await send4WayCmd(writer, reader, CMD_INTERFACE_EXIT, 0, [0], 1000);
+                log(`[BLHeli_32] Команду виходу 0x34 виконано (${exitRes.ok ? 'ACK OK' : exitRes.msg}).`);
+                setEscFlowStep('close', exitRes.ok ? 'success' : 'fail');
+            } catch (_) {
+                setEscFlowStep('close', 'fail');
+            }
+            await delay(200);
         }
-        await delay(200);
         await closeSerialSession(state.port, reader, writer, null);
         state.port = null;
         setAllEscButtons(!isEscSessionActive());

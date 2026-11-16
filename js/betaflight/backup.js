@@ -3,7 +3,7 @@ import { state } from '../core/state.js';
 import { resolveSelectedPort, closeSerialSession } from '../core/serial.js';
 import { log } from '../ui/log.js';
 import { showPopup } from '../ui/modal.js';
-import { readCliResponse, parseBoardName } from './cli.js';
+import { readCliResponse, parseBoardName, createCliStreams } from './cli.js';
 import { isEscSessionActive, disconnectEscSession } from '../blheli/session.js';
 
 export async function backupBetaflightConfig() {
@@ -30,13 +30,7 @@ export async function backupBetaflightConfig() {
         await state.port.open({ baudRate: 115200 });
         log(`[Бекап] Порт відкрито на 115200. Ініціалізація CLI...`);
 
-        textEncoder = new TextEncoderStream();
-        textEncoder.readable.pipeTo(state.port.writable);
-        writer = textEncoder.writable.getWriter();
-
-        const textDecoder = new TextDecoderStream();
-        state.port.readable.pipeTo(textDecoder.writable);
-        reader = textDecoder.readable.getReader();
+        ({ reader, writer } = createCliStreams(state.port));
 
         await writer.write('#\r\n');
         await delay(350);

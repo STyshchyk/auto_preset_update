@@ -129,8 +129,8 @@ export async function saveFcDualDump(mcuId, payloads = {}, metadata = {}) {
     const cleanId = String(mcuId).trim().toLowerCase();
     try {
         const db = await getDb();
-        return new Promise(async (resolve, reject) => {
-            const existing = await getFcDump(cleanId).catch(() => null);
+        const existing = await getFcDump(cleanId).catch(() => null);
+        return new Promise((resolve, reject) => {
             const tx = db.transaction([DUMP_STORE_NAME], 'readwrite');
             const store = tx.objectStore(DUMP_STORE_NAME);
 

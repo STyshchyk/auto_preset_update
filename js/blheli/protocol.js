@@ -135,6 +135,12 @@ export async function read4WayRaw(reader, timeoutMs = 2500) {
 // Sends official 4-Way packet: [0x2F, CMD, AddrHi, AddrLo, ParamLen, ...params, CrcHi, CrcLo]
 // NOTE: 4-Way Address is Big-Endian: [AddrHi, AddrLo] (e.g. 0xF800 -> [0xF8, 0x00] giving CRC 0x93F4)
 export async function send4WayCmd(writer, reader, cmd, addr = 0, params = [], timeoutMs = 2500) {
+    // Drain any stale leftover bytes from a previous timed-out response before sending
+    const existingSession = readerBuffers.get(reader);
+    if (existingSession && existingSession.buffer.length > 0) {
+        existingSession.buffer = new Uint8Array(0);
+    }
+
     const pLen = params.length > 255 ? 0 : params.length;
     const addrHi = (addr >> 8) & 0xFF;
     const addrLo = addr & 0xFF;
