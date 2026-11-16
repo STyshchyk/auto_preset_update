@@ -2,7 +2,7 @@
  * Drone Setup Station - Version & Build Information
  * Automatically updated on deployment.
  */
-export const APP_VERSION = 'v1.0.15';
+export const APP_VERSION = 'v1.0.16';
 export const APP_BUILD_DATE = '2026-11-16';
 
 export function initVersionBadge() {
