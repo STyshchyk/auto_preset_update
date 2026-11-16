@@ -270,7 +270,6 @@ export async function applyEscPreset() {
                 }
             }
             setEscFlowStep('verify', 'success');
-            setEscFlowStep('status', 'success');
 
             return { results: writeResults };
         });

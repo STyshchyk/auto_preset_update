@@ -195,35 +195,67 @@ export async function executeCliCommand(port, cmdLine) {
  * @param {number} escIndex 0-indexed (0=ESC1, 1=ESC2, 2=ESC3, 3=ESC4, 255=All)
  * @param {number|number[]} dshotCmds DShot command code(s), e.g. [8, 12]
  */
-export async function sendDshotProgCommand(port, escIndex, dshotCmds) {
+function parseMsp2DshotAck(bytes) {
+    if (!bytes || bytes.length === 0) return { ok: false, reason: 'timeout' };
+    for (let i = 0; i <= bytes.length - 6; i++) {
+        if (bytes[i] === 0x24 && bytes[i + 1] === 0x58) { // "$X"
+            if (bytes[i + 2] === 0x21) { // '!' error frame
+                return { ok: false, reason: 'MSPv2 error ($X!)' };
+            }
+            if (bytes[i + 2] === 0x3e && bytes[i + 4] === 0x03 && bytes[i + 5] === 0x30) { // '>' + cmd 0x3003
+                return { ok: true };
+            }
+        }
+    }
+    return { ok: false, reason: 'no matching MSPv2 ACK' };
+}
+
+export async function sendDshotProgCommand(port, escIndex, dshotCmds, maxRetries = 3) {
     if (!port.readable || !port.writable) {
         await port.open({ baudRate: 115200 });
     }
 
     const cmdArray = Array.isArray(dshotCmds) ? dshotCmds : [dshotCmds];
+    let lastReason = 'timeout';
 
-    const writer = port.writable.getWriter();
-    try {
-        // Send each command (e.g. direction 7/8, then save 12) with proper timing for 10x DShot repeats + EEPROM write
-        await sendMsp2DshotCommand(writer, escIndex, cmdArray, DSHOT_CMD_TYPE_BLOCKING);
-        await delay(350);
-    } finally {
-        writer.releaseLock();
-    }
-
-    // Drain any MSPv2 ACK response bytes so port.readable buffer does not fill up
-    if (port.readable && !port.readable.locked) {
-        const reader = port.readable.getReader();
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        console.log(`[DShot ACK] Attempt ${attempt + 1}/${maxRetries + 1} for ESC #${escIndex + 1} (cmds: [${cmdArray.join(', ')}])...`);
+        const writer = port.writable.getWriter();
         try {
-            await Promise.race([
-                reader.read(),
-                new Promise((resolve) => setTimeout(resolve, 40))
-            ]).catch(() => {});
+            // Send each command (e.g. direction 7/8, then save 12) with proper timing for 10x DShot repeats + EEPROM write
+            await sendMsp2DshotCommand(writer, escIndex, cmdArray, DSHOT_CMD_TYPE_BLOCKING);
+            await delay(350);
         } finally {
+            writer.releaseLock();
+        }
+
+        // Verify MSPv2 ACK response from Betaflight FC
+        if (port.readable && !port.readable.locked) {
+            const reader = port.readable.getReader();
             try {
-                await reader.cancel();
-            } catch (_) {}
-            reader.releaseLock();
+                const res = await Promise.race([
+                    reader.read(),
+                    new Promise((resolve) => setTimeout(() => resolve({ value: null, done: true }), 150))
+                ]).catch(() => ({ value: null, done: true }));
+                const ack = parseMsp2DshotAck(res?.value);
+                if (ack.ok) {
+                    console.log(`[DShot ACK] Attempt ${attempt + 1} succeeded ($X> ACK received).`);
+                    return true;
+                }
+                lastReason = ack.reason;
+                console.warn(`[DShot ACK] Attempt ${attempt + 1} failed: ${lastReason}`);
+            } finally {
+                try {
+                    await reader.cancel();
+                } catch (_) {}
+                reader.releaseLock();
+            }
+        }
+
+        if (attempt < maxRetries) {
+            await delay(150);
         }
     }
+
+    throw new Error(`Не отримано підтвердження (ACK) від FC для команди DShot (${lastReason}).`);
 }

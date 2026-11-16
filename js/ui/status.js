@@ -112,7 +112,7 @@ export function setEscBadge(escIndex, state, text) {
 
 /**
  * Updates an individual stage in the ESC Flow Pipeline.
- * @param {'connect'|'flash'|'verify'|'status'|'close'} stage
+ * @param {'connect'|'flash'|'verify'|'close'} stage
  * @param {'awaiting'|'working'|'success'|'fail'} state
  * @param {string} [customLabel]
  */
@@ -121,7 +121,6 @@ export function setEscFlowStep(stage, state, customLabel = null) {
         connect: 'escFlowConnect',
         flash:   'escFlowFlash',
         verify:  'escFlowVerify',
-        status:  'escFlowStatus',
         close:   'escFlowClose'
     };
     const id = map[stage];
@@ -137,7 +136,6 @@ export function setEscFlowStep(stage, state, customLabel = null) {
         connect: '🔗',
         flash:   '⚡',
         verify:  '🔍',
-        status:  '🎯',
         close:   '🔒'
     };
 
@@ -154,15 +152,14 @@ export function setEscFlowStep(stage, state, customLabel = null) {
 }
 
 /**
- * Resets all 5 stages in the ESC flow pipeline.
+ * Resets all 4 stages in the ESC flow pipeline.
  */
 export function resetEscFlowPipeline() {
     const stages = [
         { key: 'connect', label: '1. Підключення' },
         { key: 'flash',   label: '2. Заливка' },
         { key: 'verify',  label: '3. Перевірка' },
-        { key: 'status',  label: '4. Статус OK' },
-        { key: 'close',   label: '5. Закриття' }
+        { key: 'close',   label: '4. Закриття' }
     ];
     stages.forEach(s => setEscFlowStep(s.key, 'awaiting', s.label));
 }
