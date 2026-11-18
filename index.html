@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <title>Drone Setup Station: Betaflight & BLHeli_32 Configurator</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/components.css">
@@ -792,7 +793,7 @@ save
                 <span class="badge">Serial Console</span>
             </div>
         </div>
-        <div id="log">Очікування підключення пристрою...</div>
+        <div id="log" aria-live="polite">Очікування підключення пристрою...</div>
     </div>
         </main>
 
@@ -806,7 +807,7 @@ save
                 </div>
 
                 <!-- Overall Outcome Banner -->
-                <div class="prog-banner ready" id="progBanner">
+                <div class="prog-banner ready" id="progBanner" aria-live="polite">
                     <div class="banner-title"><span class="banner-icon">🎯</span> <strong>Готовий до запуску</strong></div>
                     <div class="banner-details">Підключіть USB та LiPo, потім натисніть кнопку «Почати налаштування».</div>
                 </div>
@@ -924,7 +925,7 @@ save
 </div>
 
 <!-- Auto-fading / Error Modal -->
-<div id="statusModal" class="modal">
+<div id="statusModal" class="modal" role="dialog" aria-modal="true">
     <div id="modalBox" class="modal-box">
         <h3 id="modalTitle">Статус</h3>
         <p id="modalMsg"></p>
@@ -933,7 +934,7 @@ save
 </div>
 
 <!-- Operator Instructions Agreement Modal (One-time) -->
-<div id="instructionsModal" class="modal">
+<div id="instructionsModal" class="modal" role="dialog" aria-modal="true">
     <div class="modal-box modal-operator-agreement">
         <div class="modal-header-row">
             <h3>📋 Інструктаж оператора станції</h3>

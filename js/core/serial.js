@@ -131,6 +131,9 @@ export async function resolveSelectedPort(log) {
             if (portSelect && portSelect.value !== 'new' && state.availablePorts[portSelect.value]) {
                 return state.availablePorts[portSelect.value];
             }
+            if (portSelect && portSelect.value === 'new') {
+                break;
+            }
             if (state.availablePorts && state.availablePorts.length > 0) {
                 return state.availablePorts[0];
             }

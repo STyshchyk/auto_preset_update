@@ -173,12 +173,21 @@ export function updateEscInfoPanel(escList = []) {
     // 2. Модель процесора (MCU Signature)
     const elMcu = document.getElementById('infoEscMcu');
     if (elMcu) {
-        if (detectedMcu && (detectedMcu === detectedSig || detectedMcu.startsWith('0x'))) {
-            elMcu.innerHTML = `<span style="color:#fff">${detectedMcu}</span>`;
-        } else if (detectedMcu && detectedSig) {
-            elMcu.innerHTML = `<span style="color:#fff">${detectedMcu}</span> <span style="font-size:10px; color:#888;">(${detectedSig})</span>`;
+        elMcu.textContent = '';
+        if (detectedMcu) {
+            const mcuSpan = document.createElement('span');
+            mcuSpan.style.color = '#fff';
+            mcuSpan.textContent = detectedMcu;
+            elMcu.appendChild(mcuSpan);
+            if (detectedSig && detectedMcu !== detectedSig && !detectedMcu.startsWith('0x')) {
+                const sigSpan = document.createElement('span');
+                sigSpan.style.fontSize = '10px';
+                sigSpan.style.color = '#888';
+                sigSpan.textContent = ` (${detectedSig})`;
+                elMcu.appendChild(sigSpan);
+            }
         } else {
-            elMcu.textContent = detectedMcu || '—';
+            elMcu.textContent = '—';
         }
     }
     const normSig = (detectedSig || '').toUpperCase();

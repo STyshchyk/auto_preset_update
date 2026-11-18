@@ -7,7 +7,7 @@ import { initSerialEvents } from './core/serial.js';
 import { log, exportLogsToJson, clearTerminalAndDbLogs } from './ui/log.js';
 import { resetAllStepStatuses } from './ui/status.js';
 import { resetInfoPanel } from './ui/infoPanel.js';
-import { closeModal, ensureInstructionsAcknowledged } from './ui/modal.js';
+import { showPopup, closeModal, ensureInstructionsAcknowledged } from './ui/modal.js';
 import { 
     flashBetaflightPreset, 
     skipToEsc, 
@@ -31,6 +31,24 @@ import { initVersionBadge } from './core/version.js';
 
 // Expose closeModal globally for modal HTML onclick handler
 window.closeModal = closeModal;
+
+// Global error boundary for unhandled async/sync failures
+window.addEventListener('unhandledrejection', (event) => {
+    const msg = event.reason?.message || String(event.reason || 'Unknown async error');
+    log(`Необроблена помилка: ${msg}`, 'error');
+});
+
+window.addEventListener('error', (event) => {
+    if (event.message) {
+        log(`Системна помилка: ${event.message}`, 'error');
+    }
+});
+
+if (!('serial' in navigator)) {
+    const msg = 'Web Serial API не підтримується цим браузером. Використовуйте Chrome або Edge через HTTPS.';
+    log(msg, 'error');
+    showPopup('error', 'Браузер не підтримується', msg);
+}
 
 // DOM Elements
 const btnFlashFC          = document.getElementById('btnFlashFC');
