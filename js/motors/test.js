@@ -245,6 +245,9 @@ export async function spinAllMotors() {
             log(`Мотори обертаються (${targetThrottle}µs). Перевірте напрямок кожного мотора.`);
         });
     } catch (e) {
+        if (e.message && e.message.toLowerCase().includes('device has been lost')) {
+            await closeSerialSession().catch(() => {});
+        }
         log(`Помилка пуску моторів: ${e.message}`, 'error');
         showPopup('error', 'Помилка пуску', `Не вдалося запустити мотори: ${e.message}`);
         if (document.body.classList.contains('simplified-mode')) {
@@ -282,6 +285,9 @@ export async function stopAllMotors() {
         });
         return true;
     } catch (e) {
+        if (e.message && e.message.toLowerCase().includes('device has been lost')) {
+            await closeSerialSession().catch(() => {});
+        }
         log(`Помилка зупинки моторів: ${e.message}`, 'error');
         return false;
     }
@@ -349,6 +355,9 @@ export async function toggleMotorDirection(motorIndex) {
             log(`Обертання моторів відновлено (${targetThrottle}µs).`);
         }
     } catch (e) {
+        if (e.message && e.message.toLowerCase().includes('device has been lost')) {
+            await closeSerialSession().catch(() => {});
+        }
         log(`Помилка зміни напрямку мотора #${motorIndex + 1}: ${e.message}`, 'error');
         showPopup('error', 'Помилка реверсу', e.message);
         if (document.body.classList.contains('simplified-mode')) {
@@ -550,13 +559,13 @@ export function initMotorControls() {
                 const port = state.port;
                 if (port && port.writable && !port.writable.locked) {
                     isThrottleUpdating = true;
-                    const writer = port.writable.getWriter();
                     try {
-                        await setMotorOutputs(writer, [val, val, val, val]);
+                        await withMotorPortWriter(port, async (writer) => {
+                            await setMotorOutputs(writer, [val, val, val, val]);
+                        });
                     } catch (err) {
                         // ignore live slider transmission glitches
                     } finally {
-                        writer.releaseLock();
                         isThrottleUpdating = false;
                     }
                 }
