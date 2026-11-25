@@ -69,3 +69,17 @@ Single-page HTML application.
 - Before starting any new task, verify current working state and recent modifications (check PROJECT_STATUS.md and latest summary in docs/).
 - Inspect git diff or status to ensure no unverified or stray changes exist.
 - Cross-reference board targets, MCU IDs, or binary presets against verified documentation before flashing or refactoring.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked in GitHub Issues (`gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`GLOSSARY.md` and `docs/adr/` at repo root). See `docs/agents/domain.md`.
