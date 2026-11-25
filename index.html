@@ -276,22 +276,24 @@ defaults nosave
 board_name SPEDIXF722
 manufacturer_id SPDX
 mcu_id 0023003e3036510834323839
-signature 
+signature
 
 # name: T-System 15
 
 # resources
 resource MOTOR 5 NONE
-resource SERVO 1 B06
+resource SERVO 1 A03
+resource SERIAL_TX 2 NONE
+resource SERIAL_RX 2 A02
 
 # feature
 feature SERVO_TILT
-feature GPS
 feature OSD
 feature ESC_SENSOR
 
 # serial
-serial 2 2 115200 57600 0 115200
+serial 0 64 115200 57600 0 115200
+serial 1 0 115200 57600 0 115200
 serial 4 1024 115200 57600 0 115200
 
 # servo
